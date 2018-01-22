@@ -19,7 +19,7 @@ public class ConsoleApp {
     }
 
     public static void main(String[] args) throws Exception {
-        String confFilePath = args.length > 0 ? args[0] : "alexp/demo/batch.yaml";
+        String confFilePath = args.length > 0 ? args[0] : "alexp/demo/batch_xlsx.yaml";
         if (!Files.exists(Paths.get(confFilePath))) {
             System.out.println("Specify config file");
             System.exit(1);

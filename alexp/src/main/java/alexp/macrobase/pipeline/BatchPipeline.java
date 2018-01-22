@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.ingest.XlsxDataFrameParser;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
@@ -86,6 +87,13 @@ public class BatchPipeline implements Pipeline {
         return summarizer.getResults();
     }
 
+    private DataFrame loadDataFrame(String inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
+        if (inputURI.startsWith("xls://")) {
+            return new XlsxDataFrameParser(inputURI.substring(6), requiredColumns, 0).load();
+        }
+        return PipelineUtils.loadDataFrame(inputURI, colTypes, requiredColumns);
+    }
+
     private DataFrame loadData() throws Exception {
         Map<String, Schema.ColType> colTypes = new HashMap<>();
         if (isStrPredicate) {
@@ -96,7 +104,7 @@ public class BatchPipeline implements Pipeline {
         }
         List<String> requiredColumns = new ArrayList<>(attributes);
         requiredColumns.add(metric);
-        return PipelineUtils.loadDataFrame(inputURI, colTypes, requiredColumns);
+        return loadDataFrame(inputURI, colTypes, requiredColumns);
     }
 
     private Classifier getClassifier() throws MacrobaseException {
