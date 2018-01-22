@@ -43,6 +43,7 @@
       <!-- <module>contrib</module> -->
       <module>lib</module>
       <module>core</module>
+      <module>alexp</module>
     </modules>
 
   <dependencies>
