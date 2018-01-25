@@ -1,0 +1,16 @@
+pipeline: "BasicBatchPipeline"
+
+inputURI: "http://109.120.169.99/data.php"
+
+classifier: "percentile"
+metric: "usage"
+cutoff: 1.0
+includeHi: true
+includeLo: true
+
+summarizer: "incremental"
+attributes:
+  - "location"
+  - "version"
+minSupport: 0.2
+numPanes: 2
