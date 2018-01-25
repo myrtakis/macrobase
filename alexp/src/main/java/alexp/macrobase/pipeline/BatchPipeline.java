@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameParser;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BatchPipeline implements Pipeline {
-    private String inputURI = null;
+    private final Uri inputURI;
 
     private String classifierType;
     private String metric;
@@ -43,7 +44,7 @@ public class BatchPipeline implements Pipeline {
     private double minRiskRatio;
 
     public BatchPipeline(PipelineConfig conf) {
-        inputURI = conf.get("inputURI");
+        inputURI = new Uri(conf.get("inputURI"));
 
         classifierType = conf.get("classifier", "percentile");
         metric = conf.get("metric");
@@ -87,11 +88,13 @@ public class BatchPipeline implements Pipeline {
         return summarizer.getResults();
     }
 
-    private DataFrame loadDataFrame(String inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
-        if (inputURI.startsWith("xls://")) {
-            return new XlsxDataFrameParser(inputURI.substring(6), requiredColumns, 0).load();
+    private DataFrame loadDataFrame(Uri inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
+        switch (inputURI.getType()) {
+            case XLSX:
+                return new XlsxDataFrameParser(inputURI.getPath(), requiredColumns, 0).load();
+            default:
+                return PipelineUtils.loadDataFrame(inputURI.getOriginalString(), colTypes, requiredColumns);
         }
-        return PipelineUtils.loadDataFrame(inputURI, colTypes, requiredColumns);
     }
 
     private DataFrame loadData() throws Exception {
