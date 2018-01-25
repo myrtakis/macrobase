@@ -8,7 +8,7 @@ import org.apache.poi.xssf.usermodel.*;
 import java.io.*;
 import java.util.*;
 
-public class XlsxDataFrameParser implements DataFrameLoader {
+public class XlsxDataFrameReader implements DataFrameLoader {
     private class ColumnInfo {
         public final String name;
         public final Schema.ColType type;
@@ -24,7 +24,7 @@ public class XlsxDataFrameParser implements DataFrameLoader {
     private final TableRange tableRange;
     private Map<String, Schema.ColType> columnTypes = new HashMap<>();
 
-    public XlsxDataFrameParser(String filePath, Collection<String> requiredColumns, int sheetIndex, TableRange tableRange) throws IOException {
+    public XlsxDataFrameReader(String filePath, Collection<String> requiredColumns, int sheetIndex, TableRange tableRange) throws IOException {
         this.requiredColumns = new HashSet<>(requiredColumns);
         this.tableRange = tableRange;
 
@@ -32,7 +32,7 @@ public class XlsxDataFrameParser implements DataFrameLoader {
         sheet = wb.getSheetAt(sheetIndex);
     }
 
-    public XlsxDataFrameParser(String filePath, List<String> requiredColumns, int sheetIndex) throws IOException {
+    public XlsxDataFrameReader(String filePath, List<String> requiredColumns, int sheetIndex) throws IOException {
         this(filePath, requiredColumns, sheetIndex, new TableRange());
     }
 

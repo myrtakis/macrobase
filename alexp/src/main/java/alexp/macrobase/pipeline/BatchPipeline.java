@@ -1,7 +1,7 @@
 package alexp.macrobase.pipeline;
 
 import alexp.macrobase.ingest.Uri;
-import alexp.macrobase.ingest.XlsxDataFrameParser;
+import alexp.macrobase.ingest.XlsxDataFrameReader;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
@@ -91,7 +91,7 @@ public class BatchPipeline implements Pipeline {
     private DataFrame loadDataFrame(Uri inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
         switch (inputURI.getType()) {
             case XLSX:
-                return new XlsxDataFrameParser(inputURI.getPath(), requiredColumns, 0).load();
+                return new XlsxDataFrameReader(inputURI.getPath(), requiredColumns, 0).load();
             default:
                 return PipelineUtils.loadDataFrame(inputURI.getOriginalString(), colTypes, requiredColumns);
         }
