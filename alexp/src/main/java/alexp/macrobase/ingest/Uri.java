@@ -5,7 +5,8 @@ public class Uri {
         UNKNOWN,
         CSV,
         XLSX,
-        HTTP
+        HTTP,
+        JDBC
     }
 
     private final String originalString;
@@ -17,27 +18,29 @@ public class Uri {
     public Uri(String originalString) {
         this.originalString = originalString;
 
-        if (!originalString.contains("://")) {
+        if (!originalString.contains(":")) {
             type = Type.UNKNOWN;
             path = originalString;
             typeString = "";
         } else {
-            String[] parts = originalString.split("://");
+            typeString = originalString.substring(0, originalString.indexOf(":")).toLowerCase();
 
-            typeString = parts[0].toLowerCase();
-
-            switch (parts[0].toLowerCase()) {
+            switch (typeString.toLowerCase()) {
                 case "csv":
                     type = Type.CSV;
-                    path = parts[1];
+                    path = originalString.substring(typeString.length() + 1).replace("//", "");
                     break;
                 case "xls":
                     type = Type.XLSX;
-                    path = parts[1];
+                    path = originalString.substring(typeString.length() + 1).replace("//", "");
                     break;
                 case "http":
                 case "https":
                     type = Type.HTTP;
+                    path = originalString;
+                    break;
+                case "jdbc":
+                    type = Type.JDBC;
                     path = originalString;
                     break;
                 default:

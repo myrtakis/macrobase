@@ -22,6 +22,9 @@ public class UriTest {
         assertEquals("https://site.com/data", new Uri("https://site.com/data").getPath());
         assertEquals("https", new Uri("https://site.com/data").getTypeString());
 
+        assertEquals(Uri.Type.JDBC, new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").getType());
+        assertEquals("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword", new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").getPath());
+
         assertEquals(Uri.Type.UNKNOWN, new Uri("some/path").getType());
         assertEquals("some/path", new Uri("some/path").getPath());
         assertEquals("", new Uri("some/path").getTypeString());
