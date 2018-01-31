@@ -1,6 +1,7 @@
 package alexp.macrobase.pipeline;
 
 import alexp.macrobase.ingest.HttpCsvStreamReader;
+import alexp.macrobase.ingest.SqlStreamReader;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -81,10 +82,6 @@ public class StreamingPipeline {
     }
 
     private StreamingDataFrameLoader getDataLoader() throws Exception {
-        if (inputURI.getType() != Uri.Type.HTTP) {
-            throw new Exception("Unsupported input protocol");
-        }
-
         Map<String, Schema.ColType> colTypes = new HashMap<>();
         if (isStrPredicate) {
             colTypes.put(metric, Schema.ColType.STRING);
@@ -95,8 +92,16 @@ public class StreamingPipeline {
         List<String> requiredColumns = new ArrayList<>(attributes);
         requiredColumns.add(metric);
 
-        return new HttpCsvStreamReader(inputURI.getPath(), requiredColumns)
-                .setColumnTypes(colTypes);
+        switch (inputURI.getType()) {
+            case HTTP:
+                return new HttpCsvStreamReader(inputURI.getPath(), requiredColumns)
+                        .setColumnTypes(colTypes);
+            case JDBC:
+                return new SqlStreamReader(inputURI.getPath(), requiredColumns, sqlQuery, idColumn)
+                        .setColumnTypes(colTypes);
+            default:
+                throw new Exception("Unsupported input protocol");
+        }
     }
 
     private Classifier getClassifier() throws MacrobaseException {

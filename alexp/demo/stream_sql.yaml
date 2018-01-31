@@ -1,0 +1,21 @@
+pipeline: "BasicBatchPipeline"
+
+inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
+table: "sensor_data"
+query: "SELECT * FROM sensor_data"
+idColumn: "reading_id"
+
+classifier: "percentile"
+metric: "power_drain"
+cutoff: 1.0
+includeHi: true
+includeLo: false
+
+summarizer: "windowed"
+attributes:
+  - "firmware_version"
+  - "model"
+minSupport: 0.2
+windowLength: 6000
+slideLength: 1000
+timeColumn: "reading_id"
