@@ -35,6 +35,7 @@ public class BatchPipeline implements Pipeline {
     private boolean pctileHigh;
     private boolean pctileLow;
     private String predicateStr;
+    private int numThreads;
 
     private String summarizerType;
     private List<String> attributes;
@@ -70,6 +71,8 @@ public class BatchPipeline implements Pipeline {
         ratioMetric = conf.get("ratioMetric", "globalRatio");
         minRiskRatio = conf.get("minRatioMetric", 3.0);
         minSupport = conf.get("minSupport", 0.01);
+
+        numThreads = conf.get("numThreads", Runtime.getRuntime().availableProcessors());
     }
 
     @Override
@@ -153,6 +156,7 @@ public class BatchPipeline implements Pipeline {
                 summarizer.setMinSupport(minSupport);
                 summarizer.setMinRiskRatio(minRiskRatio);
                 summarizer.setUseAttributeCombinations(true);
+                summarizer.setNumThreads(numThreads);
                 return summarizer;
             }
             case "apriori":
@@ -162,6 +166,7 @@ public class BatchPipeline implements Pipeline {
                 summarizer.setAttributes(attributes);
                 summarizer.setMinSupport(minSupport);
                 summarizer.setMinRatioMetric(minRiskRatio);
+                summarizer.setNumThreads(numThreads);
                 return summarizer;
             }
             default: {
