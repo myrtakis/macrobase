@@ -19,6 +19,7 @@ public class SqlStreamReader implements StreamingDataFrameLoader {
     private final String query;
     private final String idColumn;
     private Map<String, Schema.ColType> columnTypes = new HashMap<>();
+    private Integer maxBatchSize = 10000;
 
     private Connection connection;
     private Statement statement;
@@ -43,6 +44,11 @@ public class SqlStreamReader implements StreamingDataFrameLoader {
         return this;
     }
 
+    public SqlStreamReader setMaxBatchSize(Integer maxBatchSize) {
+        this.maxBatchSize = maxBatchSize;
+        return this;
+    }
+
     @Override
     public void load(ThrowingConsumer<DataFrame> resultCallback) throws Exception {
         while (true) {
@@ -58,6 +64,8 @@ public class SqlStreamReader implements StreamingDataFrameLoader {
 
     private DataFrame loadData() throws Exception {
         String query = String.format("%s WHERE %s > %d ORDER BY %s", this.query, idColumn, maxId, idColumn);
+
+        statement.setMaxRows(maxBatchSize);
 
         ResultSet rs = statement.executeQuery(query);
         if (rs.next()) {
