@@ -3,6 +3,7 @@ package alexp.macrobase.pipeline;
 import alexp.macrobase.ingest.SqlDataFrameReader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameReader;
+import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class BatchPipeline implements Pipeline {
     private final Uri inputURI;
@@ -84,17 +86,29 @@ public class BatchPipeline implements Pipeline {
 
     @Override
     public Explanation results() throws Exception {
+        Stopwatch sw = Stopwatch.createStarted();
+
         DataFrame df = loadData();
+
+        final long loadMs = sw.elapsed(TimeUnit.MILLISECONDS);
+        sw = Stopwatch.createStarted();
 
         Classifier classifier = getClassifier();
         classifier.process(df);
         df = classifier.getResults();
 
+        final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
+        sw = Stopwatch.createStarted();
+
         BatchSummarizer summarizer = getSummarizer(classifier.getOutputColumnName());
-
         summarizer.process(df);
+        Explanation explanation = summarizer.getResults();
 
-        return summarizer.getResults();
+        final long explanationMs = sw.elapsed(TimeUnit.MILLISECONDS);
+
+        System.out.printf("Load time: %d ms\nClassification time: %d ms\nSummarization time: %d ms\n", loadMs, classifierMs, explanationMs);
+
+        return explanation;
     }
 
     private DataFrame loadDataFrame(Uri inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
