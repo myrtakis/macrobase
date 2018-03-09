@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.ingest.SqlDataFrameReader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameReader;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -27,6 +28,8 @@ import java.util.Map;
 public class BatchPipeline implements Pipeline {
     private final Uri inputURI;
 
+    private String sqlQuery;
+
     private String classifierType;
     private String metric;
     private double cutoff;
@@ -48,6 +51,10 @@ public class BatchPipeline implements Pipeline {
 
         classifierType = conf.get("classifier", "percentile");
         metric = conf.get("metric");
+
+        if (inputURI.getType() == Uri.Type.JDBC) {
+            sqlQuery = conf.get("query");
+        }
 
         if (classifierType.equals("predicate")) {
             Object rawCutoff = conf.get("cutoff");
@@ -94,6 +101,8 @@ public class BatchPipeline implements Pipeline {
         switch (inputURI.getType()) {
             case XLSX:
                 return new XlsxDataFrameReader(inputURI.getPath(), requiredColumns, 0).load();
+            case JDBC:
+                return new SqlDataFrameReader(inputURI.getPath(), requiredColumns, sqlQuery).load();
             default:
                 return PipelineUtils.loadDataFrame(inputURI.getOriginalString(), colTypes, requiredColumns);
         }
