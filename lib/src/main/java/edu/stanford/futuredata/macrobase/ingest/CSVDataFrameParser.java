@@ -29,22 +29,22 @@ public class CSVDataFrameParser implements DataFrameLoader {
         this.parser = parser;
     }
 
-    public CSVDataFrameParser(String fileName, List<String> requiredColumns) throws IOException {
+    public CSVDataFrameParser(String filename, List<String> requiredColumns) throws IOException {
         this.requiredColumns = requiredColumns;
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("\n");
         CsvParser csvParser = new CsvParser(settings);
-        csvParser.beginParsing(getReader(fileName));
+        csvParser.beginParsing(getReader(filename));
         this.parser = csvParser;
     }
 
-    public CSVDataFrameParser(String fileName, Map<String, Schema.ColType> types) throws IOException {
+    public CSVDataFrameParser(String filename, Map<String, Schema.ColType> types) throws IOException {
         this.requiredColumns = new ArrayList<>(types.keySet());
         this.columnTypes = types;
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator("\n");
         CsvParser csvParser = new CsvParser(settings);
-        csvParser.beginParsing(getReader(fileName));
+        csvParser.beginParsing(getReader(filename));
         this.parser = csvParser;
     }
 
@@ -112,7 +112,7 @@ public class CSVDataFrameParser implements DataFrameLoader {
                     } else if (t == Schema.ColType.DOUBLE) {
                         try {
                             doubleColumns[doubleColNum].add(Double.parseDouble(rowValue));
-                        } catch (NumberFormatException e) {
+                        } catch (NumberFormatException | NullPointerException e) {
                             doubleColumns[doubleColNum].add(Double.NaN);
                             doubleParseFailures++;
                         }
@@ -132,7 +132,8 @@ public class CSVDataFrameParser implements DataFrameLoader {
 
     private static Reader getReader(String path) {
         try {
-            InputStream targetStream = new FileInputStream(path);
+            InputStream targetStream = new FileInputStream(
+                path.replaceFirst("^~", System.getProperty("user.home")));
             return new InputStreamReader(targetStream, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("File " + path + "is not encoded using UTF-8", e);
