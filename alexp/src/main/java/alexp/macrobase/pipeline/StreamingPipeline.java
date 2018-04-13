@@ -15,7 +15,7 @@ import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
 import edu.stanford.futuredata.macrobase.operator.WindowedOperator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
-import edu.stanford.futuredata.macrobase.util.MacrobaseException;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -123,7 +123,7 @@ public class StreamingPipeline {
         }
     }
 
-    private Classifier getClassifier() throws MacrobaseException {
+    private Classifier getClassifier() throws MacroBaseException {
         switch (classifierType.toLowerCase()) {
             case "percentile": {
                 PercentileClassifier classifier = new PercentileClassifier(metric);
@@ -139,12 +139,12 @@ public class StreamingPipeline {
                 return new PredicateClassifier(metric, predicateStr, cutoff);
             }
             default : {
-                throw new MacrobaseException("Bad Classifier Type");
+                throw new MacroBaseException("Bad Classifier Type");
             }
         }
     }
 
-    private Operator<DataFrame, ? extends Explanation> getSummarizer(String outlierColumnName) throws MacrobaseException {
+    private Operator<DataFrame, ? extends Explanation> getSummarizer(String outlierColumnName) throws MacroBaseException {
         switch (summarizerType.toLowerCase()) {
             case "incremental": {
                 IncrementalSummarizer summarizer = new IncrementalSummarizer();
@@ -169,7 +169,7 @@ public class StreamingPipeline {
                 return windowedSummarizer;
             }
             default: {
-                throw new MacrobaseException("Bad Summarizer Type");
+                throw new MacroBaseException("Bad Summarizer Type");
             }
         }
     }

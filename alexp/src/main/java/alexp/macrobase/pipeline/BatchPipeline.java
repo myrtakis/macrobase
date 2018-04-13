@@ -19,7 +19,7 @@ import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.Pipeline;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
-import edu.stanford.futuredata.macrobase.util.MacrobaseException;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -135,7 +135,7 @@ public class BatchPipeline implements Pipeline {
         return loadDataFrame(inputURI, colTypes, requiredColumns);
     }
 
-    private Classifier getClassifier() throws MacrobaseException {
+    private Classifier getClassifier() throws MacroBaseException {
         switch (classifierType.toLowerCase()) {
             case "percentile": {
                 PercentileClassifier classifier = new PercentileClassifier(metric);
@@ -151,12 +151,12 @@ public class BatchPipeline implements Pipeline {
                 return new PredicateClassifier(metric, predicateStr, cutoff);
             }
             default : {
-                throw new MacrobaseException("Bad Classifier Type");
+                throw new MacroBaseException("Bad Classifier Type");
             }
         }
     }
 
-    private ExplanationMetric getRatioMetric() throws MacrobaseException {
+    private ExplanationMetric getRatioMetric() throws MacroBaseException {
         switch (ratioMetric.toLowerCase()) {
             case "globalratio": {
                 return new GlobalRatioMetric();
@@ -165,12 +165,12 @@ public class BatchPipeline implements Pipeline {
                 return new RiskRatioMetric();
             }
             default: {
-                throw new MacrobaseException("Bad Ratio Metric");
+                throw new MacroBaseException("Bad Ratio Metric");
             }
         }
     }
 
-    private BatchSummarizer getSummarizer(String outlierColumnName) throws MacrobaseException {
+    private BatchSummarizer getSummarizer(String outlierColumnName) throws MacroBaseException {
         switch (summarizerType.toLowerCase()) {
             case "fpgrowth": {
                 FPGrowthSummarizer summarizer = new FPGrowthSummarizer();
@@ -193,7 +193,7 @@ public class BatchPipeline implements Pipeline {
                 return summarizer;
             }
             default: {
-                throw new MacrobaseException("Bad Summarizer Type");
+                throw new MacroBaseException("Bad Summarizer Type");
             }
         }
     }
