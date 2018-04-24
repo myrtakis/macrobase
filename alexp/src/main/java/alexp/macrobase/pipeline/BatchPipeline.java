@@ -3,6 +3,7 @@ package alexp.macrobase.pipeline;
 import alexp.macrobase.ingest.SqlDataFrameReader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameReader;
+import alexp.macrobase.outlier.mcod.McodClassifier;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
@@ -41,6 +42,10 @@ public class BatchPipeline implements Pipeline {
     private boolean pctileLow;
     private String predicateStr;
     private int numThreads;
+    private double maxDistance;
+    private int minNeighborCount;
+    private int windowSize;
+    private int slide;
 
     private String summarizerType;
     private List<String> attributes;
@@ -74,6 +79,11 @@ public class BatchPipeline implements Pipeline {
         pctileHigh = conf.get("includeHi",true);
         pctileLow = conf.get("includeLo", true);
         predicateStr = conf.get("predicate", "==").trim();
+
+        maxDistance = conf.get("maxDistance", 1.0);
+        minNeighborCount = conf.get("minNeighborCount", 30);
+        windowSize = conf.get("classifierWindowSize", 9999);
+        slide = conf.get("classifierSlide", 9999);
 
         summarizerType = conf.get("summarizer", "apriori");
         attributes = conf.get("attributes");
@@ -137,6 +147,14 @@ public class BatchPipeline implements Pipeline {
 
     private Classifier getClassifier() throws MacroBaseException {
         switch (classifierType.toLowerCase()) {
+            case "mcod": {
+                McodClassifier classifier = new McodClassifier(metric);
+                classifier.setMaxDistance(maxDistance);
+                classifier.setMinNeighborCount(minNeighborCount);
+                classifier.setWindowSize(windowSize);
+                classifier.setSlide(slide);
+                return classifier;
+            }
             case "percentile": {
                 PercentileClassifier classifier = new PercentileClassifier(metric);
                 classifier.setPercentile(cutoff);

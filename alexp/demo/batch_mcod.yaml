@@ -1,0 +1,18 @@
+pipeline: "BasicBatchPipeline"
+
+inputURI: "csv://alexp/demo/sample.csv"
+
+classifier: "mcod"
+metric: "usage"
+maxDistance: 1.0
+minNeighborCount: 30
+classifierWindowSize: 9999
+classifierSlide: 9999
+
+summarizer: "aplinear"
+attributes:
+  - "location"
+  - "version"
+ratioMetric: "globalratio"
+minRatioMetric: 10.0
+minSupport: 0.2
