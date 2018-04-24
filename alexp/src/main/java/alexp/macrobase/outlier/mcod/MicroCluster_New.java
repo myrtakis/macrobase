@@ -20,13 +20,17 @@ import java.util.PriorityQueue;
 import alexp.macrobase.outlier.mcod.mtree.MTreeClass;
 import alexp.macrobase.outlier.mcod.mtree.tests.Data;
 import alexp.macrobase.outlier.mcod.mtree.tests.MesureMemoryThread;
-import alexp.macrobase.outlier.mcod.mtree.utils.Constants;
 import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
 
 /**
  * @author Luan
  */
 public class MicroCluster_New {
+    
+    private double maxDistance = 1; // R in paper
+    private int minNeighborCount = 30; // k in paper
+    private int windowSize = 1000; // W in paper
+    private int slide = 500;
 
     public static HashMap<Integer, MCO> dataList_set = new HashMap<>();
     public static HashMap<Integer, ArrayList<MCO>> micro_clusters = new HashMap<>();
@@ -41,15 +45,22 @@ public class MicroCluster_New {
     public static double avgNumPointsInEventQueue = 0;
     public static double avgNeighborListLength = 0;
 
-    public ArrayList<Data> detectOutlier(ArrayList<Data> data, int currentTime, int W, int slide) {
+    public MicroCluster_New(double maxDistance, int minNeighborCount, int windowSize, int slide) {
+        this.maxDistance = maxDistance;
+        this.minNeighborCount = minNeighborCount;
+        this.windowSize = windowSize;
+        this.slide = slide;
+    }
+
+    public ArrayList<Data> detectOutlier(ArrayList<Data> data, int currentTime) {
 
         ArrayList<Data> result = new ArrayList<>();
 
-        if (slide != W) {
+        if (slide != windowSize) {
             //purge expire object
             for (int i = dataList.size() - 1; i >= 0; i--) {
                 MCO d = dataList.get(i);
-                if (d.arrivalTime <= currentTime - W) {
+                if (d.arrivalTime <= currentTime - windowSize) {
                     //remove d from data List 
                     dataList.remove(i);
 
@@ -142,7 +153,7 @@ public class MicroCluster_New {
             micro_clusters.put(d.center, cluster);
 
             //cluster is shrinked 
-            if (cluster.size() < Constants.k + 1) {
+            if (cluster.size() < minNeighborCount + 1) {
                 //remove this cluster from micro cluster list 
                 long startTime3 = Utils.getCPUTime();
                 micro_clusters.remove(d.center);
@@ -172,12 +183,12 @@ public class MicroCluster_New {
 //        mtree.remove(d);
 
         //if d is in outlier list 
-        if (d.numberOfSucceeding + d.exps.size() < Constants.k) {
+        if (d.numberOfSucceeding + d.exps.size() < minNeighborCount) {
             outlierList.remove(d);
         }
 
         outlierList.stream().forEach((data) -> {
-            while (data.exps.size() > 0 && data.exps.get(0) <= d.arrivalTime + Constants.W) {
+            while (data.exps.size() > 0 && data.exps.get(0) <= d.arrivalTime + windowSize) {
                 data.exps.remove(0);
                 if (data.exps.isEmpty()) {
                     data.ev = 0;
@@ -212,11 +223,11 @@ public class MicroCluster_New {
         PD.stream().forEach((inPD) -> {
             //compute distance
             double distance = mtree.getDistanceFunction().calculate(o, inPD);
-            if (distance <= Constants.R) {
+            if (distance <= maxDistance) {
                 //check inPD is succeeding or preceding neighbor
                 if (isSameSlide(inPD, o) == -1) {
                     //is preceeding neighbor
-                    o.exps.add(inPD.arrivalTime + Constants.W);
+                    o.exps.add(inPD.arrivalTime + windowSize);
                     if (!fromCluster) {
                         inPD.numberOfSucceeding++;
                     }
@@ -228,7 +239,7 @@ public class MicroCluster_New {
                 } else {
                     o.numberOfSucceeding++;
                     if (!fromCluster) {
-                        inPD.exps.add(o.arrivalTime + Constants.W);
+                        inPD.exps.add(o.arrivalTime + windowSize);
                     }
 
                 }
@@ -249,12 +260,12 @@ public class MicroCluster_New {
                     o.numberOfSucceeding++;
                 } else {
                     //p is preceeding neighbor
-                    o.exps.add(p.arrivalTime + Constants.W);
+                    o.exps.add(p.arrivalTime + windowSize);
                 }
             });
         });
 
-        //keep k-numberofSucceedingNeighbor of o
+        //keep minNeighborCount-numberofSucceedingNeighbor of o
         checkInlier(o);
 
         PD.add(o);
@@ -263,9 +274,9 @@ public class MicroCluster_New {
     }
 
     public int isSameSlide(MCO o1, MCO o2) {
-        if ((o1.arrivalTime - 1) / Constants.slide == (o2.arrivalTime - 1) / Constants.slide) {
+        if ((o1.arrivalTime - 1) / slide == (o2.arrivalTime - 1) / slide) {
             return 0;
-        } else if ((o1.arrivalTime - 1) / Constants.slide < (o2.arrivalTime - 1) / Constants.slide) {
+        } else if ((o1.arrivalTime - 1) / slide < (o2.arrivalTime - 1) / slide) {
             return -1;
         } else {
             return 1;
@@ -298,7 +309,7 @@ public class MicroCluster_New {
             MCO center = dataList_set.get(center_id);
             //compute the distance
             double distance = mtree.getDistanceFunction().calculate(center, d);
-            if (distance <= Constants.R * 3.0 / 2) {
+            if (distance <= maxDistance * 3.0 / 2) {
                 result.add(center_id);
             }
         });
@@ -319,12 +330,12 @@ public class MicroCluster_New {
                     calculate(dataList_set.get(nearest_center_id), d);
         }
         //assign to cluster if min distance <= R/2
-        if (min_distance <= Constants.R / 2) {
+        if (min_distance <= maxDistance / 2) {
             addToCluster(nearest_center_id, d);
         } else {
             //find all neighbors for d in PD that can  form a cluster
             ArrayList<MCO> neighborsInR2Distance = findNeighborR2InPD(d);
-            if (neighborsInR2Distance.size() >= Constants.k * 1.1) {
+            if (neighborsInR2Distance.size() >= minNeighborCount * 1.1) {
                 //form new cluster
                 formNewCluster(d, neighborsInR2Distance);
 
@@ -356,9 +367,9 @@ public class MicroCluster_New {
             //check if inPD is neighbor of d
             double distance = mtree.getDistanceFunction().
                     calculate(d, inPD);
-            if (distance <= Constants.R) {
+            if (distance <= maxDistance) {
                 if (isSameSlide(d, inPD) == -1) {
-                    inPD.exps.add(d.arrivalTime + Constants.W);
+                    inPD.exps.add(d.arrivalTime + windowSize);
 
                 } else if (isSameSlide(d, inPD) >= 0) {
                     inPD.numberOfSucceeding++;
@@ -374,14 +385,14 @@ public class MicroCluster_New {
 
     public ArrayList<MCO> findNeighborR2InPD(MCO d) {
         ArrayList<MCO> results = new ArrayList<>();
-        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= Constants.R * 1.0 / 2)).forEach((o) -> {
+        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance * 1.0 / 2)).forEach((o) -> {
             results.add(o);
         });
         return results;
     }
 
     public boolean isOutlier(MCO d) {
-        return d.numberOfSucceeding + d.exps.size() < Constants.k;
+        return d.numberOfSucceeding + d.exps.size() < minNeighborCount;
     }
 
     private void formNewCluster(MCO d, ArrayList<MCO> neighborsInR2Distance) {
@@ -429,7 +440,7 @@ public class MicroCluster_New {
                 if (isSameSlide(o, d) <= 0) {
                     o.numberOfSucceeding++;
                 } else {
-                    o.exps.add(d.arrivalTime + Constants.W);
+                    o.exps.add(d.arrivalTime + windowSize);
                 }
 //                addToHashMap(o.arrivalTime,d.arrivalTime);
                 checkInlier(o);
@@ -446,7 +457,7 @@ public class MicroCluster_New {
 
         ArrayList<MCO> result = new ArrayList<>();
 
-        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= Constants.R)).forEach((o) -> {
+        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance)).forEach((o) -> {
             result.add(o);
         });
         return result;
@@ -458,7 +469,7 @@ public class MicroCluster_New {
 
         PD.stream().forEach((p) -> {
             double distance = mtree.getDistanceFunction().calculate(p, d);
-            if (distance <= Constants.R * 3.0 / 2) {
+            if (distance <= maxDistance * 3.0 / 2) {
                 result.add(p);
             }
         });
@@ -468,7 +479,7 @@ public class MicroCluster_New {
     private void checkInlier(MCO inPD) {
         Collections.sort(inPD.exps);
 
-        while (inPD.exps.size() > Constants.k - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+        while (inPD.exps.size() > minNeighborCount - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
             inPD.exps.remove(0);
         }
         if (inPD.exps.size() > 0) {
@@ -477,8 +488,8 @@ public class MicroCluster_New {
             inPD.ev = 0;
         }
 
-        if (inPD.exps.size() + inPD.numberOfSucceeding >= Constants.k) {
-            if (inPD.numberOfSucceeding >= Constants.k) {
+        if (inPD.exps.size() + inPD.numberOfSucceeding >= minNeighborCount) {
+            if (inPD.numberOfSucceeding >= minNeighborCount) {
 
                 eventQueue.remove(inPD);
 
@@ -503,7 +514,7 @@ public class MicroCluster_New {
 
     private boolean isNeighbor(MCO p, MCO o) {
         double d = mtree.getDistanceFunction().calculate(p, o);
-        return d <= Constants.R;
+        return d <= maxDistance;
     }
 
     private void process_event_queue(int currentTime) {
@@ -521,12 +532,12 @@ public class MicroCluster_New {
                     x.ev = x.exps.get(0);
                 }
             }
-            if (x.exps.size() + x.numberOfSucceeding < Constants.k) {
+            if (x.exps.size() + x.numberOfSucceeding < minNeighborCount) {
 
                 outlierList.add(x);
 
-            } else if (x.numberOfSucceeding < Constants.k
-                    && x.exps.size() + x.numberOfSucceeding >= Constants.k) {
+            } else if (x.numberOfSucceeding < minNeighborCount
+                    && x.exps.size() + x.numberOfSucceeding >= minNeighborCount) {
                 eventQueue.add(x);
             }
 

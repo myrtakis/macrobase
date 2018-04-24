@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 //import static alexp.macrobase.outlier.mcod.mtree.tests.MTTest.algorithm;
-import alexp.macrobase.outlier.mcod.mtree.utils.Constants;
 import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
 import alexp.macrobase.outlier.mcod.MicroCluster;
 import alexp.macrobase.outlier.mcod.MicroCluster_New;
@@ -45,8 +44,10 @@ public class MesureMemoryThread extends Thread {
     
     public static double timeForNewSlide = 0;
     public static double timeForExpireSlide = 0;
-    public void computeMemory() {
 
+    public static int samplingPeriod = 100;
+
+    public void computeMemory() {
 //        List<MemoryPoolMXBean> pools= ManagementFactory.getMemoryPoolMXBeans();
 //        for(MemoryPoolMXBean p: pools){
 //            
@@ -58,10 +59,6 @@ public class MesureMemoryThread extends Thread {
         long used = Runtime.getRuntime().totalMemory()- Runtime.getRuntime().freeMemory();
         if(maxMemory < used)
             maxMemory = used;
-        
-        
-        
-       
     }
 
     @Override
@@ -70,7 +67,7 @@ public class MesureMemoryThread extends Thread {
         while (true) {
             computeMemory();
             try {
-                Thread.sleep(Constants.samplingPeriod);
+                Thread.sleep(samplingPeriod);
             } catch (InterruptedException ex) {
                 Logger.getLogger(MesureMemoryThread.class.getName()).log(Level.SEVERE, null, ex);
             }
