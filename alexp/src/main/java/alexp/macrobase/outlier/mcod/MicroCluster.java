@@ -19,35 +19,30 @@ public class MicroCluster {
     private int windowSize = 1000; // windowSize in paper
     private int slide = 500;
 
+    private HashMap<Data, ArrayList<MCObject>> micro_clusters = new HashMap<>();
 
-    public static HashMap<Data, ArrayList<MCObject>> micro_clusters = new HashMap<>();
+    private HashMap<Data, ArrayList<MCObject>> associate_objects = new HashMap<>();
 
-    public static HashMap<Data, ArrayList<MCObject>> associate_objects = new HashMap<>();
-
-    public static ArrayList<MCObject> PD = new ArrayList<>();
+    private ArrayList<MCObject> PD = new ArrayList<>();
 
     // store list ob in increasing time arrival order
-    public static ArrayList<MCObject> dataList = new ArrayList<>();
+    private ArrayList<MCObject> dataList = new ArrayList<>();
 
-    public static MTreeClass mtree = new MTreeClass();
+    private MTreeClass mtree = new MTreeClass();
 
-    public static PriorityQueue<MCObject> eventQueue = new PriorityQueue<MCObject>(new MCComparator());
+    private PriorityQueue<MCObject> eventQueue = new PriorityQueue<MCObject>(new MCComparator());
 
-    public static ArrayList<MCObject> outlierList = new ArrayList<MCObject>();
+    private ArrayList<MCObject> outlierList = new ArrayList<MCObject>();
 
-    public static ArrayList<MCObject> inCluster_objects = new ArrayList<MCObject>();
+    private ArrayList<MCObject> inCluster_objects = new ArrayList<MCObject>();
 
-    public static HashSet<Integer> inClusters = new HashSet<>();
+    private HashSet<Integer> inClusters = new HashSet<>();
 
-    public static double numberPointsInClusters = 0;
-    public static double numberPointsInClustersAllWindows = 0;
-    public static double numberCluster = 0;
-    public static double numberPointsInEventQueue = 0;
+    private double numberPointsInClusters = 0;
+    private double numberPointsInEventQueue = 0;
 
-    public static double avgPointsInRmc = 0;
-    public static double avgPointsInRmcAllWindows = 0;
-    public static double avgLengthExps = 0;
-    public static double avgLengthExpsAllWindows = 0;
+    private double avgPointsInRmc = 0;
+    private double avgLengthExps = 0;
 
     public MicroCluster(double maxDistance, int minNeighborCount, int windowSize, int slide) {
         this.maxDistance = maxDistance;
@@ -146,7 +141,6 @@ public class MicroCluster {
         MesureMemoryThread.timeForNewSlide += Utils.getCPUTime() - startTime;
 
 
-        numberCluster += micro_clusters.size();
         if (numberPointsInEventQueue < eventQueue.size())
             numberPointsInEventQueue = eventQueue.size();
         HashSet<Integer> tempTest = new HashSet<>();
@@ -166,9 +160,6 @@ public class MicroCluster {
         });
         avgPointsInRmc = avgPointsInRmc / dataList.size();
         avgLengthExps = avgLengthExps / dataList.size();
-        avgLengthExpsAllWindows += avgLengthExps;
-        avgPointsInRmcAllWindows += avgPointsInRmc;
-        numberPointsInClustersAllWindows += tempTest.size();
         System.out.println("#points in clusters: " + numberPointsInClusters);
         return result;
 
@@ -248,7 +239,7 @@ public class MicroCluster {
 
     }
 
-    public void addObjectToCluster(MCObject d, MCObject cluster, boolean fromCluster) {
+    private void addObjectToCluster(MCObject d, MCObject cluster, boolean fromCluster) {
 
 
         d.cluster = cluster;
@@ -259,7 +250,7 @@ public class MicroCluster {
             list.add(d);
         micro_clusters.put(cluster, list);
 
-        /**
+        /*
          * evaluate distance between the new object and objects in PD that associate with cluster
          */
         ArrayList<MCObject> objects = associate_objects.get(cluster);
@@ -270,7 +261,7 @@ public class MicroCluster {
                 // increase number if succeeding neighbors
                 // o.numberOfSucceeding++;
                 if (o.arrivalTime < d.arrivalTime) {
-                    if (MicroCluster.inCluster_objects.contains(o) || fromCluster == false) o.numberOfSucceeding++;
+                    if (inCluster_objects.contains(o) || !fromCluster) o.numberOfSucceeding++;
 
                     else {
                         if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
@@ -279,7 +270,7 @@ public class MicroCluster {
                             d.exps.add(o.arrivalTime + windowSize);
                     }
                 } else {
-                    if (MicroCluster.inCluster_objects.contains(o) || fromCluster == false) {
+                    if (inCluster_objects.contains(o) || !fromCluster) {
                         if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
                             o.numberOfSucceeding++;
                         else o.exps.add(d.arrivalTime + windowSize);//?
@@ -300,7 +291,7 @@ public class MicroCluster {
 
     }
 
-    public void process_data(MCObject d, int currentTime, boolean fromCluster) {
+    private void process_data(MCObject d, int currentTime, boolean fromCluster) {
 
         if (d.arrivalTime <= currentTime - windowSize) return;
         long startTime = Utils.getCPUTime();
@@ -331,7 +322,7 @@ public class MicroCluster {
             MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime2;
         } else {
 
-            /**
+            /*
              * do range query in PD and mtree (distance to center <= 3/2R)
              */
 
@@ -344,7 +335,7 @@ public class MicroCluster {
             for (MTreeClass.ResultItem ri2 : query) {
                 if (ri2.distance == 0) d.values[0] += (new Random()).nextDouble() / 1000000;
 
-                /**
+                /*
                  * scan in cluster to find neighbors
                  */
                 d.Rmc.add((MCObject) ri2.data);
@@ -383,7 +374,7 @@ public class MicroCluster {
 
             neighbor_in_PD.stream().map((o) -> {
                 if (o.arrivalTime < d.arrivalTime) {
-                    if (MicroCluster.inCluster_objects.contains(o) || fromCluster == false) o.numberOfSucceeding++;
+                    if (inCluster_objects.contains(o) || !fromCluster) o.numberOfSucceeding++;
 
                     else {
                         if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
@@ -392,14 +383,14 @@ public class MicroCluster {
                             d.exps.add(o.arrivalTime + windowSize);
                     }
                 } else {
-                    if (MicroCluster.inCluster_objects.contains(o) || fromCluster == false) {
+                    if (inCluster_objects.contains(o) || !fromCluster) {
                         if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
                             o.numberOfSucceeding++;
                         else o.exps.add(d.arrivalTime + windowSize);
                     }
                     d.numberOfSucceeding++;
                 }
-                /**
+                /*
                  * check for o becomes inlier
                  */
                 return o;
@@ -424,7 +415,7 @@ public class MicroCluster {
             });
 
 
-            if (neighbor_in_R2.size() > minNeighborCount * 1.1 && fromCluster == false) {
+            if (neighbor_in_R2.size() > minNeighborCount * 1.1 && !fromCluster) {
                 long startTime2 = Utils.getCPUTime();
 
                 // form cluster
@@ -550,17 +541,17 @@ class MCComparator implements Comparator<MCObject> {
 
 class MCObject extends Data {
 
-    public MCObject cluster;
-    public ArrayList<Integer> exps;
-    public ArrayList<MCObject> Rmc;
+    MCObject cluster;
+    ArrayList<Integer> exps;
+    ArrayList<MCObject> Rmc;
 
-    public int ev;
-    public boolean isInCluster;
-    public boolean isCenter;
+    int ev;
+    boolean isInCluster;
+    boolean isCenter;
 
-    public int numberOfSucceeding;
+    int numberOfSucceeding;
 
-    public MCObject(Data d) {
+    MCObject(Data d) {
         super();
         this.arrivalTime = d.arrivalTime;
         this.values = d.values;

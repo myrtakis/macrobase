@@ -32,18 +32,14 @@ public class MicroCluster_New {
     private int windowSize = 1000; // W in paper
     private int slide = 500;
 
-    public static HashMap<Integer, MCO> dataList_set = new HashMap<>();
-    public static HashMap<Integer, ArrayList<MCO>> micro_clusters = new HashMap<>();
-    public static ArrayList<MCO> PD = new ArrayList<>();
+    private HashMap<Integer, MCO> dataList_set = new HashMap<>();
+    private HashMap<Integer, ArrayList<MCO>> micro_clusters = new HashMap<>();
+    private ArrayList<MCO> PD = new ArrayList<>();
     // store list ob in increasing time arrival order
-    public static ArrayList<MCO> dataList = new ArrayList<>();
-    public static MTreeClass mtree = new MTreeClass();
-    public static ArrayList<MCO> outlierList = new ArrayList<>();
-    public static PriorityQueue<MCO> eventQueue = new PriorityQueue<>(new MCComparator());
-
-    public static double avgNumPointsInClusters = 0;
-    public static double avgNumPointsInEventQueue = 0;
-    public static double avgNeighborListLength = 0;
+    private ArrayList<MCO> dataList = new ArrayList<>();
+    private MTreeClass mtree = new MTreeClass();
+    private ArrayList<MCO> outlierList = new ArrayList<>();
+    private PriorityQueue<MCO> eventQueue = new PriorityQueue<>(new MCComparator());
 
     public MicroCluster_New(double maxDistance, int minNeighborCount, int windowSize, int slide) {
         this.maxDistance = maxDistance;
@@ -99,21 +95,18 @@ public class MicroCluster_New {
         return result;
     }
 
-    public void printStatistic() {
+    private void printStatistic() {
         int numPoints = computeNumberOfPointsInCluster();
         System.out.println("#points in clusters = " + numPoints);
-        avgNumPointsInClusters += numPoints;
 
         System.out.println("#points in event queue = " + eventQueue.size());
-        avgNumPointsInEventQueue += eventQueue.size();
 
-        avgNeighborListLength += computeAvgNeighborList();
         System.out.println("avg neighborList length = " + computeAvgNeighborList());
 
 
     }
 
-    public double computeAvgNeighborList() {
+    private double computeAvgNeighborList() {
         double result = 0;
         for (MCO point : PD) {
             result += point.exps.size();
@@ -121,7 +114,7 @@ public class MicroCluster_New {
         return result / PD.size();
     }
 
-    public int computeNumberOfPointsInCluster() {
+    private int computeNumberOfPointsInCluster() {
         int count = 0;
         for (ArrayList<MCO> points : micro_clusters.values()) {
             count += points.size();
@@ -273,7 +266,7 @@ public class MicroCluster_New {
 
     }
 
-    public int isSameSlide(MCO o1, MCO o2) {
+    private int isSameSlide(MCO o1, MCO o2) {
         if ((o1.arrivalTime - 1) / slide == (o2.arrivalTime - 1) / slide) {
             return 0;
         } else if ((o1.arrivalTime - 1) / slide < (o2.arrivalTime - 1) / slide) {
@@ -283,7 +276,7 @@ public class MicroCluster_New {
         }
     }
 
-    public int findNearestCenter(MCO d) {
+    private int findNearestCenter(MCO d) {
 
         double min_distance = Double.MAX_VALUE;
         int min_center_id = -1;
@@ -302,7 +295,7 @@ public class MicroCluster_New {
 
     }
 
-    public ArrayList<Integer> findClusterIn3_2Range(MCO d) {
+    private ArrayList<Integer> findClusterIn3_2Range(MCO d) {
         ArrayList<Integer> result = new ArrayList<>();
         micro_clusters.keySet().stream().forEach((center_id) -> {
             //get the center object
@@ -383,7 +376,7 @@ public class MicroCluster_New {
 
     }
 
-    public ArrayList<MCO> findNeighborR2InPD(MCO d) {
+    private ArrayList<MCO> findNeighborR2InPD(MCO d) {
         ArrayList<MCO> results = new ArrayList<>();
         PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance * 1.0 / 2)).forEach((o) -> {
             results.add(o);
@@ -391,7 +384,7 @@ public class MicroCluster_New {
         return results;
     }
 
-    public boolean isOutlier(MCO d) {
+    private boolean isOutlier(MCO d) {
         return d.numberOfSucceeding + d.exps.size() < minNeighborCount;
     }
 
@@ -580,17 +573,17 @@ public class MicroCluster_New {
 
     static class MCO extends Data {
 
-        public int center;
-        public ArrayList<Integer> exps;
-        public ArrayList<Integer> Rmc;
+        int center;
+        ArrayList<Integer> exps;
+        ArrayList<Integer> Rmc;
 
-        public int ev;
-        public boolean isInCluster;
-        public boolean isCenter;
+        int ev;
+        boolean isInCluster;
+        boolean isCenter;
 
-        public int numberOfSucceeding;
+        int numberOfSucceeding;
 
-        public MCO(Data d) {
+        MCO(Data d) {
             super();
             this.arrivalTime = d.arrivalTime;
             this.values = d.values;
