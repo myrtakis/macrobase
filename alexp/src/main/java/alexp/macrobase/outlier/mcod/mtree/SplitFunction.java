@@ -2,7 +2,7 @@ package alexp.macrobase.outlier.mcod.mtree;
 
 import java.util.Set;
 
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Pair;
 
 /**
  * Defines an object to be used to split a node in an M-Tree. A node must be

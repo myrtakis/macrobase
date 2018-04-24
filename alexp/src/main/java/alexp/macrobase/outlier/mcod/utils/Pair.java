@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.mcod.mtree.utils;
+package alexp.macrobase.outlier.mcod.utils;
 
 /**
  * A pair of objects of the same type.

@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.mcod.mtree.tests;
+package alexp.macrobase.outlier.mcod.measurements;
 
 import java.io.BufferedReader;
 import java.io.File;

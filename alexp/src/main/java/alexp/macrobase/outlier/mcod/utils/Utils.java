@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.mcod.mtree.utils;
+package alexp.macrobase.outlier.mcod.utils;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;

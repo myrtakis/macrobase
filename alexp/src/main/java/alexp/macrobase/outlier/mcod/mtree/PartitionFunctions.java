@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Pair;
 
 /**
  * Some pre-defined implementations of {@linkplain PartitionFunction partition

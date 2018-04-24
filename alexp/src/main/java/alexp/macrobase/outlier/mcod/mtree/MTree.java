@@ -3,7 +3,6 @@ package alexp.macrobase.outlier.mcod.mtree;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -11,7 +10,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 import alexp.macrobase.outlier.mcod.mtree.SplitFunction.SplitResult;
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
 
 
 /**

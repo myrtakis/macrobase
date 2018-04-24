@@ -18,9 +18,8 @@ import java.util.HashMap;
 import java.util.PriorityQueue;
 
 import alexp.macrobase.outlier.mcod.mtree.MTreeClass;
-import alexp.macrobase.outlier.mcod.mtree.tests.Data;
-import alexp.macrobase.outlier.mcod.mtree.tests.MesureMemoryThread;
-import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
+import alexp.macrobase.outlier.mcod.measurements.MesureMemoryThread;
+import alexp.macrobase.outlier.mcod.utils.Utils;
 
 /**
  * @author Luan

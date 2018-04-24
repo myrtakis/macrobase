@@ -2,7 +2,7 @@ package alexp.macrobase.outlier.mcod.mtree;
 
 import java.util.Set;
 
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Pair;
 
 /**
  * An object with partitions a set of data into two sub-sets.

@@ -1,8 +1,8 @@
 package alexp.macrobase.outlier.mcod.mtree;
 
-import alexp.macrobase.outlier.mcod.mtree.tests.Data;
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
-import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
+import alexp.macrobase.outlier.mcod.Data;
+import alexp.macrobase.outlier.mcod.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Utils;
 
 import java.util.Set;
 

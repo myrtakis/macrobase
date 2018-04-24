@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.mcod.mtree.tests;
+package alexp.macrobase.outlier.mcod;
 
 import alexp.macrobase.outlier.mcod.mtree.DistanceFunctions;
 

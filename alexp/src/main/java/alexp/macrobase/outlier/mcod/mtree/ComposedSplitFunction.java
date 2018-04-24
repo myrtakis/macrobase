@@ -2,7 +2,7 @@ package alexp.macrobase.outlier.mcod.mtree;
 
 import java.util.Set;
 
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Pair;
 
 /**
  * A {@linkplain SplitFunction split function} that is defined by composing

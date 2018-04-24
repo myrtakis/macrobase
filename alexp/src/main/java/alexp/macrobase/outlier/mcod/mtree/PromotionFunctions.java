@@ -3,8 +3,8 @@ package alexp.macrobase.outlier.mcod.mtree;
 import java.util.List;
 import java.util.Set;
 
-import alexp.macrobase.outlier.mcod.mtree.utils.Pair;
-import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
+import alexp.macrobase.outlier.mcod.utils.Pair;
+import alexp.macrobase.outlier.mcod.utils.Utils;
 
 /**
  * Some pre-defined implementations of {@linkplain PromotionFunction promotion

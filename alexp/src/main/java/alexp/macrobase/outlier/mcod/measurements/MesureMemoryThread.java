@@ -3,26 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package alexp.macrobase.outlier.mcod.mtree.tests;
+package alexp.macrobase.outlier.mcod.measurements;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryPoolMXBean;
-import java.lang.management.MemoryType;
-import java.lang.management.MemoryUsage;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-//import static alexp.macrobase.outlier.mcod.mtree.tests.MTTest.algorithm;
-import alexp.macrobase.outlier.mcod.mtree.utils.Utils;
-import alexp.macrobase.outlier.mcod.MicroCluster;
-import alexp.macrobase.outlier.mcod.MicroCluster_New;
+//import static alexp.macrobase.outlier.mcod.measurements.MTTest.algorithm;
+
 
 /**
  *
