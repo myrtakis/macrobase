@@ -55,7 +55,7 @@ public class MicroCluster_New {
             //purge expire object
             for (int i = dataList.size() - 1; i >= 0; i--) {
                 MCO d = dataList.get(i);
-                if (d.arrivalTime <= currentTime - windowSize) {
+                if (d.arrivalTime() <= currentTime - windowSize) {
                     //remove d from data List 
                     dataList.remove(i);
 
@@ -180,7 +180,7 @@ public class MicroCluster_New {
         }
 
         outlierList.stream().forEach((data) -> {
-            while (data.exps.size() > 0 && data.exps.get(0) <= d.arrivalTime + windowSize) {
+            while (data.exps.size() > 0 && data.exps.get(0) <= d.arrivalTime() + windowSize) {
                 data.exps.remove(0);
                 if (data.exps.isEmpty()) {
                     data.ev = 0;
@@ -219,7 +219,7 @@ public class MicroCluster_New {
                 //check inPD is succeeding or preceding neighbor
                 if (isSameSlide(inPD, o) == -1) {
                     //is preceeding neighbor
-                    o.exps.add(inPD.arrivalTime + windowSize);
+                    o.exps.add(inPD.arrivalTime() + windowSize);
                     if (!fromCluster) {
                         inPD.numberOfSucceeding++;
                     }
@@ -231,7 +231,7 @@ public class MicroCluster_New {
                 } else {
                     o.numberOfSucceeding++;
                     if (!fromCluster) {
-                        inPD.exps.add(o.arrivalTime + windowSize);
+                        inPD.exps.add(o.arrivalTime() + windowSize);
                     }
 
                 }
@@ -252,7 +252,7 @@ public class MicroCluster_New {
                     o.numberOfSucceeding++;
                 } else {
                     //p is preceeding neighbor
-                    o.exps.add(p.arrivalTime + windowSize);
+                    o.exps.add(p.arrivalTime() + windowSize);
                 }
             });
         });
@@ -266,9 +266,9 @@ public class MicroCluster_New {
     }
 
     private int isSameSlide(MCO o1, MCO o2) {
-        if ((o1.arrivalTime - 1) / slide == (o2.arrivalTime - 1) / slide) {
+        if ((o1.arrivalTime() - 1) / slide == (o2.arrivalTime() - 1) / slide) {
             return 0;
-        } else if ((o1.arrivalTime - 1) / slide < (o2.arrivalTime - 1) / slide) {
+        } else if ((o1.arrivalTime() - 1) / slide < (o2.arrivalTime() - 1) / slide) {
             return -1;
         } else {
             return 1;
@@ -337,7 +337,7 @@ public class MicroCluster_New {
             }
         }
         if (d.isCenter) {
-            dataList_set.put(d.arrivalTime, d);
+            dataList_set.put(d.arrivalTime(), d);
         }
 
     }
@@ -361,13 +361,13 @@ public class MicroCluster_New {
                     calculate(d, inPD);
             if (distance <= maxDistance) {
                 if (isSameSlide(d, inPD) == -1) {
-                    inPD.exps.add(d.arrivalTime + windowSize);
+                    inPD.exps.add(d.arrivalTime() + windowSize);
 
                 } else if (isSameSlide(d, inPD) >= 0) {
                     inPD.numberOfSucceeding++;
                 }
                 //mark inPD has checked with d
-//                    addToHashMap(inPD.arrivalTime,d.arrivalTime);
+//                    addToHashMap(inPD.arrivalTime(),d.arrivalTime());
                 //check if inPD become inlier
                 checkInlier(inPD);
             }
@@ -392,7 +392,7 @@ public class MicroCluster_New {
         long startTime3 = Utils.getCPUTime();
         d.isCenter = true;
         d.isInCluster = true;
-        d.center = d.arrivalTime;
+        d.center = d.arrivalTime();
         neighborsInR2Distance.stream().map((data) -> {
             PD.remove(data);
             return data;
@@ -413,7 +413,7 @@ public class MicroCluster_New {
             data.isInCluster = true;
             return data;
         }).map((data) -> {
-            data.center = d.arrivalTime;
+            data.center = d.arrivalTime();
             return data;
         }).forEach((data) -> {
             data.isCenter = false;
@@ -422,7 +422,7 @@ public class MicroCluster_New {
         //add center to neighbor list
         Collections.sort(neighborsInR2Distance, new MCComparatorArrivalTime());
         neighborsInR2Distance.add(d);
-        micro_clusters.put(d.arrivalTime, neighborsInR2Distance);
+        micro_clusters.put(d.arrivalTime(), neighborsInR2Distance);
         MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime3;
 
         //update Rmc list
@@ -432,15 +432,15 @@ public class MicroCluster_New {
                 if (isSameSlide(o, d) <= 0) {
                     o.numberOfSucceeding++;
                 } else {
-                    o.exps.add(d.arrivalTime + windowSize);
+                    o.exps.add(d.arrivalTime() + windowSize);
                 }
-//                addToHashMap(o.arrivalTime,d.arrivalTime);
+//                addToHashMap(o.arrivalTime(),d.arrivalTime());
                 checkInlier(o);
 
             }
             return o;
         }).forEach((o) -> {
-            o.Rmc.add(d.arrivalTime);
+            o.Rmc.add(d.arrivalTime());
         });
 
     }
@@ -558,9 +558,9 @@ public class MicroCluster_New {
 
         @Override
         public int compare(MCO o1, MCO o2) {
-            if (o1.arrivalTime < o2.arrivalTime) {
+            if (o1.arrivalTime() < o2.arrivalTime()) {
                 return -1;
-            } else if (o1.arrivalTime == o2.arrivalTime) {
+            } else if (o1.arrivalTime() == o2.arrivalTime()) {
                 return 0;
             } else {
                 return 1;
@@ -583,9 +583,7 @@ public class MicroCluster_New {
         int numberOfSucceeding;
 
         MCO(Data d) {
-            super();
-            this.arrivalTime = d.arrivalTime;
-            this.values = d.values;
+            super(d.arrivalTime(), d.values);
 
             exps = new ArrayList<>();
             Rmc = new ArrayList<>();

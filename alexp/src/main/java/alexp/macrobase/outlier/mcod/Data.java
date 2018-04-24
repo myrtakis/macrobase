@@ -9,11 +9,15 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
     public double[] values;
     private final int hashCode;
 
-    //arrival time
-    public int arrivalTime;
+    private int arrivalTime;
 
 
     public Data(double... values) {
+        this(0, values);
+    }
+
+    public Data(int arrivalTime, double... values) {
+        this.arrivalTime = arrivalTime;
         this.values = values;
 
         int hashCode2 = 1;
@@ -21,6 +25,10 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
             hashCode2 = 31 * hashCode2 + (int) value + (new Random()).nextInt(100000);
         }
         this.hashCode = hashCode2;
+    }
+
+    public int arrivalTime() {
+        return arrivalTime;
     }
 
     @Override

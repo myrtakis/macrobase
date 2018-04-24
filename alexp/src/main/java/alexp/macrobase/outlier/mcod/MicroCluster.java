@@ -65,7 +65,7 @@ public class MicroCluster {
 
             MCObject d = dataList.get(i);
 
-            if (d.arrivalTime <= currentTime - maxDistance) {
+            if (d.arrivalTime() <= currentTime - maxDistance) {
 
                 index = i;
                 expiredData.add(d);
@@ -146,8 +146,8 @@ public class MicroCluster {
         for (Data center : micro_clusters.keySet()) {
             ArrayList<MCObject> l = micro_clusters.get(center);
             for (MCObject o : l) {
-                if (o.arrivalTime >= currentTime - windowSize) {
-                    tempTest.add(o.arrivalTime);
+                if (o.arrivalTime() >= currentTime - windowSize) {
+                    tempTest.add(o.arrivalTime());
                     numberPointsInClusters++;
                 }
             }
@@ -232,7 +232,7 @@ public class MicroCluster {
             d.Rmc.clear();
             return d;
         }).forEach((d) -> {
-            if (d.arrivalTime > currentTime - windowSize)
+            if (d.arrivalTime() > currentTime - windowSize)
                 process_data(d, currentTime, true);
         });
 
@@ -259,20 +259,20 @@ public class MicroCluster {
             if (distace <= maxDistance) {
                 // increase number if succeeding neighbors
                 // o.numberOfSucceeding++;
-                if (o.arrivalTime < d.arrivalTime) {
+                if (o.arrivalTime() < d.arrivalTime()) {
                     if (inCluster_objects.contains(o) || !fromCluster) o.numberOfSucceeding++;
 
                     else {
-                        if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
+                        if ((o.arrivalTime() - 1) / slide == (d.arrivalTime() - 1) / slide)
                             d.numberOfSucceeding++;
                         else
-                            d.exps.add(o.arrivalTime + windowSize);
+                            d.exps.add(o.arrivalTime() + windowSize);
                     }
                 } else {
                     if (inCluster_objects.contains(o) || !fromCluster) {
-                        if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
+                        if ((o.arrivalTime() - 1) / slide == (d.arrivalTime() - 1) / slide)
                             o.numberOfSucceeding++;
-                        else o.exps.add(d.arrivalTime + windowSize);//?
+                        else o.exps.add(d.arrivalTime() + windowSize);//?
                     }
                     d.numberOfSucceeding++;
                 }
@@ -292,7 +292,7 @@ public class MicroCluster {
 
     private void process_data(MCObject d, int currentTime, boolean fromCluster) {
 
-        if (d.arrivalTime <= currentTime - windowSize) return;
+        if (d.arrivalTime() <= currentTime - windowSize) return;
         long startTime = Utils.getCPUTime();
         MTreeClass.Query query = mtree.getNearestByRange(d, maxDistance * 3 / 2);
         MesureMemoryThread.timeForQuerying += Utils.getCPUTime() - startTime;
@@ -372,20 +372,20 @@ public class MicroCluster {
             neighbor.addAll(neighbor_in_mtree);
 
             neighbor_in_PD.stream().map((o) -> {
-                if (o.arrivalTime < d.arrivalTime) {
+                if (o.arrivalTime() < d.arrivalTime()) {
                     if (inCluster_objects.contains(o) || !fromCluster) o.numberOfSucceeding++;
 
                     else {
-                        if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
+                        if ((o.arrivalTime() - 1) / slide == (d.arrivalTime() - 1) / slide)
                             d.numberOfSucceeding++;
                         else
-                            d.exps.add(o.arrivalTime + windowSize);
+                            d.exps.add(o.arrivalTime() + windowSize);
                     }
                 } else {
                     if (inCluster_objects.contains(o) || !fromCluster) {
-                        if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
+                        if ((o.arrivalTime() - 1) / slide == (d.arrivalTime() - 1) / slide)
                             o.numberOfSucceeding++;
-                        else o.exps.add(d.arrivalTime + windowSize);
+                        else o.exps.add(d.arrivalTime() + windowSize);
                     }
                     d.numberOfSucceeding++;
                 }
@@ -403,11 +403,11 @@ public class MicroCluster {
                 eventQueue.add(o);
             });
             neighbor_in_mtree.stream().forEach((o) -> {
-                if (o.arrivalTime < d.arrivalTime) {
-                    if ((o.arrivalTime - 1) / slide == (d.arrivalTime - 1) / slide)
+                if (o.arrivalTime() < d.arrivalTime()) {
+                    if ((o.arrivalTime() - 1) / slide == (d.arrivalTime() - 1) / slide)
                         d.numberOfSucceeding++;
                     else
-                        d.exps.add(o.arrivalTime + windowSize);
+                        d.exps.add(o.arrivalTime() + windowSize);
                 } else {
                     d.numberOfSucceeding++;
                 }
@@ -422,15 +422,15 @@ public class MicroCluster {
                 d.isInCluster = true;
                 neighbor_in_R2.add(d);
                 for (MCObject o : neighbor_in_R2) {
-                    if (o.isInCluster && o.arrivalTime != d.arrivalTime)
+                    if (o.isInCluster && o.arrivalTime() != d.arrivalTime())
                         System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                     o.isCenter = false;
                     o.cluster = d;
                     o.isInCluster = true;
                     o.numberOfSucceeding = 0;
                     o.exps.clear();
-                    if (inClusters.contains(o.arrivalTime)) System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-                    inClusters.add(o.arrivalTime);
+                    if (inClusters.contains(o.arrivalTime())) System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+                    inClusters.add(o.arrivalTime());
                     PD.remove(o);
                     eventQueue.remove(o);
                     outlierList.remove(o);
@@ -551,9 +551,7 @@ class MCObject extends Data {
     int numberOfSucceeding;
 
     MCObject(Data d) {
-        super();
-        this.arrivalTime = d.arrivalTime;
-        this.values = d.values;
+        super(d.arrivalTime(), d.values);
 
         exps = new ArrayList<>();
         Rmc = new ArrayList<>();
