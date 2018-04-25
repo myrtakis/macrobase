@@ -32,25 +32,64 @@ public class ConsoleApp {
         });
     }
 
+    private static void showUsage() {
+        System.out.println("Usage: [--b [batchConfigPath]] [--s [streamConfigPath]]");
+        System.out.println("  --b - run batch config using the specified config (default alexp/demo/batch.yaml)");
+        System.out.println("  --s - run stream config using the specified config (default alexp/demo/stream.yaml)");
+        System.out.println("Examples:");
+        System.out.println("  --b my_batch_config.yaml");
+        System.out.println("  --s my_stream_config.yaml");
+        System.out.println("  --b --s");
+    }
+
     public static void main(String[] args) throws Exception {
-        final String batchConfFilePath = args.length > 0 ? args[0] : "alexp/demo/batch_xlsx.yaml";
-        if (!Files.exists(Paths.get(batchConfFilePath))) {
-            System.out.println("Specify batch config file");
-            System.exit(1);
+        boolean runBatch = false;
+        boolean runStream = false;
+        String batchConfFilePath = "alexp/demo/batch.yaml";
+        String streamConfFilePath = "alexp/demo/stream.yaml";
+
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--b":
+                    runBatch = true;
+                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                        batchConfFilePath = args[i + 1];
+                    }
+                    break;
+                case "--s":
+                    runStream = true;
+                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                        streamConfFilePath = args[i + 1];
+                    }
+                    break;
+            }
         }
 
-        System.out.println("*** Running batch pipeline ***");
-
-        runBatchPipeline(batchConfFilePath);
-
-        final String streamConfFilePath = args.length > 1 ? args[1] : "alexp/demo/stream.yaml";
-        if (!Files.exists(Paths.get(streamConfFilePath))) {
-            System.out.println("Specify streaming config file");
-            System.exit(1);
+        if (!runBatch && !runStream) {
+            showUsage();
+            return;
         }
 
-        System.out.println("*** Running streaming pipeline ***");
+        if (runBatch) {
+            if (!Files.exists(Paths.get(batchConfFilePath))) {
+                System.out.println("Specify batch config file");
+                System.exit(1);
+            }
 
-        runStreamingPipeline(streamConfFilePath);
+            System.out.println("*** Running batch pipeline ***");
+
+            runBatchPipeline(batchConfFilePath);
+        }
+
+        if (runStream) {
+            if (!Files.exists(Paths.get(streamConfFilePath))) {
+                System.out.println("Specify streaming config file");
+                System.exit(1);
+            }
+
+            System.out.println("*** Running streaming pipeline ***");
+
+            runStreamingPipeline(streamConfFilePath);
+        }
     }
 }
