@@ -3,7 +3,7 @@ package alexp.macrobase.pipeline;
 import alexp.macrobase.ingest.SqlDataFrameReader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameReader;
-import alexp.macrobase.outlier.mcod.McodClassifier;
+import alexp.macrobase.outlier.mcod.McodClassifierBatch;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
@@ -148,7 +148,7 @@ public class BatchPipeline implements Pipeline {
     private Classifier getClassifier() throws MacroBaseException {
         switch (classifierType.toLowerCase()) {
             case "mcod": {
-                McodClassifier classifier = new McodClassifier(metric);
+                McodClassifierBatch classifier = new McodClassifierBatch(metric);
                 classifier.setMaxDistance(maxDistance);
                 classifier.setMinNeighborCount(minNeighborCount);
                 classifier.setWindowSize(windowSize);

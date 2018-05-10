@@ -6,7 +6,7 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class McodClassifier extends Classifier {
+public class McodClassifierBatch extends Classifier {
     private double maxDistance = 1; // R in paper
     private int minNeighborCount = 30; // k in paper
     private int windowSize = 1000; // W in paper
@@ -14,7 +14,7 @@ public class McodClassifier extends Classifier {
 
     private DataFrame output;
 
-    public McodClassifier(String columnName) {
+    public McodClassifierBatch(String columnName) {
         super(columnName);
     }
     
