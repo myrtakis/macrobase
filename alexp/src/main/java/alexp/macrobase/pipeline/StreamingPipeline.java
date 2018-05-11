@@ -4,6 +4,7 @@ import alexp.macrobase.ingest.HttpCsvStreamReader;
 import alexp.macrobase.ingest.SqlStreamReader;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
+import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
@@ -18,6 +19,8 @@ import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class StreamingPipeline {
@@ -88,10 +91,25 @@ public class StreamingPipeline {
         Classifier classifier = getClassifier();
         Operator<DataFrame, ? extends Explanation> summarizer = getSummarizer(classifier.getOutputColumnName());
 
+        AtomicLong totalClassifierMs = new AtomicLong();
+        AtomicLong totalExplanationMs = new AtomicLong();
+
         dataLoader.load(dataFrame -> {
+            Stopwatch sw = Stopwatch.createStarted();
+
             classifier.process(dataFrame);
 
+            final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
+            totalClassifierMs.addAndGet(classifierMs);
+            sw = Stopwatch.createStarted();
+
             summarizer.process(classifier.getResults());
+
+            final long explanationMs = sw.elapsed(TimeUnit.MILLISECONDS);
+            totalExplanationMs.addAndGet(explanationMs);
+
+            System.out.printf("Classification time: %d ms (total %d ms)\nSummarization time: %d ms (total %d ms)\n\n",
+                    classifierMs, totalClassifierMs.get(), explanationMs, totalExplanationMs.get());
 
             resultCallback.accept(summarizer.getResults());
         });
