@@ -29,6 +29,8 @@ public class StreamingPipeline {
     private String idColumn;
     private String sqlQuery;
 
+    private Integer maxReadBatchSize;
+
     private String classifierType;
     private String metric;
     private double cutoff;
@@ -57,6 +59,8 @@ public class StreamingPipeline {
             sqlQuery = conf.get("query");
             idColumn = conf.get("idColumn", "id");
         }
+
+        maxReadBatchSize = conf.get("maxReadBatchSize", 5000);
 
         if (classifierType.equals("predicate")) {
             Object rawCutoff = conf.get("cutoff");
@@ -135,7 +139,8 @@ public class StreamingPipeline {
                         .setColumnTypes(colTypes);
             case JDBC:
                 return new SqlStreamReader(inputURI.getPath(), requiredColumns, sqlQuery, idColumn)
-                        .setColumnTypes(colTypes);
+                        .setColumnTypes(colTypes)
+                        .setMaxBatchSize(maxReadBatchSize);
             default:
                 throw new Exception("Unsupported input protocol");
         }
