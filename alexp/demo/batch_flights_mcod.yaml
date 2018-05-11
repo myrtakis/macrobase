@@ -1,0 +1,22 @@
+pipeline: "BasicBatchPipeline"
+
+inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
+query: "SELECT * FROM flights LIMIT 500000"
+
+classifier: "mcod"
+metric: "departure_delay"
+maxDistance: 3.0
+minNeighborCount: 200
+classifierWindowSize: 6000000
+classifierSlide: 6000000
+
+summarizer: "aplinear"
+attributes:
+  - "airline"
+  - "destination_airport"
+  - "origin_airport"
+  - "flight_number"
+  - "tail_number"
+ratioMetric: "globalratio"
+minRatioMetric: 2.0
+minSupport: 0.01
