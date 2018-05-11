@@ -1,0 +1,26 @@
+pipeline: "BasicBatchPipeline"
+
+inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
+table: "sensor_data"
+query: "SELECT * FROM flights"
+idColumn: "id"
+maxReadBatchSize: 10000
+
+classifier: "mcod"
+metric: "departure_delay"
+maxDistance: 10.0
+minNeighborCount: 10
+classifierWindowSize: 6000
+classifierSlide: 1000
+
+summarizer: "windowed"
+attributes:
+  - "airline"
+  - "destination_airport"
+  - "origin_airport"
+  - "flight_number"
+  - "tail_number"
+minSupport: 0.01
+windowLength: 600000
+slideLength: 100000
+timeColumn: "id"

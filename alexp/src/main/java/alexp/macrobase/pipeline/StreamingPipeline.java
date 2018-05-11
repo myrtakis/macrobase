@@ -4,6 +4,7 @@ import alexp.macrobase.ingest.HttpCsvStreamReader;
 import alexp.macrobase.ingest.SqlStreamReader;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
+import alexp.macrobase.outlier.mcod.McodClassifier;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
@@ -39,6 +40,10 @@ public class StreamingPipeline {
     private boolean pctileHigh;
     private boolean pctileLow;
     private String predicateStr;
+    private double maxDistance;
+    private int minNeighborCount;
+    private int classifierWindowLength;
+    private int classifierSlideLength;
 
     private String summarizerType;
     private List<String> attributes;
@@ -78,6 +83,11 @@ public class StreamingPipeline {
         pctileHigh = conf.get("includeHi",true);
         pctileLow = conf.get("includeLo", true);
         predicateStr = conf.get("predicate", "==").trim();
+
+        maxDistance = conf.get("maxDistance", 1.0);
+        minNeighborCount = conf.get("minNeighborCount", 30);
+        classifierWindowLength = conf.get("classifierWindowSize", 9999);
+        classifierSlideLength = conf.get("classifierSlide", 9999);
 
         summarizerType = conf.get("summarizer", "apriori");
         attributes = conf.get("attributes");
@@ -148,6 +158,14 @@ public class StreamingPipeline {
 
     private Classifier getClassifier() throws MacroBaseException {
         switch (classifierType.toLowerCase()) {
+            case "mcod": {
+                McodClassifier classifier = new McodClassifier(metric);
+                classifier.setMaxDistance(maxDistance);
+                classifier.setMinNeighborCount(minNeighborCount);
+                classifier.setWindowSize(classifierWindowLength);
+                classifier.setSlide(classifierSlideLength);
+                return classifier;
+            }
             case "percentile": {
                 PercentileClassifier classifier = new PercentileClassifier(metric);
                 classifier.setPercentile(cutoff);
