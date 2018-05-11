@@ -96,7 +96,7 @@ public class StreamingPipeline {
         numPanes = conf.get("numPanes", 3);
         windowLength = conf.get("windowLength", 6000);
         slideLength = conf.get("slideLength", 1000);
-        timeColumn = conf.get("timeColumn", "time");
+        timeColumn = conf.get("timeColumn", "id");
     }
 
     public void run(Consumer<Explanation> resultCallback) throws Exception {
@@ -164,6 +164,7 @@ public class StreamingPipeline {
                 classifier.setMinNeighborCount(minNeighborCount);
                 classifier.setWindowSize(classifierWindowLength);
                 classifier.setSlide(classifierSlideLength);
+                classifier.setTimeColumnName(timeColumn);
                 return classifier;
             }
             case "percentile": {

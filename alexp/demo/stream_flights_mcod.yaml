@@ -8,7 +8,7 @@ maxReadBatchSize: 10000
 
 classifier: "mcod"
 metric: "departure_delay"
-maxDistance: 10.0
+maxDistance: 3.0
 minNeighborCount: 10
 classifierWindowSize: 6000
 classifierSlide: 1000
@@ -20,7 +20,7 @@ attributes:
   - "origin_airport"
   - "flight_number"
   - "tail_number"
-minSupport: 0.01
+minSupport: 0.2
 windowLength: 600000
 slideLength: 100000
 timeColumn: "id"

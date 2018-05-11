@@ -5,12 +5,14 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class McodClassifier extends Classifier {
     private double maxDistance = 1; // R in paper
     private int minNeighborCount = 30; // k in paper
     private int windowSize = 1000; // W in paper
     private int slide = 500;
+    private String timeColumnName = "id";
 
     private MicroCluster_New mcod;
 
@@ -27,19 +29,26 @@ public class McodClassifier extends Classifier {
         }
 
         double[] metricColumn = input.getDoubleColumnByName(columnName);
+        double[] timeColumn = input.getDoubleColumnByName(timeColumnName);
+
+        HashMap<Integer, Integer> timeIndexMap = new HashMap<>(); // TODO: make time double in MCOD?
 
         output = input.copy();
 
         ArrayList<Data> mcodData = new ArrayList<>();
         for (int i = 0; i < metricColumn.length; i++) {
-            mcodData.add(new Data(i, metricColumn[i]));
+            mcodData.add(new Data((int) timeColumn[i], metricColumn[i]));
+            timeIndexMap.put((int) timeColumn[i], i);
         }
         ArrayList<Data> outliers = mcod.detectOutlier(mcodData, 0);
 
         double[] resultColumn = new double[metricColumn.length];
         Arrays.fill(resultColumn, 0.0);
         for (Data outlier : outliers) {
-            resultColumn[outlier.arrivalTime()] = 1.0;
+            final Integer ind = timeIndexMap.get(outlier.arrivalTime());
+            if (ind != null) {
+                resultColumn[ind] = 1.0;
+            }
         }
 
         output.addColumn(outputColumnName, resultColumn);
@@ -80,5 +89,13 @@ public class McodClassifier extends Classifier {
 
     public void setSlide(int slide) {
         this.slide = slide;
+    }
+
+    public String getTimeColumnName() {
+        return timeColumnName;
+    }
+
+    public void setTimeColumnName(String timeColumnName) {
+        this.timeColumnName = timeColumnName;
     }
 }
