@@ -1,7 +1,6 @@
 pipeline: "BasicBatchPipeline"
 
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
-table: "sensor_data"
 query: "SELECT * FROM flights"
 idColumn: "id"
 maxReadBatchSize: 100000
