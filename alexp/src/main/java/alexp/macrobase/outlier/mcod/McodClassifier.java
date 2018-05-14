@@ -40,7 +40,7 @@ public class McodClassifier extends Classifier {
             mcodData.add(new Data((int) timeColumn[i], metricColumn[i]));
             timeIndexMap.put((int) timeColumn[i], i);
         }
-        ArrayList<Data> outliers = mcod.detectOutlier(mcodData, 0);
+        ArrayList<Data> outliers = mcod.detectOutlier(mcodData, (int) timeColumn[timeColumn.length - 1]);
 
         double[] resultColumn = new double[metricColumn.length];
         Arrays.fill(resultColumn, 0.0);
