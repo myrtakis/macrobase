@@ -1,5 +1,3 @@
-pipeline: "BasicBatchPipeline"
-
 inputURI: "http://109.120.169.99/data.php"
 
 classifier: "percentile"

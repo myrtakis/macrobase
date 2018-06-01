@@ -1,5 +1,3 @@
-pipeline: "BasicBatchPipeline"
-
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
 query: "SELECT * FROM flights"
 idColumn: "id"

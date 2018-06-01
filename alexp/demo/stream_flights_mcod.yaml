@@ -1,16 +1,14 @@
-pipeline: "BasicBatchPipeline"
-
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
 query: "SELECT * FROM flights"
 idColumn: "id"
-maxReadBatchSize: 10000
+maxReadBatchSize: 6000000
 
 classifier: "mcod"
 metric: "departure_delay"
 maxDistance: 3.0
 minNeighborCount: 10
-classifierWindowSize: 6000
-classifierSlide: 1000
+classifierWindowSize: 6000000
+classifierSlide: 6000000
 
 summarizer: "windowed"
 attributes:
