@@ -12,9 +12,6 @@ import edu.stanford.futuredata.macrobase.analysis.summary.BatchSummarizer;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.analysis.summary.aplinear.APLOutlierSummarizer;
 import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGrowthSummarizer;
-import edu.stanford.futuredata.macrobase.analysis.summary.ratios.ExplanationMetric;
-import edu.stanford.futuredata.macrobase.analysis.summary.ratios.GlobalRatioMetric;
-import edu.stanford.futuredata.macrobase.analysis.summary.ratios.RiskRatioMetric;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.Pipeline;
@@ -170,20 +167,6 @@ public class BatchPipeline implements Pipeline {
             }
             default : {
                 throw new MacroBaseException("Bad Classifier Type");
-            }
-        }
-    }
-
-    private ExplanationMetric getRatioMetric() throws MacroBaseException {
-        switch (ratioMetric.toLowerCase()) {
-            case "globalratio": {
-                return new GlobalRatioMetric();
-            }
-            case "riskratio": {
-                return new RiskRatioMetric();
-            }
-            default: {
-                throw new MacroBaseException("Bad Ratio Metric");
             }
         }
     }
