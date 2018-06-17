@@ -84,6 +84,11 @@ public class ClassifierEvaluationPipeline {
         int middleRank = aucAnalysis.rocPoints().length / 2;
         int[] matr = aucAnalysis.confusionMatrix(middleRank);
         System.out.println("True Positive " + matr[0] + ", False Positive " + matr[1] + ", False Negative " + matr[2] + ", True Negative " + matr[3]);
+
+        int tp = matr[0];
+        int tn = matr[3];
+        double accuracy = ((double) tp + tn) / dataFrame.getNumRows();
+        System.out.println("Accuracy (middle threshold): " + accuracy);
     }
 
     private DataFrame loadDara() throws Exception {
