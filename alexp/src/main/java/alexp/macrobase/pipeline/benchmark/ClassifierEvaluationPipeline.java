@@ -66,18 +66,23 @@ public class ClassifierEvaluationPipeline {
 
         classifier.process(dataFrame);
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
-        Curve rocAnalysis = new Curve.PrimitivesBuilder()
+        Curve aucAnalysis = new Curve.PrimitivesBuilder()
                 .scores(classifierResult)
                 .labels(labels)
                 .build();
 
-        Curve convexHull = rocAnalysis.convexHull();
+        Curve convexHull = aucAnalysis.convexHull();
 
-        double area = rocAnalysis.rocArea();
-        double maxArea = convexHull.rocArea();
+        double rocArea = aucAnalysis.rocArea();
+        double maxRocArea = convexHull.rocArea();
+        double prArea = aucAnalysis.prArea();
+        double maxPrArea = convexHull.prArea();
 
-        System.out.println("Area: " + area + ", max area: " + maxArea);
-        int[] matr = rocAnalysis.confusionMatrix(1);
+        System.out.println("ROC Area: " + rocArea + ", max area: " + maxRocArea);
+        System.out.println("PR Area: " + prArea + ", max area: " + maxPrArea);
+
+        int middleRank = aucAnalysis.rocPoints().length / 2;
+        int[] matr = aucAnalysis.confusionMatrix(middleRank);
         System.out.println("True Positive " + matr[0] + ", False Positive " + matr[1] + ", False Negative " + matr[2] + ", True Negative " + matr[3]);
     }
 
