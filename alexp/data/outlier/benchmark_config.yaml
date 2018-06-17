@@ -4,6 +4,7 @@ metricColumn: "value"
 labelColumn: "is_anomaly"
 
 classifiers:
+  - classifier: "mad"
   - classifier: "mcod"
     maxDistance: 30.0
     minNeighborCount: 20

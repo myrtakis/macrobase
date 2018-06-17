@@ -2,6 +2,7 @@ package alexp.macrobase.pipeline.benchmark;
 
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.*;
+import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -118,6 +119,9 @@ public class ClassifierEvaluationPipeline {
                 classifier.setIncludeHigh((boolean) conf.getOrDefault("includeHi",true));
                 classifier.setIncludeLow((boolean) conf.getOrDefault("includeLo",true));;
                 return classifier;
+            }
+            case "mad": {
+                return new MAD(metric);
             }
             default : {
                 throw new RuntimeException("Bad Classifier Type");
