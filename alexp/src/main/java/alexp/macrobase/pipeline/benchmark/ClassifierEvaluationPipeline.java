@@ -64,7 +64,13 @@ public class ClassifierEvaluationPipeline {
         System.out.println();
         System.out.println(classifier.getClass().getSimpleName());
 
+        Stopwatch sw = Stopwatch.createStarted();
+
         classifier.process(dataFrame);
+
+        final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
+        System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
+
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
         Curve aucAnalysis = new Curve.PrimitivesBuilder()
                 .scores(classifierResult)
