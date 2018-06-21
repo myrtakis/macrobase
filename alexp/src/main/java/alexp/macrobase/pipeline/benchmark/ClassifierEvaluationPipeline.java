@@ -73,8 +73,8 @@ public class ClassifierEvaluationPipeline {
         double prArea = aucAnalysis.prArea();
         double maxPrArea = convexHull.prArea();
 
-        System.out.println("ROC Area: " + rocArea + ", max area: " + maxRocArea);
-        System.out.println("PR Area: " + prArea + ", max area: " + maxPrArea);
+        System.out.println(String.format("ROC Area: %.4f, max area: %.4f", rocArea, maxRocArea));
+        System.out.println(String.format("PR Area: %.4f, max area: %.4f", prArea, maxPrArea));
 
         System.out.println("Stats for middle threshold:");
 
@@ -83,8 +83,8 @@ public class ClassifierEvaluationPipeline {
 
         System.out.println(confusionMatrix);
 
-        System.out.println("Accuracy: " + new Accuracy().evaluate(confusionMatrix));
-        System.out.println("F1-score: " + new FScore().evaluate(confusionMatrix));
+        System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
+        System.out.println(String.format("F1-score: %.4f", new FScore().evaluate(confusionMatrix)));
     }
 
     private DataFrame loadDara() throws Exception {
