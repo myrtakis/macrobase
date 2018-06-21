@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 
 import static org.junit.Assert.*;
+
+import alexp.macrobase.evaluation.ConfusionMatrix;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -107,15 +109,12 @@ public class CurveTest {
         assertEquals(2, curve.totalNegatives);
     }
 
-    public int[][] createConfusionMatrices(int[] posCounts, int[] negCounts) {
-        int[][] matrices = new int[posCounts.length][4];
+    public ConfusionMatrix[] createConfusionMatrices(int[] posCounts, int[] negCounts) {
+        ConfusionMatrix[] matrices = new ConfusionMatrix[posCounts.length];
         int totPos = posCounts[posCounts.length - 1];
         int totNeg = negCounts[negCounts.length - 1];
         for (int matrixIndex = 0; matrixIndex < matrices.length; matrixIndex++) {
-            matrices[matrixIndex][0] = posCounts[matrixIndex];
-            matrices[matrixIndex][1] = negCounts[matrixIndex];
-            matrices[matrixIndex][2] = totPos - posCounts[matrixIndex];
-            matrices[matrixIndex][3] = totNeg - negCounts[matrixIndex];
+            matrices[matrixIndex] = new ConfusionMatrix(posCounts[matrixIndex], negCounts[matrixIndex], totPos - posCounts[matrixIndex],totNeg - negCounts[matrixIndex]);
         }
         return matrices;
     }
@@ -124,27 +123,27 @@ public class CurveTest {
     @Test
     public void testConfusionMatrix() {
         // Normal
-        int[][] expected = {
-            {0, 0, 5, 5},
-            {1, 0, 4, 5},
-            {1, 1, 4, 4},
-            {2, 1, 3, 4},
-            {3, 1, 2, 4},
-            {3, 2, 2, 3},
-            {3, 3, 2, 2},
-            {4, 3, 1, 2},
-            {4, 4, 1, 1},
-            {4, 5, 1, 0},
-            {5, 5, 0, 0}
-        };
+        ConfusionMatrix[] expected = Arrays.stream(new int[][]{
+                {0, 0, 5, 5},
+                {1, 0, 4, 5},
+                {1, 1, 4, 4},
+                {2, 1, 3, 4},
+                {3, 1, 2, 4},
+                {3, 2, 2, 3},
+                {3, 3, 2, 2},
+                {4, 3, 1, 2},
+                {4, 4, 1, 1},
+                {4, 5, 1, 0},
+                {5, 5, 0, 0}
+        }).map(arr -> new ConfusionMatrix(arr[0], arr[1], arr[2], arr[3])).toArray(ConfusionMatrix[]::new);
         for (int expectedIndex = 0; expectedIndex < expected.length; expectedIndex++) {
-            assertArrayEquals(expected[expectedIndex], curve.confusionMatrix(expectedIndex));
+            assertEquals(expected[expectedIndex], curve.confusionMatrix(expectedIndex));
         }
 
         // Random
         expected = createConfusionMatrices(random_posCounts, random_negCounts);
         for (int expectedIndex = 0; expectedIndex < expected.length; expectedIndex++) {
-            assertArrayEquals(expected[expectedIndex], randCurve.confusionMatrix(expectedIndex));
+            assertEquals(expected[expectedIndex], randCurve.confusionMatrix(expectedIndex));
         }
     }
 

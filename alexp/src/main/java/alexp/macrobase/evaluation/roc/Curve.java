@@ -6,6 +6,8 @@
 package alexp.macrobase.evaluation.roc;
 
 
+import alexp.macrobase.evaluation.ConfusionMatrix;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -258,16 +260,13 @@ public class Curve {
      * @param rankNumber The number of elements in the ranking to treat
      * as positive.  (The classification threshold is between the
      * rankNumber-th and the (rankNumber + 1)-th label in the ranking.)
-     * @return A four-element array containing the numbers of true
-     * positives, false positives, false negatives, and true negatives
-     * ([TP, FP, FN, TN]).
      */
-    public int[] confusionMatrix(int rankNumber) {
+    public ConfusionMatrix confusionMatrix(int rankNumber) {
         int truePositives = truePositiveCounts[rankNumber];
         int falsePositives = falsePositiveCounts[rankNumber];
         int falseNegatives = totalPositives - truePositives;
         int trueNegatives = totalNegatives - falsePositives;
-        return new int[] {truePositives, falsePositives, falseNegatives, trueNegatives};
+        return new ConfusionMatrix(truePositives, falsePositives, falseNegatives, trueNegatives);
     }
 
     /**

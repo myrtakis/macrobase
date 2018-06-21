@@ -1,5 +1,7 @@
 package alexp.macrobase.pipeline.benchmark;
 
+import alexp.macrobase.evaluation.Accuracy;
+import alexp.macrobase.evaluation.ConfusionMatrix;
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.*;
 import alexp.macrobase.outlier.MAD;
@@ -88,12 +90,11 @@ public class ClassifierEvaluationPipeline {
         System.out.println("PR Area: " + prArea + ", max area: " + maxPrArea);
 
         int middleRank = aucAnalysis.rocPoints().length / 2;
-        int[] matr = aucAnalysis.confusionMatrix(middleRank);
-        System.out.println("True Positive " + matr[0] + ", False Positive " + matr[1] + ", False Negative " + matr[2] + ", True Negative " + matr[3]);
+        ConfusionMatrix confusionMatrix = aucAnalysis.confusionMatrix(middleRank);
 
-        int tp = matr[0];
-        int tn = matr[3];
-        double accuracy = ((double) tp + tn) / dataFrame.getNumRows();
+        System.out.println(confusionMatrix);
+
+        double accuracy = new Accuracy().evaluate(confusionMatrix);
         System.out.println("Accuracy (middle threshold): " + accuracy);
     }
 
