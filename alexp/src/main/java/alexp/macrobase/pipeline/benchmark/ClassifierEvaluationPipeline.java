@@ -1,7 +1,6 @@
 package alexp.macrobase.pipeline.benchmark;
 
-import alexp.macrobase.evaluation.Accuracy;
-import alexp.macrobase.evaluation.ConfusionMatrix;
+import alexp.macrobase.evaluation.*;
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.*;
 import alexp.macrobase.outlier.MAD;
@@ -89,13 +88,15 @@ public class ClassifierEvaluationPipeline {
         System.out.println("ROC Area: " + rocArea + ", max area: " + maxRocArea);
         System.out.println("PR Area: " + prArea + ", max area: " + maxPrArea);
 
+        System.out.println("Stats for middle threshold:");
+
         int middleRank = aucAnalysis.rocPoints().length / 2;
         ConfusionMatrix confusionMatrix = aucAnalysis.confusionMatrix(middleRank);
 
         System.out.println(confusionMatrix);
 
-        double accuracy = new Accuracy().evaluate(confusionMatrix);
-        System.out.println("Accuracy (middle threshold): " + accuracy);
+        System.out.println("Accuracy: " + new Accuracy().evaluate(confusionMatrix));
+        System.out.println("F1-score: " + new FScore().evaluate(confusionMatrix));
     }
 
     private DataFrame loadDara() throws Exception {

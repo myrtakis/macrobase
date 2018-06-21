@@ -57,6 +57,14 @@ public class ConfusionMatrix {
         return truePositive() + falsePositive() + falseNegative() + trueNegative();
     }
 
+    public double precision() {
+        return truePositive() / ((double) truePositive() + falsePositive());
+    }
+
+    public double recall() {
+        return truePositive() / ((double) truePositive() + falseNegative());
+    }
+
     @Override
     public String toString() {
         return String.format("True Positive %d, False Positive %d, False Negative %d, True Negative %d",
