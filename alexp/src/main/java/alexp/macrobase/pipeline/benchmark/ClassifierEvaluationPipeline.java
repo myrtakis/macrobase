@@ -66,15 +66,11 @@ public class ClassifierEvaluationPipeline {
                 .labels(labels)
                 .build();
 
-        Curve convexHull = aucAnalysis.convexHull();
-
         double rocArea = aucAnalysis.rocArea();
-        double maxRocArea = convexHull.rocArea();
         double prArea = aucAnalysis.prArea();
-        double maxPrArea = convexHull.prArea();
 
-        System.out.println(String.format("ROC Area: %.4f, max area: %.4f", rocArea, maxRocArea));
-        System.out.println(String.format("PR Area: %.4f, max area: %.4f", prArea, maxPrArea));
+        System.out.println(String.format("ROC Area: %.4f", rocArea));
+        System.out.println(String.format("PR Area: %.4f", prArea));
 
         System.out.println("Stats for middle threshold:");
 
