@@ -133,7 +133,9 @@ public class ClassifierEvaluationPipeline {
                 return classifier;
             }
             case "mad": {
-                return new MAD(metricColumns[0]);
+                MAD mad = new MAD(metricColumns[0]);
+                mad.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                return mad;
             }
             default : {
                 throw new RuntimeException("Bad Classifier Type");

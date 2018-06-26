@@ -10,6 +10,8 @@ public class MAD extends Classifier {
 
     private DataFrame output;
 
+    private int trainSize = 10000;
+
     public MAD(String columnName) {
         super(columnName);
     }
@@ -54,7 +56,7 @@ public class MAD extends Classifier {
 
     @Override
     public void process(DataFrame input) {
-        train(input.limit(10000));
+        train(input.limit(trainSize));
 
         double[] metricColumn = input.getDoubleColumnByName(columnName);
 
@@ -71,5 +73,13 @@ public class MAD extends Classifier {
     @Override
     public DataFrame getResults() {
         return output;
+    }
+
+    public int getTrainSize() {
+        return trainSize;
+    }
+
+    public void setTrainSize(int trainSize) {
+        this.trainSize = trainSize;
     }
 }

@@ -6,6 +6,7 @@ labelColumn: "is_anomaly"
 
 classifiers:
   - classifier: "mad"
+    trainSize: 10000
   - classifier: "mcod"
     maxDistance: 20.0
     minNeighborCount: 20
