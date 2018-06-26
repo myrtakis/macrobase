@@ -6,7 +6,7 @@ labelColumn: "is_anomaly"
 classifiers:
   - classifier: "mad"
   - classifier: "mcod"
-    maxDistance: 30.0
+    maxDistance: 20.0
     minNeighborCount: 20
     classifierWindowSize: 10000
     classifierSlide: 5000
