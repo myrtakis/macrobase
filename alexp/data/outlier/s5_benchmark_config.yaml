@@ -1,6 +1,7 @@
 inputURI: "csv://alexp/data/outlier/yahoos5_a1_all.csv"
 timeColumn: "time"
-metricColumn: "value"
+metricColumns:
+  - "value"
 labelColumn: "is_anomaly"
 
 classifiers:
