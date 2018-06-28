@@ -13,22 +13,41 @@ import java.io.IOException;
 public class AucChart {
     public void saveToPng(Curve aucCurve, String filePath) throws IOException {
         double[][] points = aucCurve.rocPoints();
+        double[][] prPoints = aucCurve.prPoints();
 
-        final XYSeries series = new XYSeries("AUC");
+        final XYSeries rocSeries = new XYSeries("ROC AUC");
         for (double[] p : points) {
-            series.add(p[0],p[1]);
-
+            rocSeries.add(p[0],p[1]);
         }
 
-        final XYSeriesCollection data = new XYSeriesCollection(series);
+        final XYSeries prSeries = new XYSeries("PR AUC");
+        for (double[] p : prPoints) {
+            prSeries.add(p[0],p[1]);
+        }
+
+        final XYSeries f1Series = new XYSeries("F1-score");
+        final XYSeries accuracySeries = new XYSeries("Accuracy");
+        FScore fScore = new FScore();
+        Accuracy accuracy = new Accuracy();
+        for (int i = 0; i < points.length; i++) {
+            ConfusionMatrix matr = aucCurve.confusionMatrix(i);
+            f1Series.add(points[i][0], fScore.evaluate(matr));
+            accuracySeries.add(points[i][0], accuracy.evaluate(matr));
+        }
+
+        final XYSeriesCollection data = new XYSeriesCollection();
+        data.addSeries(rocSeries);
+        data.addSeries(prSeries);
+        data.addSeries(f1Series);
+        data.addSeries(accuracySeries);
 
         final JFreeChart chart = ChartFactory.createXYLineChart(
-                "ROC AUC for " + new File(filePath).getName().replace(".png", ""),
+                new File(filePath).getName().replace(".png", ""),
                 "False Positive Rate",
-                "True Positive Rate",
+                "True Positive Rate | F1-score | Accuracy",
                 data,
                 PlotOrientation.VERTICAL,
-                false,
+                true,
                 false,
                 false
         );
