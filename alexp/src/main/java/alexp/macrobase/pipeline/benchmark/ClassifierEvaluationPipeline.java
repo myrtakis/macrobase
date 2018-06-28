@@ -5,6 +5,7 @@ import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.ingest.XlsxDataFrameReader;
 import alexp.macrobase.outlier.MAD;
+import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -136,6 +137,11 @@ public class ClassifierEvaluationPipeline {
                 MAD mad = new MAD(metricColumns[0]);
                 mad.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
                 return mad;
+            }
+            case "mcd": {
+                MinCovDet mcd = new MinCovDet(metricColumns);
+                mcd.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                return mcd;
             }
             default : {
                 throw new RuntimeException("Bad Classifier Type");

@@ -13,9 +13,12 @@ metricColumns:
 labelColumn: "is_anomaly"
 
 classifiers:
+  - classifier: "mcd"
+    alpha: 0.5
+    stoppingDelta: 0.001
+    trainSize: 10000
   - classifier: "mcod"
     maxDistance: 10.0
     minNeighborCount: 10
     classifierWindowSize: 10000
     classifierSlide: 5000
-
