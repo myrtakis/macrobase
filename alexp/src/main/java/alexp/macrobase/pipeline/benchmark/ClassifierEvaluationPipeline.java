@@ -134,14 +134,16 @@ public class ClassifierEvaluationPipeline {
                 return classifier;
             }
             case "mad": {
-                MAD mad = new MAD(metricColumns[0]);
-                mad.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
-                return mad;
+                MAD classifier = new MAD(metricColumns[0]);
+                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                return classifier;
             }
             case "mcd": {
-                MinCovDet mcd = new MinCovDet(metricColumns);
-                mcd.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
-                return mcd;
+                MinCovDet classifier = new MinCovDet(metricColumns);
+                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                classifier.setAlpha((double) conf.getOrDefault("alpha", 0.5));
+                classifier.setStoppingDelta((double) conf.getOrDefault("stoppingDelta", 0.001));
+                return classifier;
             }
             default : {
                 throw new RuntimeException("Bad Classifier Type");
