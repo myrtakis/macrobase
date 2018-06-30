@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 
 public class AucChart {
+    private String name;
+
     public void saveToPng(Curve aucCurve, String filePath) throws IOException {
         double[][] points = aucCurve.rocPoints();
         double[][] prPoints = aucCurve.prPoints();
@@ -42,7 +44,7 @@ public class AucChart {
         data.addSeries(accuracySeries);
 
         final JFreeChart chart = ChartFactory.createXYLineChart(
-                new File(filePath).getName().replace(".png", ""),
+                name,
                 "False Positive Rate",
                 "True Positive Rate | F1-score | Accuracy",
                 data,
@@ -55,5 +57,14 @@ public class AucChart {
         new File(filePath).getParentFile().mkdirs();
 
         ChartUtils.saveChartAsPNG(new File(filePath), chart, 800, 600);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public AucChart setName(String name) {
+        this.name = name;
+        return this;
     }
 }

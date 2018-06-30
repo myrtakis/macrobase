@@ -1,5 +1,7 @@
 package alexp.macrobase.ingest;
 
+import java.io.File;
+
 public class Uri {
     public enum Type {
         UNKNOWN,
@@ -65,5 +67,19 @@ public class Uri {
 
     public Type getType() {
         return type;
+    }
+
+    public String shortDisplayPath() {
+        switch (type) {
+            case CSV:
+            case XLSX:
+                return new File(getPath()).getName();
+            case HTTP:
+                return getOriginalString();
+            case JDBC:
+                return "";
+            default:
+                return getPath();
+        }
     }
 }

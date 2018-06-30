@@ -10,13 +10,16 @@ public class UriTest {
     public void testUriParsing() {
         assertEquals(Uri.Type.CSV, new Uri("csv://documents/data.csv").getType());
         assertEquals("documents/data.csv", new Uri("csv://documents/data.csv").getPath());
+        assertEquals("data.csv", new Uri("csv://documents/data.csv").shortDisplayPath());
 
         assertEquals(Uri.Type.XLSX, new Uri("xls://data.xlsx").getType());
         assertEquals("data.xlsx", new Uri("xls://data.xlsx").getPath());
+        assertEquals("data.xlsx", new Uri("xls://documents/data.xlsx").shortDisplayPath());
 
         assertEquals(Uri.Type.HTTP, new Uri("http://site.com/data").getType());
         assertEquals("http://site.com/data", new Uri("http://site.com/data").getPath());
         assertEquals("http", new Uri("http://site.com/data").getTypeString());
+        assertEquals("http://site.com/data", new Uri("http://site.com/data").shortDisplayPath());
 
         assertEquals(Uri.Type.HTTP, new Uri("https://site.com/data").getType());
         assertEquals("https://site.com/data", new Uri("https://site.com/data").getPath());
@@ -24,6 +27,7 @@ public class UriTest {
 
         assertEquals(Uri.Type.JDBC, new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").getType());
         assertEquals("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword", new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").getPath());
+        assertEquals("", new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").shortDisplayPath());
 
         assertEquals(Uri.Type.UNKNOWN, new Uri("some/path").getType());
         assertEquals("some/path", new Uri("some/path").getPath());

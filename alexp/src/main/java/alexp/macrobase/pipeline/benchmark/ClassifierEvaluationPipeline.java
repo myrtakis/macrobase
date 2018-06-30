@@ -55,6 +55,8 @@ public class ClassifierEvaluationPipeline {
     }
 
     public void run() throws Exception {
+        System.out.println(inputURI.getOriginalString());
+
         for (Classifier classifier : classifiers) {
             run(classifier);
         }
@@ -93,7 +95,9 @@ public class ClassifierEvaluationPipeline {
         System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
         System.out.println(String.format("F1-score: %.4f", new FScore().evaluate(confusionMatrix)));
 
-        new AucChart().saveToPng(aucAnalysis, "alexp/bench_output/" + classifier.getClass().getSimpleName() + ".png");
+        new AucChart()
+                .setName(classifier.getClass().getSimpleName() + ", " + inputURI.shortDisplayPath())
+                .saveToPng(aucAnalysis, "alexp/bench_output/" + classifier.getClass().getSimpleName() + ".png");
     }
 
     private DataFrame loadDara() throws Exception {
