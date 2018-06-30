@@ -3,23 +3,24 @@ package alexp.macrobase.pipeline.benchmark;
 import alexp.macrobase.evaluation.*;
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.Uri;
-import alexp.macrobase.ingest.XlsxDataFrameReader;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.mcod.McodClassifier;
+import alexp.macrobase.pipeline.Pipelines;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ClassifierEvaluationPipeline {
+    private final PipelineConfig conf;
+
     private final Uri inputURI;
 
     private String[] metricColumns;
@@ -32,6 +33,8 @@ public class ClassifierEvaluationPipeline {
     private int[] labels;
 
     public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
+        this.conf = conf;
+
         inputURI = new Uri(conf.get("inputURI"));
 
         timeColumn = conf.get("timeColumn");
@@ -105,12 +108,7 @@ public class ClassifierEvaluationPipeline {
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
 
-        switch (inputURI.getType()) {
-            case XLSX:
-                return new XlsxDataFrameReader(inputURI.getPath(), requiredColumns, 0).load();
-            default:
-                return PipelineUtils.loadDataFrame(inputURI.getOriginalString(), colTypes, requiredColumns);
-        }
+        return Pipelines.loadDataFrame(inputURI, colTypes, requiredColumns, conf);
     }
 
     private Classifier getClassifier(Map<String, Object> conf) throws RuntimeException {

@@ -1,8 +1,6 @@
 package alexp.macrobase.pipeline;
 
-import alexp.macrobase.ingest.SqlDataFrameReader;
 import alexp.macrobase.ingest.Uri;
-import alexp.macrobase.ingest.XlsxDataFrameReader;
 import alexp.macrobase.outlier.mcod.McodClassifierBatch;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -16,19 +14,19 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.Pipeline;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BatchPipeline implements Pipeline {
-    private final Uri inputURI;
+    private final PipelineConfig conf;
 
-    private String sqlQuery;
+    private final Uri inputURI;
 
     private String classifierType;
     private String metric;
@@ -46,19 +44,16 @@ public class BatchPipeline implements Pipeline {
 
     private String summarizerType;
     private List<String> attributes;
-    private String ratioMetric;
     private double minSupport;
     private double minRiskRatio;
 
     public BatchPipeline(PipelineConfig conf) {
+        this.conf = conf;
+
         inputURI = new Uri(conf.get("inputURI"));
 
         classifierType = conf.get("classifier", "percentile");
         metric = conf.get("metric");
-
-        if (inputURI.getType() == Uri.Type.JDBC) {
-            sqlQuery = conf.get("query");
-        }
 
         if (classifierType.equals("predicate")) {
             Object rawCutoff = conf.get("cutoff");
@@ -84,7 +79,6 @@ public class BatchPipeline implements Pipeline {
 
         summarizerType = conf.get("summarizer", "apriori");
         attributes = conf.get("attributes");
-        ratioMetric = conf.get("ratioMetric", "globalRatio");
         minRiskRatio = conf.get("minRatioMetric", 3.0);
         minSupport = conf.get("minSupport", 0.01);
 
@@ -118,17 +112,6 @@ public class BatchPipeline implements Pipeline {
         return explanation;
     }
 
-    private DataFrame loadDataFrame(Uri inputURI, Map<String, Schema.ColType> colTypes, List<String> requiredColumns) throws Exception {
-        switch (inputURI.getType()) {
-            case XLSX:
-                return new XlsxDataFrameReader(inputURI.getPath(), requiredColumns, 0).load();
-            case JDBC:
-                return new SqlDataFrameReader(inputURI.getPath(), requiredColumns, sqlQuery).load();
-            default:
-                return PipelineUtils.loadDataFrame(inputURI.getOriginalString(), colTypes, requiredColumns);
-        }
-    }
-
     private DataFrame loadData() throws Exception {
         Map<String, Schema.ColType> colTypes = new HashMap<>();
         if (isStrPredicate) {
@@ -137,9 +120,9 @@ public class BatchPipeline implements Pipeline {
         else{
             colTypes.put(metric, Schema.ColType.DOUBLE);
         }
-        List<String> requiredColumns = new ArrayList<>(attributes);
-        requiredColumns.add(metric);
-        return loadDataFrame(inputURI, colTypes, requiredColumns);
+        List<String> requiredColumns = Stream.concat(attributes.stream(), colTypes.keySet().stream()).collect(Collectors.toList());
+
+        return Pipelines.loadDataFrame(inputURI, colTypes, requiredColumns, conf);
     }
 
     private Classifier getClassifier() throws MacroBaseException {

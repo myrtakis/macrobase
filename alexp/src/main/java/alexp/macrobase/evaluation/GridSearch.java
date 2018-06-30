@@ -1,10 +1,11 @@
 package alexp.macrobase.evaluation;
 
 import alexp.macrobase.evaluation.roc.Curve;
+import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.outlier.MinCovDet;
+import alexp.macrobase.pipeline.Pipelines;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 
 import java.util.*;
 
@@ -81,6 +82,6 @@ public class GridSearch {
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
 
-        return PipelineUtils.loadDataFrame(url, colTypes, requiredColumns);
+        return Pipelines.loadDataFrame(new Uri(url), colTypes, requiredColumns, null);
     }
 }
