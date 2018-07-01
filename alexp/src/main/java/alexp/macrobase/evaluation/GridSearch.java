@@ -1,87 +1,66 @@
 package alexp.macrobase.evaluation;
 
-import alexp.macrobase.evaluation.roc.Curve;
-import alexp.macrobase.ingest.Uri;
-import alexp.macrobase.outlier.MinCovDet;
-import alexp.macrobase.pipeline.Pipelines;
-import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import edu.stanford.futuredata.macrobase.datamodel.Schema;
-
+import com.google.common.collect.Streams;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GridSearch {
 
     @FunctionalInterface
     public interface RunInstance {
-        double accept(double[] params) throws Exception;
+        double accept(Map<String, Object> params) throws Exception;
     }
 
-    public void run(List<double[]> paramsLists, RunInstance runInstance) throws Exception {
-        List<double[]> permutations = new ArrayList<>();
-        generatePermutations(paramsLists, permutations, 0, new ArrayList<>());
+    private class SearchParam {
+        final String name;
+        final Object[] values;
 
-        Map<Double, double[]> results = new TreeMap<>();
-
-        for (double[] permutation : permutations) {
-            results.put(runInstance.accept(permutation), permutation);
+        SearchParam(String name, Object[] values) {
+            this.name = name;
+            this.values = values;
         }
-
-        results.forEach((k, p) -> System.out.println(String.format("%s - %.4f", Arrays.toString(p), k)));
     }
 
-    private void generatePermutations(List<double[]> paramsLists, List<double[]> result, int depth, List<Double> current)
-    {
+    private ArrayList<SearchParam> searchParams = new ArrayList<>();
+
+    private SortedMap<Double, Map<String, Object>> results = new TreeMap<>();
+
+    public GridSearch addParam(String name, Object[] values) {
+        searchParams.add(new SearchParam(name, values));
+        return this;
+    }
+
+    public void run(RunInstance runInstance) throws Exception {
+        List<Object[]> permutations = new ArrayList<>();
+        generatePermutations(searchParams.stream().map(p -> p.values).collect(Collectors.toList()), permutations, 0, new ArrayList<>());
+
+        results.clear();
+
+        for (Object[] permutation : permutations) {
+            // {"p1": x, "p2": y, ...}
+            Map<String, Object> params = Streams.mapWithIndex(Arrays.stream(permutation), (o, i) -> new AbstractMap.SimpleEntry<>(searchParams.get((int) i).name, o))
+                    .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+
+            results.put(runInstance.accept(params), params);
+        }
+    }
+
+    public SortedMap<Double, Map<String, Object>> getResults() {
+        return results;
+    }
+
+    private void generatePermutations(List<Object[]> paramsLists, List<Object[]> result, int depth, List<Object> current) {
         if(depth == paramsLists.size())
         {
-            result.add(current.stream().mapToDouble(i->i).toArray());
+            result.add(current.toArray());
             return;
         }
 
         for(int i = 0; i < paramsLists.get(depth).length; ++i)
         {
-            List<Double> next = new ArrayList<>(current);
+            List<Object> next = new ArrayList<>(current);
             next.add(paramsLists.get(depth)[i]);
             generatePermutations(paramsLists, result, depth + 1, next);
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-        String[] metrics = new String[] { "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9" };
-        String labelColumn = "is_anomaly";
-        DataFrame dataFrame = loadDara("csv://alexp/data/outlier/shuttle-unsupervised-ad.csv", metrics, labelColumn);
-        int[] labels = Arrays.stream(dataFrame.getDoubleColumnByName(labelColumn)).mapToInt(d -> (int) d).toArray();
-
-        ArrayList<double[]> params = new ArrayList<>();
-        params.add(new double[] { 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 });
-        params.add(new double[] { 0.1, 0.01, 0.001, 0.0001 });
-
-        GridSearch gs = new GridSearch();
-        gs.run(params, p -> {
-            MinCovDet classifier = new MinCovDet(metrics);
-            classifier.setAlpha(p[0]);
-            classifier.setStoppingDelta(p[1]);
-
-            classifier.process(dataFrame);
-
-            double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
-            Curve aucAnalysis = new Curve.PrimitivesBuilder()
-                    .scores(classifierResult)
-                    .labels(labels)
-                    .build();
-
-            return aucAnalysis.rocArea();
-        });
-    }
-
-    private static DataFrame loadDara(String url, String[] metrics, String labelColumn) throws Exception {
-        Map<String, Schema.ColType> colTypes = new HashMap<>();
-        colTypes.put(labelColumn, Schema.ColType.DOUBLE);
-        for (String metricColumn : metrics) {
-            colTypes.put(metricColumn, Schema.ColType.DOUBLE);
-        }
-
-        List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
-
-        return Pipelines.loadDataFrame(new Uri(url), colTypes, requiredColumns, null);
     }
 }

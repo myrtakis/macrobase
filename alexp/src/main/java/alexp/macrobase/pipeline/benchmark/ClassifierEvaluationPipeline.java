@@ -27,10 +27,12 @@ public class ClassifierEvaluationPipeline {
     private String timeColumn;
     private String labelColumn;
 
-    private List<Classifier> classifiers;
+    private ArrayList<Map<String, Object>> classifierConfigs;
 
     private DataFrame dataFrame;
     private int[] labels;
+
+    private final String searchMeasure;
 
     public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
         this.conf = conf;
@@ -42,8 +44,9 @@ public class ClassifierEvaluationPipeline {
         metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
         labelColumn = conf.get("labelColumn", "is_anomaly");
 
-        ArrayList<Map<String, Object>> classifierConfigs = conf.get("classifiers");
-        classifiers = classifierConfigs.stream().map(this::getClassifier).collect(Collectors.toList());
+        classifierConfigs = conf.get("classifiers");
+
+        searchMeasure = conf.get("searchMeasure", "");
 
         dataFrame = loadDara();
         labels = Arrays.stream(dataFrame.getDoubleColumnByName(labelColumn)).mapToInt(d -> (int) d).toArray();
@@ -55,10 +58,20 @@ public class ClassifierEvaluationPipeline {
     }
 
     public void run() throws Exception {
+        List<Classifier> classifiers = classifierConfigs.stream().map(this::getClassifier).collect(Collectors.toList());
+
         System.out.println(inputURI.getOriginalString());
 
         for (Classifier classifier : classifiers) {
             run(classifier);
+        }
+    }
+
+    public void runGridSearch() throws Exception {
+        System.out.println(inputURI.getOriginalString());
+
+        for (Map<String, Object> classifierConf : classifierConfigs) {
+            runGridSearch(new PipelineConfig(classifierConf));
         }
     }
 
@@ -74,10 +87,7 @@ public class ClassifierEvaluationPipeline {
         System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
-        Curve aucAnalysis = new Curve.PrimitivesBuilder()
-                .scores(classifierResult)
-                .labels(labels)
-                .build();
+        Curve aucAnalysis = aucCurve(classifierResult);
 
         double rocArea = aucAnalysis.rocArea();
         double prArea = aucAnalysis.prArea();
@@ -98,6 +108,52 @@ public class ClassifierEvaluationPipeline {
         new AucChart()
                 .setName(classifier.getClass().getSimpleName() + ", " + inputURI.shortDisplayPath())
                 .saveToPng(aucAnalysis, "alexp/bench_output/" + classifier.getClass().getSimpleName() + ".png");
+    }
+
+    private void runGridSearch(PipelineConfig classifierConf) throws Exception {
+        System.out.println();
+        System.out.println(getClassifier(classifierConf.getValues()).getClass().getSimpleName());
+
+        Map<String, Object[]> searchParams = classifierConf.<ArrayList<Map<String, Object>>>get("searchParams").stream()
+                .collect(Collectors.toMap(o -> o.keySet().iterator().next(), o -> ((ArrayList) o.values().iterator().next()).toArray()));
+
+        GridSearch gs = new GridSearch();
+        searchParams.forEach(gs::addParam);
+
+        gs.run(params -> {
+            Map<String, Object> currConf = new HashMap<>(classifierConf.getValues());
+            currConf.putAll(params);
+
+            Classifier classifier = getClassifier(currConf);
+
+            classifier.process(dataFrame);
+
+            double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
+
+            switch (searchMeasure) {
+                case "roc": return aucCurve(classifierResult).rocArea();
+                case "pr": return aucCurve(classifierResult).prArea();
+                case "f1": {
+                    Curve curve = aucCurve(classifierResult);
+                    FScore fScore = new FScore();
+                    return IntStream.range(0, curve.rocPoints().length)
+                            .mapToDouble(i -> fScore.evaluate(curve.confusionMatrix(i)))
+                            .filter(d -> !Double.isNaN(d))
+                            .max().getAsDouble();
+                }
+                default: throw new RuntimeException("Unknown search measure " + searchMeasure);
+            }
+        });
+
+        System.out.println(searchMeasure.toUpperCase());
+        gs.getResults().forEach((score, params) -> System.out.println(String.format("%.4f: %s", score, params)));
+    }
+
+    private Curve aucCurve(double[] classifierResult) {
+        return new Curve.PrimitivesBuilder()
+                .scores(classifierResult)
+                .labels(labels)
+                .build();
     }
 
     private DataFrame loadDara() throws Exception {

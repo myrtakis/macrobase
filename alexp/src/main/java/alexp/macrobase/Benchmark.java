@@ -13,11 +13,13 @@ import java.nio.file.Paths;
 public class Benchmark {
     private final OptionParser optionParser = new OptionParser();
     private final OptionSpec<String> aucOption;
+    private final OptionSpec<String> gsOption;
 
     private Benchmark() {
         aucOption = optionParser.accepts("auc", "Run evaluation (AUC, F1, etc.) of outlier detection algorithms")
                 .withRequiredArg().describedAs("config_file_path");
-
+        gsOption = optionParser.accepts("gs", "Run Grid Search for parameters of outlier detection algorithms")
+                .withRequiredArg().describedAs("config_file_path");
     }
 
     private void runAuc(String confFilePath) throws Exception {
@@ -28,11 +30,19 @@ public class Benchmark {
         pipeline.run();
     }
 
+    private void runGridSearch(String confFilePath) throws Exception {
+        PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
+
+        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+
+        pipeline.runGridSearch();
+    }
+
     private void showUsage() throws IOException {
         optionParser.printHelpOn(System.out);
         System.out.println("Examples:");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
-        System.out.println("  --gs alexp/data/outlier/gs_config.yaml");
+        System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
     }
 
     private int run(String[] args) throws Exception {
@@ -58,6 +68,16 @@ public class Benchmark {
             }
 
             runAuc(confFilePath);
+        }
+
+        if (options.has(gsOption)) {
+            String confFilePath = gsOption.value(options);
+            if (!Files.exists(Paths.get(confFilePath))) {
+                System.out.println("Config file not found");
+                return 4;
+            }
+
+            runGridSearch(confFilePath);
         }
 
         return 0;
