@@ -5,21 +5,8 @@
  */
 package alexp.macrobase.outlier.mcod;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.PriorityQueue;
-
 import alexp.macrobase.outlier.mcod.mtree.MTreeClass;
-import alexp.macrobase.outlier.mcod.measurements.MesureMemoryThread;
-import alexp.macrobase.outlier.mcod.utils.Utils;
+import java.util.*;
 
 /**
  * @author Luan
@@ -48,9 +35,6 @@ public class MicroCluster_New {
     }
 
     public ArrayList<Data> detectOutlier(ArrayList<Data> data, int currentTime) {
-
-        ArrayList<Data> result = new ArrayList<>();
-
         if (slide != windowSize) {
             //purge expire object
             for (int i = dataList.size() - 1; i >= 0; i--) {
@@ -82,16 +66,11 @@ public class MicroCluster_New {
             outlierList.clear();
         }
         //process new data
-        data.stream().forEach((d) -> {
-            processNewData(d);
-        });
+        data.forEach(this::processNewData);
 
         //add result
-        outlierList.stream().forEach((o) -> {
-            result.add(o);
-        });
         printStatistic();
-        return result;
+        return new ArrayList<>(outlierList);
     }
 
     private void printStatistic() {
@@ -101,8 +80,6 @@ public class MicroCluster_New {
         System.out.println("#points in event queue = " + eventQueue.size());
 
         System.out.println("avg neighborList length = " + computeAvgNeighborList());
-
-
     }
 
     private double computeAvgNeighborList() {
@@ -137,7 +114,6 @@ public class MicroCluster_New {
 //        return values != null && values.contains(v);
 //    }
     private void removeFromCluster(MCO d) {
-
         //get the cluster
         ArrayList<MCO> cluster = micro_clusters.get(d.center);
         if (cluster != null) {
@@ -146,12 +122,10 @@ public class MicroCluster_New {
 
             //cluster is shrinked 
             if (cluster.size() < minNeighborCount + 1) {
-                //remove this cluster from micro cluster list 
-                long startTime3 = Utils.getCPUTime();
+                //remove this cluster from micro cluster list
                 micro_clusters.remove(d.center);
-                MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime3;
                 dataList_set.remove(d.center);
-                Collections.sort(cluster, new MCComparatorArrivalTime());
+                cluster.sort(new MCComparatorArrivalTime());
                 //process the objects in clusters 
                 for (int i = 0; i < cluster.size(); i++) {
                     MCO o = cluster.get(i);
@@ -161,12 +135,10 @@ public class MicroCluster_New {
 
                     o.numberOfSucceeding = o.numberOfSucceeding + cluster.size() - 1 - i;
                     addToPD(o, true);
-
                 }
 
             }
         }
-
     }
 
     private void removeFromPD(MCO d) {
@@ -179,7 +151,7 @@ public class MicroCluster_New {
             outlierList.remove(d);
         }
 
-        outlierList.stream().forEach((data) -> {
+        outlierList.forEach((data) -> {
             while (data.exps.size() > 0 && data.exps.get(0) <= d.arrivalTime() + windowSize) {
                 data.exps.remove(0);
                 if (data.exps.isEmpty()) {
@@ -202,17 +174,8 @@ public class MicroCluster_New {
 
     }
 
-    public void appendToFile(String filename, String str) throws FileNotFoundException, UnsupportedEncodingException {
-        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(filename, true)))) {
-            out.println(str);
-        } catch (IOException e) {
-            //exception handling left as an exercise for the reader
-        }
-    }
-
     private void addToPD(MCO o, boolean fromCluster) {
-
-        PD.stream().forEach((inPD) -> {
+        PD.forEach((inPD) -> {
             //compute distance
             double distance = mtree.getDistanceFunction().calculate(o, inPD);
             if (distance <= maxDistance) {
@@ -262,17 +225,10 @@ public class MicroCluster_New {
 
         PD.add(o);
 //        mtree.add(o);
-
     }
 
     private int isSameSlide(MCO o1, MCO o2) {
-        if ((o1.arrivalTime() - 1) / slide == (o2.arrivalTime() - 1) / slide) {
-            return 0;
-        } else if ((o1.arrivalTime() - 1) / slide < (o2.arrivalTime() - 1) / slide) {
-            return -1;
-        } else {
-            return 1;
-        }
+        return Integer.compare((o1.arrivalTime() - 1) / slide, (o2.arrivalTime() - 1) / slide);
     }
 
     private int findNearestCenter(MCO d) {
@@ -291,12 +247,11 @@ public class MicroCluster_New {
             }
         }
         return min_center_id;
-
     }
 
     private ArrayList<Integer> findClusterIn3_2Range(MCO d) {
         ArrayList<Integer> result = new ArrayList<>();
-        micro_clusters.keySet().stream().forEach((center_id) -> {
+        micro_clusters.keySet().forEach((center_id) -> {
             //get the center object
             MCO center = dataList_set.get(center_id);
             //compute the distance
@@ -309,7 +264,6 @@ public class MicroCluster_New {
     }
 
     private void processNewData(Data data) {
-
         MCO d = new MCO(data);
 
         //add to datalist
@@ -339,12 +293,9 @@ public class MicroCluster_New {
         if (d.isCenter) {
             dataList_set.put(d.arrivalTime(), d);
         }
-
     }
 
     private void addToCluster(int nearest_center_id, MCO d) {
-
-        long startTime3 = Utils.getCPUTime();
         //update for points in cluster
         d.isCenter = false;
         d.isInCluster = true;
@@ -352,7 +303,6 @@ public class MicroCluster_New {
         ArrayList<MCO> cluster = micro_clusters.get(nearest_center_id);
         cluster.add(d);
         micro_clusters.put(nearest_center_id, cluster);
-        MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime3;
 
         //update for points in PD that has Rmc list contains center
         PD.stream().filter((inPD) -> (inPD.Rmc.contains(nearest_center_id))).forEach((inPD) -> {
@@ -377,9 +327,8 @@ public class MicroCluster_New {
 
     private ArrayList<MCO> findNeighborR2InPD(MCO d) {
         ArrayList<MCO> results = new ArrayList<>();
-        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance * 1.0 / 2)).forEach((o) -> {
-            results.add(o);
-        });
+        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance * 1.0 / 2))
+                .forEach(results::add);
         return results;
     }
 
@@ -388,78 +337,55 @@ public class MicroCluster_New {
     }
 
     private void formNewCluster(MCO d, ArrayList<MCO> neighborsInR2Distance) {
-
-        long startTime3 = Utils.getCPUTime();
         d.isCenter = true;
         d.isInCluster = true;
         d.center = d.arrivalTime();
-        neighborsInR2Distance.stream().map((data) -> {
+        for (MCO data : neighborsInR2Distance) {
             PD.remove(data);
-            return data;
-        }).map((data) -> {
             if (isOutlier(data)) {
                 outlierList.remove(data);
-            }
-            return data;
-        }).map((data) -> {
-            if (!isOutlier(data)) {
+            } else {
                 eventQueue.remove(data);
             }
-            return data;
-        }).map((data) -> {
+
             resetObject(data);
-            return data;
-        }).map((data) -> {
             data.isInCluster = true;
-            return data;
-        }).map((data) -> {
             data.center = d.arrivalTime();
-            return data;
-        }).forEach((data) -> {
             data.isCenter = false;
-        });
+        }
 
         //add center to neighbor list
-        Collections.sort(neighborsInR2Distance, new MCComparatorArrivalTime());
+        neighborsInR2Distance.sort(new MCComparatorArrivalTime());
         neighborsInR2Distance.add(d);
         micro_clusters.put(d.arrivalTime(), neighborsInR2Distance);
-        MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime3;
 
         //update Rmc list
         ArrayList<MCO> list_rmc = findNeighborInR3_2InPD(d);
-        list_rmc.stream().map((o) -> {
+        for (MCO o : list_rmc) {
             if (isNeighbor(o, d)) {
                 if (isSameSlide(o, d) <= 0) {
                     o.numberOfSucceeding++;
                 } else {
                     o.exps.add(d.arrivalTime() + windowSize);
                 }
-//                addToHashMap(o.arrivalTime(),d.arrivalTime());
                 checkInlier(o);
-
             }
-            return o;
-        }).forEach((o) -> {
             o.Rmc.add(d.arrivalTime());
-        });
-
+        }
     }
 
     private ArrayList<MCO> findNeighborInRInPD(MCO d) {
-
         ArrayList<MCO> result = new ArrayList<>();
 
-        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance)).forEach((o) -> {
-            result.add(o);
-        });
+        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance))
+                .forEach(result::add);
         return result;
     }
 
     private ArrayList<MCO> findNeighborInR3_2InPD(MCO d) {
-
         ArrayList<MCO> result = new ArrayList<>();
 
-        PD.stream().forEach((p) -> {
+        PD.forEach((p) -> {
             double distance = mtree.getDistanceFunction().calculate(p, d);
             if (distance <= maxDistance * 3.0 / 2) {
                 result.add(p);
@@ -490,9 +416,7 @@ public class MicroCluster_New {
 
                 outlierList.remove(inPD);
                 if (!eventQueue.contains(inPD)) {
-                    long startTime3 = Utils.getCPUTime();
                     eventQueue.add(inPD);
-                    MesureMemoryThread.timeForIndexing += Utils.getCPUTime() - startTime3;
                 }
             }
 
@@ -542,14 +466,7 @@ public class MicroCluster_New {
 
         @Override
         public int compare(MCO o1, MCO o2) {
-            if (o1.ev < o2.ev) {
-                return -1;
-            } else if (o1.ev == o2.ev) {
-                return 0;
-            } else {
-                return 1;
-            }
-
+            return Integer.compare(o1.ev, o2.ev);
         }
 
     }
@@ -558,14 +475,7 @@ public class MicroCluster_New {
 
         @Override
         public int compare(MCO o1, MCO o2) {
-            if (o1.arrivalTime() < o2.arrivalTime()) {
-                return -1;
-            } else if (o1.arrivalTime() == o2.arrivalTime()) {
-                return 0;
-            } else {
-                return 1;
-            }
-
+            return Integer.compare(o1.arrivalTime(), o2.arrivalTime());
         }
 
     }
