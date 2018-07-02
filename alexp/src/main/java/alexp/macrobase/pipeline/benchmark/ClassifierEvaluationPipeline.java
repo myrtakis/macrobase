@@ -104,7 +104,13 @@ public class ClassifierEvaluationPipeline {
         System.out.println(confusionMatrix);
 
         System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
-        System.out.println(String.format("F1-score: %.4f", new FScore().evaluate(confusionMatrix)));
+
+        FScore fScore = new FScore();
+        double maxF1 = IntStream.range(0, aucAnalysis.rocPoints().length)
+                .mapToDouble(i -> fScore.evaluate(aucAnalysis.confusionMatrix(i)))
+                .filter(d -> !Double.isNaN(d))
+                .max().getAsDouble();
+        System.out.println(String.format("F1-score: %.4f (max %.4f)", fScore.evaluate(confusionMatrix), maxF1));
 
         new AucChart()
                 .setName(classifier.getClass().getSimpleName() + ", " + inputURI.shortDisplayPath())

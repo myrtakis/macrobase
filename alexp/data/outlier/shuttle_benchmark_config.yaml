@@ -14,8 +14,8 @@ labelColumn: "is_anomaly"
 
 classifiers:
   - classifier: "mcd"
-    alpha: 0.5
-    stoppingDelta: 0.001
+    alpha: 0.9
+    stoppingDelta: 0.00001
     trainSize: 10000
   - classifier: "lof"
     minPtsLB: 3
