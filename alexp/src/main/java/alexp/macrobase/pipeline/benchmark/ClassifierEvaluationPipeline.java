@@ -63,8 +63,8 @@ public class ClassifierEvaluationPipeline {
 
         System.out.println(inputURI.getOriginalString());
 
-        for (Classifier classifier : classifiers) {
-            run(classifier);
+        for (Map<String, Object> classifierConf : classifierConfigs) {
+            run(classifierConf);
         }
     }
 
@@ -76,9 +76,12 @@ public class ClassifierEvaluationPipeline {
         }
     }
 
-    private void run(Classifier classifier) throws Exception {
+    private void run(Map<String, Object> classifierConf) throws Exception {
+        Classifier classifier = getClassifier(classifierConf);
+
         System.out.println();
         System.out.println(classifier.getClass().getSimpleName());
+        System.out.println(classifierConf.entrySet().stream().filter(it -> !it.getKey().equals("classifier")).collect(Collectors.toSet()));
 
         Stopwatch sw = Stopwatch.createStarted();
 
