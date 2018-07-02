@@ -2,7 +2,8 @@ package alexp.macrobase.outlier.mcod;
 
 import alexp.macrobase.outlier.mcod.mtree.DistanceFunctions;
 
-import java.util.Random;
+import java.util.Arrays;
+import java.util.Objects;
 
 public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<Data> {
 
@@ -20,10 +21,8 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
         this.arrivalTime = arrivalTime;
         this.values = values;
 
-        int hashCode2 = 1;
-        for (double value : values) {
-            hashCode2 = 31 * hashCode2 + (int) value + (new Random()).nextInt(100000);
-        }
+        int hashCode2 = Objects.hash(arrivalTime);
+        hashCode2 = 31 * hashCode2 + Arrays.hashCode(values);
         this.hashCode = hashCode2;
     }
 
@@ -47,22 +46,12 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Data) {
-            Data that = (Data) obj;
-            if (this.arrivalTime != that.arrivalTime) return false;
-            if (this.dimensions() != that.dimensions()) {
-                return false;
-            }
-            for (int i = 0; i < this.dimensions(); i++) {
-                if (this.values[i] != that.values[i]) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Data data = (Data) o;
+        return arrivalTime == data.arrivalTime &&
+                Arrays.equals(values, data.values);
     }
 
     @Override
