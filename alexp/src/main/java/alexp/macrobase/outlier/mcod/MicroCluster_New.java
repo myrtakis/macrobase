@@ -24,7 +24,7 @@ public class MicroCluster_New {
     // store list ob in increasing time arrival order
     private ArrayList<MCO> dataList = new ArrayList<>();
     private MTreeClass mtree = new MTreeClass();
-    private ArrayList<MCO> outlierList = new ArrayList<>();
+    private HashSet<MCO> outlierList = new HashSet<>();
     private PriorityQueue<MCO> eventQueue = new PriorityQueue<>(new MCComparator());
 
     public MicroCluster_New(double maxDistance, int minNeighborCount, int windowSize, int slide) {
@@ -419,12 +419,9 @@ public class MicroCluster_New {
                     eventQueue.add(inPD);
                 }
             }
-
         } else {
             eventQueue.remove(inPD);
-            if (!outlierList.contains(inPD)) {
-                outlierList.add(inPD);
-            }
+            outlierList.add(inPD);
         }
     }
 
