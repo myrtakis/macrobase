@@ -16,15 +16,13 @@ public final class DistanceFunctions {
     private DistanceFunctions() {
     }
 
-
     /**
      * Creates a cached version of a {@linkplain DistanceFunction distance
      * function}. This method is used internally by {@link MTree} to create
      * a cached distance function to pass to the {@linkplain SplitFunction split
      * function}.
      *
-     * @param distanceFunction The distance function to create a cached version
-     *                         of.
+     * @param distanceFunction The distance function to create a cached version of.
      * @return The cached distance function.
      */
     public static <Data> DistanceFunction<Data> cached(final DistanceFunction<Data> distanceFunction) {
@@ -44,14 +42,11 @@ public final class DistanceFunctions {
                 }
 
                 @Override
-                public boolean equals(Object arg0) {
-                    if (arg0 instanceof Pair) {
-                        Pair that = (Pair) arg0;
-                        return this.data1.equals(that.data1)
-                                && this.data2.equals(that.data2);
-                    } else {
-                        return false;
-                    }
+                public boolean equals(Object o) {
+                    if (this == o) return true;
+                    if (o == null || getClass() != o.getClass()) return false;
+                    Pair that = (Pair) o;
+                    return this.data1.equals(that.data1) && this.data2.equals(that.data2);
                 }
             }
 
@@ -140,9 +135,9 @@ public final class DistanceFunctions {
         @Override
         public double calculate(List<Integer> data1, List<Integer> data2) {
             class IntegerListEuclideanCoordinate implements EuclideanCoordinate {
-                List<Integer> list;
+                private List<Integer> list;
 
-                public IntegerListEuclideanCoordinate(List<Integer> list) {
+                private IntegerListEuclideanCoordinate(List<Integer> list) {
                     this.list = list;
                 }
 
@@ -172,9 +167,9 @@ public final class DistanceFunctions {
         @Override
         public double calculate(List<Double> data1, List<Double> data2) {
             class DoubleListEuclideanCoordinate implements EuclideanCoordinate {
-                List<Double> list;
+                private List<Double> list;
 
-                public DoubleListEuclideanCoordinate(List<Double> list) {
+                private DoubleListEuclideanCoordinate(List<Double> list) {
                     this.list = list;
                 }
 
