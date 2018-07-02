@@ -66,6 +66,12 @@
             <artifactId>guava</artifactId>
             <version>25.1-jre</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.chen0040</groupId>
+            <artifactId>java-data-frame</artifactId>
+            <version>1.0.9</version>
+        </dependency>
     </dependencies>
 
 </project>
