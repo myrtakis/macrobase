@@ -7,6 +7,7 @@ package alexp.macrobase.outlier.mcod;
 
 import alexp.macrobase.outlier.mcod.mtree.MTreeClass;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Luan
@@ -24,7 +25,7 @@ public class MicroCluster_New {
     // store list ob in increasing time arrival order
     private ArrayList<MCO> dataList = new ArrayList<>();
     private MTreeClass mtree = new MTreeClass();
-    private HashSet<MCO> outlierList = new HashSet<>();
+    private Collection<MCO> outlierList = new HashSet<>();
     private PriorityQueue<MCO> eventQueue = new PriorityQueue<>(new MCComparator());
 
     public MicroCluster_New(double maxDistance, int minNeighborCount, int windowSize, int slide) {
@@ -52,7 +53,6 @@ public class MicroCluster_New {
                     removeFromPD(d);
                     //process event queue
                     process_event_queue(currentTime);
-
                 }
             }
         } else {
@@ -98,21 +98,6 @@ public class MicroCluster_New {
         return count;
     }
 
-    //    public void addToHashMap(Integer o1, Integer o2) {
-//        ArrayList<Integer> values = checkedPoints.get(o1);
-//        if (values != null) {
-//            values.add(o2);
-//            checkedPoints.put(o1, values);
-//        } else {
-//            values = new ArrayList<>();
-//            values.add(o2);
-//            checkedPoints.put(o1, values);
-//        }
-//    }
-//    public boolean checkInHashMap(Integer key, Integer v) {
-//        ArrayList<Integer> values = checkedPoints.get(key);
-//        return values != null && values.contains(v);
-//    }
     private void removeFromCluster(MCO d) {
         //get the cluster
         ArrayList<MCO> cluster = micro_clusters.get(d.center);
@@ -360,7 +345,7 @@ public class MicroCluster_New {
         micro_clusters.put(d.arrivalTime(), neighborsInR2Distance);
 
         //update Rmc list
-        ArrayList<MCO> list_rmc = findNeighborInR3_2InPD(d);
+        List<MCO> list_rmc = findNeighborInR3_2InPD(d);
         for (MCO o : list_rmc) {
             if (isNeighbor(o, d)) {
                 if (isSameSlide(o, d) <= 0) {
@@ -374,24 +359,16 @@ public class MicroCluster_New {
         }
     }
 
-    private ArrayList<MCO> findNeighborInRInPD(MCO d) {
-        ArrayList<MCO> result = new ArrayList<>();
-
-        PD.stream().filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance))
-                .forEach(result::add);
-        return result;
+    private List<MCO> findNeighborInRInPD(MCO d) {
+        return PD.stream()
+                .filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance))
+                .collect(Collectors.toList());
     }
 
-    private ArrayList<MCO> findNeighborInR3_2InPD(MCO d) {
-        ArrayList<MCO> result = new ArrayList<>();
-
-        PD.forEach((p) -> {
-            double distance = mtree.getDistanceFunction().calculate(p, d);
-            if (distance <= maxDistance * 3.0 / 2) {
-                result.add(p);
-            }
-        });
-        return result;
+    private List<MCO> findNeighborInR3_2InPD(MCO d) {
+        return PD.stream()
+                .filter((o) -> (mtree.getDistanceFunction().calculate(o, d) <= maxDistance * 3.0 / 2))
+                .collect(Collectors.toList());
     }
 
     private void checkInlier(MCO inPD) {
