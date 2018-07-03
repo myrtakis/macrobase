@@ -23,7 +23,7 @@ classifiers:
     trainSize: 1000
     parallel: false
   - classifier: "mcod"
-    maxDistance: 10.0
-    minNeighborCount: 10
+    maxDistance: 17.0
+    minNeighborCount: 180
     classifierWindowSize: 10000
     classifierSlide: 5000

@@ -59,8 +59,6 @@ public class ClassifierEvaluationPipeline {
     }
 
     public void run() throws Exception {
-        List<Classifier> classifiers = classifierConfigs.stream().map(this::getClassifier).collect(Collectors.toList());
-
         System.out.println(inputURI.getOriginalString());
 
         for (Map<String, Object> classifierConf : classifierConfigs) {
@@ -99,21 +97,19 @@ public class ClassifierEvaluationPipeline {
         System.out.println(String.format("ROC Area: %.4f", rocArea));
         System.out.println(String.format("PR Area: %.4f", prArea));
 
-        System.out.println("Stats for middle threshold:");
-
-        int middleRank = aucAnalysis.rocPoints().length / 2;
-        ConfusionMatrix confusionMatrix = aucAnalysis.confusionMatrix(middleRank);
-
-        System.out.println(confusionMatrix);
-
-        System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
+        System.out.println("Stats for threshold with the highest F1-score:");
 
         FScore fScore = new FScore();
-        double maxF1 = IntStream.range(0, aucAnalysis.rocPoints().length)
-                .mapToDouble(i -> fScore.evaluate(aucAnalysis.confusionMatrix(i)))
-                .filter(d -> !Double.isNaN(d))
-                .max().getAsDouble();
-        System.out.println(String.format("F1-score: %.4f (max %.4f)", fScore.evaluate(confusionMatrix), maxF1));
+        ConfusionMatrix confusionMatrix = IntStream.range(0, aucAnalysis.rankingSize()).
+                mapToObj(aucAnalysis::confusionMatrix)
+                .max(Comparator.comparing(matr -> {
+                    double score = fScore.evaluate(matr);
+                    return Double.isNaN(score) ? -1 : score;
+                })).get();
+
+        System.out.println(confusionMatrix);
+        System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
+        System.out.println(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
 
         new AucChart()
                 .setName(classifier.getClass().getSimpleName() + ", " + inputURI.shortDisplayPath())

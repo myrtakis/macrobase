@@ -253,6 +253,10 @@ public class Curve {
         }
     }
 
+    public int rankingSize() {
+        return truePositiveCounts.length;
+    }
+
     /**
      * Computes the confusion matrix at a particular classification
      * threshold.
