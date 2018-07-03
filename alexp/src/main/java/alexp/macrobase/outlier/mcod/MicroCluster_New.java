@@ -65,37 +65,18 @@ public class MicroCluster_New {
             PD.clear();
             outlierList.clear();
         }
-        //process new data
+
         data.forEach(this::processNewData);
 
-        //add result
         printStatistic();
+
         return new ArrayList<>(outlierList);
     }
 
     private void printStatistic() {
-        int numPoints = computeNumberOfPointsInCluster();
-        System.out.println("#points in clusters = " + numPoints);
-
+        System.out.println("#points in clusters = " + micro_clusters.values().stream().mapToInt(ArrayList::size).sum());
         System.out.println("#points in event queue = " + eventQueue.size());
-
-        System.out.println("avg neighborList length = " + computeAvgNeighborList());
-    }
-
-    private double computeAvgNeighborList() {
-        double result = 0;
-        for (MCO point : PD) {
-            result += point.exps.size();
-        }
-        return result / PD.size();
-    }
-
-    private int computeNumberOfPointsInCluster() {
-        int count = 0;
-        for (ArrayList<MCO> points : micro_clusters.values()) {
-            count += points.size();
-        }
-        return count;
+        System.out.println("avg neighborList length = " + PD.stream().mapToInt(p -> p.exps.size()).average().getAsDouble());
     }
 
     private void removeFromCluster(MCO d) {
@@ -121,7 +102,6 @@ public class MicroCluster_New {
                     o.numberOfSucceeding = o.numberOfSucceeding + cluster.size() - 1 - i;
                     addToPD(o, true);
                 }
-
             }
         }
     }
@@ -217,7 +197,6 @@ public class MicroCluster_New {
     }
 
     private int findNearestCenter(MCO d) {
-
         double min_distance = Double.MAX_VALUE;
         int min_center_id = -1;
         for (Integer center_id : micro_clusters.keySet()) {
@@ -251,7 +230,6 @@ public class MicroCluster_New {
     private void processNewData(Data data) {
         MCO d = new MCO(data);
 
-        //add to datalist
         dataList.add(d);
 
         int nearest_center_id = findNearestCenter(d);
@@ -292,13 +270,11 @@ public class MicroCluster_New {
         //update for points in PD that has Rmc list contains center
         PD.stream().filter((inPD) -> (inPD.Rmc.contains(nearest_center_id))).forEach((inPD) -> {
             //check if inPD is neighbor of d
-            double distance = mtree.getDistanceFunction().
-                    calculate(d, inPD);
+            double distance = mtree.getDistanceFunction().calculate(d, inPD);
             if (distance <= maxDistance) {
                 if (isSameSlide(d, inPD) == -1) {
                     inPD.exps.add(d.arrivalTime() + windowSize);
-
-                } else if (isSameSlide(d, inPD) >= 0) {
+                } else {
                     inPD.numberOfSucceeding++;
                 }
                 //mark inPD has checked with d
@@ -374,7 +350,7 @@ public class MicroCluster_New {
     private void checkInlier(MCO inPD) {
         Collections.sort(inPD.exps);
 
-        while (inPD.exps.size() > minNeighborCount - inPD.numberOfSucceeding && inPD.exps.size() > 0) {
+        while (inPD.exps.size() > 0 && inPD.exps.size() > minNeighborCount - inPD.numberOfSucceeding) {
             inPD.exps.remove(0);
         }
         if (inPD.exps.size() > 0) {
@@ -385,12 +361,10 @@ public class MicroCluster_New {
 
         if (inPD.exps.size() + inPD.numberOfSucceeding >= minNeighborCount) {
             if (inPD.numberOfSucceeding >= minNeighborCount) {
-
                 eventQueue.remove(inPD);
 
                 outlierList.remove(inPD);
             } else {
-
                 outlierList.remove(inPD);
                 if (!eventQueue.contains(inPD)) {
                     eventQueue.add(inPD);
