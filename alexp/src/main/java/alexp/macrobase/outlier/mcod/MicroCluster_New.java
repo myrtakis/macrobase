@@ -6,6 +6,8 @@
 package alexp.macrobase.outlier.mcod;
 
 import alexp.macrobase.outlier.mcod.mtree.MTreeClass;
+import alexp.macrobase.outlier.mcod.pq.*;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,7 +28,7 @@ public class MicroCluster_New {
     private ArrayList<MCO> dataList = new ArrayList<>();
     private MTreeClass mtree = new MTreeClass();
     private Collection<MCO> outlierList = new HashSet<>();
-    private PriorityQueue<MCO> eventQueue = new PriorityQueue<>(new MCComparator());
+    private BasicPriorityQueue<MCO> eventQueue = new DefaultPriorityQueue<>(new MCComparator());
 
     public MicroCluster_New(double maxDistance, int minNeighborCount, int windowSize, int slide) {
         this.maxDistance = maxDistance;
@@ -56,10 +58,10 @@ public class MicroCluster_New {
                 }
             }
         } else {
+            eventQueue = new DummyPriorityQueue<>(); // not used in batch mode
             micro_clusters.clear();
             dataList.clear();
             dataList_set.clear();
-            eventQueue.clear();
             mtree = null;
             mtree = new MTreeClass();
             PD.clear();
@@ -385,7 +387,6 @@ public class MicroCluster_New {
         MCO x = eventQueue.peek();
 
         while (x != null && x.ev <= currentTime) {
-
             x = eventQueue.poll();
             while (x.exps.get(0) <= currentTime) {
                 x.exps.remove(0);

@@ -17,13 +17,13 @@ classifiers:
     alpha: 0.9
     stoppingDelta: 0.00001
     trainSize: 10000
+  - classifier: "mcod"
+    maxDistance: 17.0
+    minNeighborCount: 180
+    classifierWindowSize: 10000
+    classifierSlide: 10000
   - classifier: "lof"
     minPtsLB: 3
     minPtsUB: 10
     trainSize: 1000
     parallel: false
-  - classifier: "mcod"
-    maxDistance: 17.0
-    minNeighborCount: 180
-    classifierWindowSize: 10000
-    classifierSlide: 5000
