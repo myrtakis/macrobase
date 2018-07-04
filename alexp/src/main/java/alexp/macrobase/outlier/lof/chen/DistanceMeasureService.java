@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.lof;
+package alexp.macrobase.outlier.lof.chen;
 
 import com.github.chen0040.data.frame.DataFrame;
 import com.github.chen0040.data.frame.DataRow;

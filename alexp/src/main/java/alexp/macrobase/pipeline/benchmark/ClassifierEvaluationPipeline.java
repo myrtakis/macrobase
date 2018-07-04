@@ -5,7 +5,7 @@ import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
-import alexp.macrobase.outlier.lof.LOF;
+import alexp.macrobase.outlier.lof.chen.LOF;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import alexp.macrobase.pipeline.Pipelines;
 import com.google.common.base.Stopwatch;

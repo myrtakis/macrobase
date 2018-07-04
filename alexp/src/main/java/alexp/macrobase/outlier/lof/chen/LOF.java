@@ -1,4 +1,4 @@
-package alexp.macrobase.outlier.lof;
+package alexp.macrobase.outlier.lof.chen;
 
 
 import alexp.macrobase.outlier.MultiMetricClassifier;
