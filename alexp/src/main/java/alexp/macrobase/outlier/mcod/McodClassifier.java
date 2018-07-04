@@ -15,6 +15,8 @@ public class McodClassifier extends MultiMetricClassifier {
     private int slide = 500;
     private String timeColumnName = "id";
 
+    private boolean allowDuplicates = false;
+
     private MicroCluster_New mcod;
 
     private DataFrame output;
@@ -31,6 +33,7 @@ public class McodClassifier extends MultiMetricClassifier {
     public void process(DataFrame input) throws Exception {
         if (mcod == null) { // init (can't do it in constructor because of the setters. Maybe should make them constructor parameters, but others classifiers don't do it that way)
             mcod = new MicroCluster_New(maxDistance, minNeighborCount, windowSize, slide);
+            mcod.setAllowDuplicates(allowDuplicates);
         }
 
         List<double[]> metricColumns = Arrays.stream(columns).map(input::getDoubleColumnByName).collect(Collectors.toList());
@@ -106,5 +109,13 @@ public class McodClassifier extends MultiMetricClassifier {
 
     public void setTimeColumnName(String timeColumnName) {
         this.timeColumnName = timeColumnName;
+    }
+
+    public boolean isAllowDuplicates() {
+        return allowDuplicates;
+    }
+
+    public void setAllowDuplicates(boolean allowDuplicates) {
+        this.allowDuplicates = allowDuplicates;
     }
 }

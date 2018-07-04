@@ -187,6 +187,7 @@ public class ClassifierEvaluationPipeline {
                 classifier.setMinNeighborCount((int) conf.getOrDefault("minNeighborCount", 30));
                 classifier.setWindowSize((int) conf.getOrDefault("classifierWindowSize", 9999));
                 classifier.setSlide((int) conf.getOrDefault("classifierSlide", 9999));
+                classifier.setAllowDuplicates((boolean) conf.getOrDefault("allowDuplicates", false));
                 classifier.setTimeColumnName(timeColumn);
                 return classifier;
             }

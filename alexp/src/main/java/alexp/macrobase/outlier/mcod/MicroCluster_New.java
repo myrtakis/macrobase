@@ -21,6 +21,8 @@ public class MicroCluster_New {
     private int windowSize = 1000; // W in paper
     private int slide = 500;
 
+    private boolean allowDuplicates = false;
+
     private HashMap<Integer, MCO> dataList_set = new HashMap<>();
     private HashMap<Integer, ArrayList<MCO>> micro_clusters = new HashMap<>();
     private ArrayList<MCO> PD = new ArrayList<>();
@@ -35,6 +37,11 @@ public class MicroCluster_New {
         this.minNeighborCount = minNeighborCount;
         this.windowSize = windowSize;
         this.slide = slide;
+    }
+
+    public void setAllowDuplicates(boolean allowDuplicates) {
+        this.allowDuplicates = allowDuplicates;
+        outlierList = allowDuplicates ? new ArrayList<>() : new HashSet<>();
     }
 
     public ArrayList<Data> detectOutlier(ArrayList<Data> data, int currentTime) {
@@ -374,7 +381,9 @@ public class MicroCluster_New {
             }
         } else {
             eventQueue.remove(inPD);
-            outlierList.add(inPD);
+            if (!allowDuplicates || !outlierList.contains(inPD)) {
+                outlierList.add(inPD);
+            }
         }
     }
 
