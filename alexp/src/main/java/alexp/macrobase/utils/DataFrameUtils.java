@@ -8,6 +8,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class DataFrameUtils {
     public static ArrayList<RealVector> toRowsRealVector(DataFrame data, String[] columns) {
@@ -32,6 +33,19 @@ public class DataFrameUtils {
                 row.setCell(columns[j], colsValues.get(j)[i]);
             }
             result.addRow(row);
+        }
+        return result;
+    }
+
+    public static List<double[]> toRowArray(DataFrame data, String[] columns) {
+        ArrayList<double[]> colsValues = data.getDoubleColsByName(Arrays.asList(columns));
+        ArrayList<double[]> result = new ArrayList<>(data.getNumRows());
+        for (int i = 0; i < data.getNumRows(); i++) {
+            double[] row = new double[colsValues.size()];
+            for (int j = 0; j < colsValues.size(); j++) {
+                row[j] = colsValues.get(j)[i];
+            }
+            result.add(row);
         }
         return result;
     }

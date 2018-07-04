@@ -5,7 +5,7 @@ import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
-import alexp.macrobase.outlier.lof.chen.LOF;
+import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import alexp.macrobase.pipeline.Pipelines;
 import com.google.common.base.Stopwatch;
@@ -78,7 +78,7 @@ public class ClassifierEvaluationPipeline {
         Classifier classifier = getClassifier(classifierConf);
 
         System.out.println();
-        System.out.println(classifier.getClass().getSimpleName());
+        System.out.println(classifier.getClass().getName());
         System.out.println(classifierConf.entrySet().stream().filter(it -> !it.getKey().equals("classifier")).collect(Collectors.toSet()));
 
         Stopwatch sw = Stopwatch.createStarted();
@@ -210,11 +210,17 @@ public class ClassifierEvaluationPipeline {
                 classifier.setStoppingDelta((double) conf.getOrDefault("stoppingDelta", 0.001));
                 return classifier;
             }
-            case "lof": {
-                LOF classifier = new LOF(metricColumns);
+            case "lof-chen": {
+                alexp.macrobase.outlier.lof.chen.LOF classifier = new alexp.macrobase.outlier.lof.chen.LOF(metricColumns);
                 classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
                 classifier.setParallel((boolean) conf.getOrDefault("parallel", true));
                 classifier.setSearchRange((int) conf.get("minPtsLB"), (int) conf.get("minPtsUB"));
+                return classifier;
+            }
+            case "lof-bkaluza": {
+                LOF classifier = new LOF(metricColumns, LOF.Distance.EUCLIDIAN);
+                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                classifier.setkNN((int) conf.getOrDefault("knn", 5));
                 return classifier;
             }
             default : {
