@@ -112,8 +112,8 @@ public class ClassifierEvaluationPipeline {
         System.out.println(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
 
         new AucChart()
-                .setName(classifier.getClass().getSimpleName() + ", " + inputURI.shortDisplayPath())
-                .saveToPng(aucAnalysis, "alexp/bench_output/" + classifier.getClass().getSimpleName() + ".png");
+                .setName(classifierConf.get("classifier").toString().toUpperCase() + ", " + inputURI.shortDisplayPath())
+                .saveToPng(aucAnalysis, "alexp/bench_output/" + classifierConf.get("classifier") + ".png");
     }
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
