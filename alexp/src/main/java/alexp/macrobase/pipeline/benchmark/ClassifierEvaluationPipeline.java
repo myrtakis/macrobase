@@ -62,7 +62,7 @@ public class ClassifierEvaluationPipeline {
         System.out.println(inputURI.getOriginalString());
 
         for (Map<String, Object> classifierConf : classifierConfigs) {
-            run(classifierConf);
+            run(new PipelineConfig(classifierConf));
         }
     }
 
@@ -74,12 +74,12 @@ public class ClassifierEvaluationPipeline {
         }
     }
 
-    private void run(Map<String, Object> classifierConf) throws Exception {
+    private void run(PipelineConfig classifierConf) throws Exception {
         Classifier classifier = getClassifier(classifierConf);
 
         System.out.println();
         System.out.println(classifier.getClass().getName());
-        System.out.println(classifierConf.entrySet().stream().filter(it -> !it.getKey().equals("classifier")).collect(Collectors.toSet()));
+        System.out.println(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier")).collect(Collectors.toSet()));
 
         Stopwatch sw = Stopwatch.createStarted();
 
@@ -118,7 +118,7 @@ public class ClassifierEvaluationPipeline {
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
         System.out.println();
-        System.out.println(getClassifier(classifierConf.getValues()).getClass().getSimpleName());
+        System.out.println(getClassifier(classifierConf).getClass().getSimpleName());
 
         Map<String, Object[]> searchParams = classifierConf.<ArrayList<Map<String, Object>>>get("searchParams").stream()
                 .collect(Collectors.toMap(o -> o.keySet().iterator().next(), o -> ((ArrayList) o.values().iterator().next()).toArray()));
@@ -130,7 +130,7 @@ public class ClassifierEvaluationPipeline {
             Map<String, Object> currConf = new HashMap<>(classifierConf.getValues());
             currConf.putAll(params);
 
-            Classifier classifier = getClassifier(currConf);
+            Classifier classifier = getClassifier(new PipelineConfig(currConf));
 
             classifier.process(dataFrame);
 
@@ -177,50 +177,50 @@ public class ClassifierEvaluationPipeline {
         return Pipelines.loadDataFrame(inputURI, colTypes, requiredColumns, conf);
     }
 
-    private Classifier getClassifier(Map<String, Object> conf) throws RuntimeException {
-        String classifierType = (String) conf.get("classifier");
+    private Classifier getClassifier(PipelineConfig conf) throws RuntimeException {
+        String classifierType = conf.get("classifier");
 
         switch (classifierType.toLowerCase()) {
             case "mcod": {
                 McodClassifier classifier = new McodClassifier(metricColumns);
-                classifier.setMaxDistance((double) conf.getOrDefault("maxDistance", 1.0));
-                classifier.setMinNeighborCount((int) conf.getOrDefault("minNeighborCount", 30));
-                classifier.setWindowSize((int) conf.getOrDefault("classifierWindowSize", 9999));
-                classifier.setSlide((int) conf.getOrDefault("classifierSlide", 9999));
-                classifier.setAllowDuplicates((boolean) conf.getOrDefault("allowDuplicates", false));
+                classifier.setMaxDistance(conf.get("maxDistance", 1.0));
+                classifier.setMinNeighborCount(conf.get("minNeighborCount", 30));
+                classifier.setWindowSize(conf.get("classifierWindowSize", 9999));
+                classifier.setSlide(conf.get("classifierSlide", 9999));
+                classifier.setAllowDuplicates(conf.get("allowDuplicates", false));
                 classifier.setTimeColumnName(timeColumn);
                 return classifier;
             }
             case "percentile": {
                 PercentileClassifier classifier = new PercentileClassifier(metricColumns[0]);
-                classifier.setPercentile((double) conf.getOrDefault("cutoff", 1.0));
-                classifier.setIncludeHigh((boolean) conf.getOrDefault("includeHi",true));
-                classifier.setIncludeLow((boolean) conf.getOrDefault("includeLo",true));
+                classifier.setPercentile(conf.get("cutoff", 1.0));
+                classifier.setIncludeHigh(conf.get("includeHi",true));
+                classifier.setIncludeLow(conf.get("includeLo",true));
                 return classifier;
             }
             case "mad": {
                 MAD classifier = new MAD(metricColumns[0]);
-                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
+                classifier.setTrainSize(conf.get("trainSize", 10000));
                 return classifier;
             }
             case "mcd": {
                 MinCovDet classifier = new MinCovDet(metricColumns);
-                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
-                classifier.setAlpha((double) conf.getOrDefault("alpha", 0.5));
-                classifier.setStoppingDelta((double) conf.getOrDefault("stoppingDelta", 0.001));
+                classifier.setTrainSize(conf.get("trainSize", 10000));
+                classifier.setAlpha(conf.get("alpha", 0.5));
+                classifier.setStoppingDelta(conf.get("stoppingDelta", 0.001));
                 return classifier;
             }
             case "lof-chen": {
                 alexp.macrobase.outlier.lof.chen.LOF classifier = new alexp.macrobase.outlier.lof.chen.LOF(metricColumns);
-                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
-                classifier.setParallel((boolean) conf.getOrDefault("parallel", true));
-                classifier.setSearchRange((int) conf.get("minPtsLB"), (int) conf.get("minPtsUB"));
+                classifier.setTrainSize(conf.get("trainSize", 10000));
+                classifier.setParallel(conf.get("parallel", true));
+                classifier.setSearchRange(conf.get("minPtsLB"), conf.get("minPtsUB"));
                 return classifier;
             }
             case "lof-bkaluza": {
                 LOF classifier = new LOF(metricColumns, LOF.Distance.EUCLIDIAN);
-                classifier.setTrainSize((int) conf.getOrDefault("trainSize", 10000));
-                classifier.setkNN((int) conf.getOrDefault("knn", 5));
+                classifier.setTrainSize(conf.get("trainSize", 10000));
+                classifier.setkNN(conf.get("knn", 5));
                 return classifier;
             }
             default : {
