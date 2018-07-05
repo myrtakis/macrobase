@@ -5,12 +5,27 @@ import alexp.macrobase.pipeline.StreamingPipeline;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.pipeline.Pipeline;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ConsoleApp {
-    private static void runBatchPipeline(String confFilePath) throws Exception {
+    private final OptionParser optionParser = new OptionParser();
+    private final OptionSpec<String> batchOption;
+    private final OptionSpec<String> streamOption;
+
+    private ConsoleApp() {
+        batchOption = optionParser.accepts("b", "Run batch pipeline (read all input at once)")
+                .withRequiredArg().describedAs("config_file_path");
+        streamOption = optionParser.accepts("s", "Run streaming pipeline (read and process input in portions)")
+                .withRequiredArg().describedAs("config_file_path");
+    }
+
+    private void runBatchPipeline(String confFilePath) throws Exception {
         PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
 
         Pipeline pipeline = new BatchPipeline(conf);
@@ -20,7 +35,7 @@ public class ConsoleApp {
         System.out.println(result.prettyPrint());
     }
 
-    private static void runStreamingPipeline(String confFilePath) throws Exception {
+    private void runStreamingPipeline(String confFilePath) throws Exception {
         PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
 
         StreamingPipeline pipeline = new StreamingPipeline(conf);
@@ -32,64 +47,62 @@ public class ConsoleApp {
         });
     }
 
-    private static void showUsage() {
-        System.out.println("Usage: [--b [batchConfigPath]] [--s [streamConfigPath]]");
-        System.out.println("  --b - run batch config using the specified config (default alexp/demo/batch.yaml)");
-        System.out.println("  --s - run stream config using the specified config (default alexp/demo/stream.yaml)");
+    private void showUsage() throws IOException {
+        optionParser.printHelpOn(System.out);
         System.out.println("Examples:");
-        System.out.println("  --b my_batch_config.yaml");
-        System.out.println("  --s my_stream_config.yaml");
-        System.out.println("  --b --s");
+        System.out.println("  -b alexp/demo/batch.yaml");
+        System.out.println("  -s alexp/demo/stream.yaml");
     }
 
-    public static void main(String[] args) throws Exception {
-        boolean runBatch = false;
-        boolean runStream = false;
-        String batchConfFilePath = "alexp/demo/batch.yaml";
-        String streamConfFilePath = "alexp/demo/stream.yaml";
-
-        for (int i = 0; i < args.length; i++) {
-            switch (args[i]) {
-                case "--b":
-                    runBatch = true;
-                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
-                        batchConfFilePath = args[i + 1];
-                    }
-                    break;
-                case "--s":
-                    runStream = true;
-                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
-                        streamConfFilePath = args[i + 1];
-                    }
-                    break;
-            }
-        }
-
-        if (!runBatch && !runStream) {
+    private int run(String[] args) throws Exception {
+        if (args.length == 0) {
             showUsage();
-            return;
+            return 1;
         }
 
-        if (runBatch) {
-            if (!Files.exists(Paths.get(batchConfFilePath))) {
-                System.out.println("Specify batch config file");
-                System.exit(1);
+        OptionSet options;
+        try {
+            options = optionParser.parse(args);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            showUsage();
+            return 2;
+        }
+
+        if (!options.has(batchOption) && !options.has(streamOption)) {
+            showUsage();
+            return 1;
+        }
+
+        if (options.has(batchOption)) {
+            String confFilePath = batchOption.value(options);
+            if (!Files.exists(Paths.get(confFilePath))) {
+                System.out.println("Batch pipeline config file not found");
+                return 3;
             }
 
             System.out.println("*** Running batch pipeline ***");
 
-            runBatchPipeline(batchConfFilePath);
+            runBatchPipeline(confFilePath);
         }
 
-        if (runStream) {
-            if (!Files.exists(Paths.get(streamConfFilePath))) {
-                System.out.println("Specify streaming config file");
-                System.exit(1);
+        if (options.has(streamOption)) {
+            String confFilePath = streamOption.value(options);
+            if (!Files.exists(Paths.get(confFilePath))) {
+                System.out.println("Streaming pipeline config file not found");
+                return 3;
             }
 
             System.out.println("*** Running streaming pipeline ***");
 
-            runStreamingPipeline(streamConfFilePath);
+            runStreamingPipeline(confFilePath);
         }
+
+        return 0;
+    }
+
+    public static void main(String[] args) throws Exception {
+        int exitCode = new ConsoleApp().run(args);
+        System.exit(exitCode);
     }
 }
