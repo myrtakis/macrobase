@@ -1,10 +1,9 @@
-pipeline: "BasicBatchPipeline"
-
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
 query: "SELECT * FROM flights"
 
 classifier: "percentile"
-metric: "departure_delay"
+metricColumns:
+  - "departure_delay"
 cutoff: 1.0
 includeHi: true
 includeLo: false

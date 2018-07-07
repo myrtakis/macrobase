@@ -24,7 +24,7 @@ public class BatchPipeline extends Pipeline {
 
     private final Uri inputURI;
 
-    private String metric;
+    private String[] metricColumns;
     private String timeColumn;
     private boolean isStrPredicate = false;
     private int numThreads;
@@ -40,7 +40,10 @@ public class BatchPipeline extends Pipeline {
         inputURI = new Uri(conf.get("inputURI"));
 
         String classifierType = conf.get("classifier", "percentile");
-        metric = conf.get("metric");
+
+        //noinspection unchecked
+        metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
+
         timeColumn = conf.get("timeColumn");
 
         if (classifierType.equals("predicate")) {
@@ -64,7 +67,7 @@ public class BatchPipeline extends Pipeline {
         final long loadMs = sw.elapsed(TimeUnit.MILLISECONDS);
         sw = Stopwatch.createStarted();
 
-        Classifier classifier = Pipelines.getClassifier(conf, new String[]{metric});
+        Classifier classifier = Pipelines.getClassifier(conf, metricColumns);
         classifier.process(df);
         df = classifier.getResults();
 
@@ -84,11 +87,9 @@ public class BatchPipeline extends Pipeline {
 
     private DataFrame loadData() throws Exception {
         Map<String, Schema.ColType> colTypes = new HashMap<>();
-        if (isStrPredicate) {
-            colTypes.put(metric, Schema.ColType.STRING);
-        }
-        else{
-            colTypes.put(metric, Schema.ColType.DOUBLE);
+        Schema.ColType metricType = isStrPredicate ? Schema.ColType.STRING : Schema.ColType.DOUBLE;
+        for (String column : metricColumns) {
+            colTypes.put(column, metricType);
         }
 
         List<String> requiredColumns = Stream.concat(attributes.stream(), colTypes.keySet().stream()).collect(Collectors.toList());

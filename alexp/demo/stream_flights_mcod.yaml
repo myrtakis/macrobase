@@ -4,7 +4,8 @@ idColumn: "id"
 maxReadBatchSize: 6000000
 
 classifier: "mcod"
-metric: "departure_delay"
+metricColumns:
+  - "departure_delay"
 maxDistance: 3.0
 minNeighborCount: 10
 classifierWindowSize: 6000000

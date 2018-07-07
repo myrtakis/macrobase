@@ -1,7 +1,8 @@
 inputURI: "http://109.120.169.99/data.php"
 
 classifier: "percentile"
-metric: "usage"
+metricColumns:
+  - "usage"
 cutoff: 1.0
 includeHi: true
 includeLo: true

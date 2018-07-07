@@ -4,7 +4,8 @@ query: "SELECT * FROM sensor_data"
 idColumn: "reading_id"
 
 classifier: "percentile"
-metric: "power_drain"
+metricColumns:
+  - "power_drain"
 cutoff: 1.0
 includeHi: true
 includeLo: false

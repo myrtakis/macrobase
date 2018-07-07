@@ -4,7 +4,8 @@ idColumn: "id"
 maxReadBatchSize: 100000
 
 classifier: "percentile"
-metric: "departure_delay"
+metricColumns:
+  - "departure_delay"
 cutoff: 1.0
 includeHi: true
 includeLo: false

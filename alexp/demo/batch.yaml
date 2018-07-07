@@ -1,9 +1,8 @@
-pipeline: "BasicBatchPipeline"
-
 inputURI: "csv://alexp/demo/sample.csv"
 
 classifier: "percentile"
-metric: "usage"
+metricColumns:
+  - "usage"
 cutoff: 1.0
 includeHi: true
 includeLo: true
