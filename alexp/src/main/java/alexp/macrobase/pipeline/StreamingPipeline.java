@@ -7,15 +7,14 @@ import alexp.macrobase.ingest.Uri;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGExplanation;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.IncrementalSummarizer;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
-import edu.stanford.futuredata.macrobase.operator.WindowedOperator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
-import edu.stanford.futuredata.macrobase.util.MacroBaseException;
-import java.util.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -36,13 +35,8 @@ public class StreamingPipeline extends Pipeline {
 
     private boolean isStrPredicate;
 
-    private String summarizerType;
     private List<String> attributes;
-    private double minSupport;
 
-    private Integer numPanes;
-    private Integer windowLength;
-    private Integer slideLength;
     private String timeColumn;
 
     public StreamingPipeline(PipelineConfig conf) {
@@ -66,13 +60,8 @@ public class StreamingPipeline extends Pipeline {
             isStrPredicate = rawCutoff instanceof String;
         }
 
-        summarizerType = conf.get("summarizer", "apriori");
         attributes = conf.get("attributes");
-        minSupport = conf.get("minSupport", 0.01);
 
-        numPanes = conf.get("numPanes", 3);
-        windowLength = conf.get("windowLength", 6000);
-        slideLength = conf.get("slideLength", 1000);
         timeColumn = conf.get("timeColumn", "id");
     }
 
@@ -80,7 +69,7 @@ public class StreamingPipeline extends Pipeline {
         StreamingDataFrameLoader dataLoader = getDataLoader();
 
         Classifier classifier = Pipelines.getClassifier(conf, metricColumns);
-        Operator<DataFrame, ? extends Explanation> summarizer = getSummarizer(classifier.getOutputColumnName());
+        Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, classifier.getOutputColumnName(), attributes);
 
         AtomicLong totalClassifierMs = new AtomicLong();
         AtomicLong totalExplanationMs = new AtomicLong();
@@ -129,36 +118,6 @@ public class StreamingPipeline extends Pipeline {
                         .setMaxBatchSize(maxReadBatchSize);
             default:
                 throw new Exception("Unsupported input protocol");
-        }
-    }
-
-    private Operator<DataFrame, ? extends Explanation> getSummarizer(String outlierColumnName) throws MacroBaseException {
-        switch (summarizerType.toLowerCase()) {
-            case "incremental": {
-                IncrementalSummarizer summarizer = new IncrementalSummarizer();
-                summarizer.setOutlierColumn(outlierColumnName);
-                summarizer.setAttributes(attributes);
-                summarizer.setMinSupport(minSupport);
-                summarizer.setWindowSize(numPanes);
-                return summarizer;
-            }
-            case "windowed": {
-                IncrementalSummarizer summarizer = new IncrementalSummarizer();
-                summarizer.setOutlierColumn(outlierColumnName);
-                summarizer.setAttributes(attributes);
-                summarizer.setMinSupport(minSupport);
-
-                WindowedOperator<FPGExplanation> windowedSummarizer = new WindowedOperator<>(summarizer);
-                windowedSummarizer.setWindowLength(windowLength);
-                windowedSummarizer.setSlideLength(slideLength);
-                windowedSummarizer.setTimeColumn(timeColumn);
-                windowedSummarizer.initialize();
-
-                return windowedSummarizer;
-            }
-            default: {
-                throw new MacroBaseException("Bad Summarizer Type");
-            }
         }
     }
 }

@@ -10,8 +10,15 @@ import alexp.macrobase.outlier.mcod.McodClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
+import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
+import edu.stanford.futuredata.macrobase.analysis.summary.aplinear.APLOutlierSummarizer;
+import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGExplanation;
+import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGrowthSummarizer;
+import edu.stanford.futuredata.macrobase.analysis.summary.fpg.IncrementalSummarizer;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
+import edu.stanford.futuredata.macrobase.operator.Operator;
+import edu.stanford.futuredata.macrobase.operator.WindowedOperator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
@@ -96,6 +103,57 @@ public class Pipelines {
             }
             default: {
                 throw new RuntimeException("Bad Classifier Type " + classifierType);
+            }
+        }
+    }
+
+    public static Operator<DataFrame, ? extends Explanation> getSummarizer(PipelineConfig conf, String outlierColumn, List<String> attributes) throws MacroBaseException {
+        String summarizerType = conf.get("summarizer", "apriori");
+        switch (summarizerType.toLowerCase()) {
+            case "fpgrowth": {
+                FPGrowthSummarizer summarizer = new FPGrowthSummarizer();
+                summarizer.setOutlierColumn(outlierColumn);
+                summarizer.setAttributes(attributes);
+                summarizer.setMinSupport(conf.get("minSupport", 0.01));
+                summarizer.setMinRiskRatio(conf.get("minRatioMetric", 3.0));
+                summarizer.setUseAttributeCombinations(true);
+                summarizer.setNumThreads(conf.get("numThreads", Runtime.getRuntime().availableProcessors()));
+                return summarizer;
+            }
+            case "apriori":
+            case "aplinear": {
+                APLOutlierSummarizer summarizer = new APLOutlierSummarizer();
+                summarizer.setOutlierColumn(outlierColumn);
+                summarizer.setAttributes(attributes);
+                summarizer.setMinSupport(conf.get("minSupport", 0.01));
+                summarizer.setMinRatioMetric(conf.get("minRatioMetric", 3.0));
+                summarizer.setNumThreads(conf.get("numThreads", Runtime.getRuntime().availableProcessors()));
+                return summarizer;
+            }
+            case "incremental": {
+                IncrementalSummarizer summarizer = new IncrementalSummarizer();
+                summarizer.setOutlierColumn(outlierColumn);
+                summarizer.setAttributes(attributes);
+                summarizer.setMinSupport(conf.get("minSupport", 0.01));
+                summarizer.setWindowSize(conf.get("numPanes", 3));
+                return summarizer;
+            }
+            case "windowed": {
+                IncrementalSummarizer summarizer = new IncrementalSummarizer();
+                summarizer.setOutlierColumn(outlierColumn);
+                summarizer.setAttributes(attributes);
+                summarizer.setMinSupport(conf.get("minSupport", 0.01));
+
+                WindowedOperator<FPGExplanation> windowedSummarizer = new WindowedOperator<>(summarizer);
+                windowedSummarizer.setWindowLength(conf.get("windowLength", 6000));
+                windowedSummarizer.setSlideLength(conf.get("slideLength", 1000));
+                windowedSummarizer.setTimeColumn(conf.get("timeColumn"));
+                windowedSummarizer.initialize();
+
+                return windowedSummarizer;
+            }
+            default: {
+                throw new MacroBaseException("Bad Summarizer Type " + summarizerType);
             }
         }
     }
