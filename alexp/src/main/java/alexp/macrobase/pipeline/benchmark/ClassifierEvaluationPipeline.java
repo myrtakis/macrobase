@@ -5,6 +5,7 @@ import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
+import alexp.macrobase.utils.ConfigUtils;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
@@ -27,7 +28,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     private String timeColumn;
     private String labelColumn;
 
-    private ArrayList<Map<String, Object>> classifierConfigs;
+    private List<PipelineConfig> classifierConfigs;
 
     private DataFrame dataFrame;
     private int[] labels;
@@ -39,16 +40,15 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         inputURI = new Uri(conf.get("inputURI"));
 
+        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+
         //noinspection unchecked
         metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
 
         labelColumn = conf.get("labelColumn", "is_anomaly");
         timeColumn = conf.get("timeColumn");
 
-        classifierConfigs = conf.get("classifiers");
-        classifierConfigs.forEach(c -> {
-            c.put("timeColumn", timeColumn);
-        });
+        ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
         searchMeasure = conf.get("searchMeasure", "");
 
@@ -59,16 +59,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     public void run() throws Exception {
         System.out.println(inputURI.getOriginalString());
 
-        for (Map<String, Object> classifierConf : classifierConfigs) {
-            run(new PipelineConfig(classifierConf));
+        for (PipelineConfig classifierConf : classifierConfigs) {
+            run(classifierConf);
         }
     }
 
     public void runGridSearch() throws Exception {
         System.out.println(inputURI.getOriginalString());
 
-        for (Map<String, Object> classifierConf : classifierConfigs) {
-            runGridSearch(new PipelineConfig(classifierConf));
+        for (PipelineConfig classifierConf : classifierConfigs) {
+            runGridSearch(classifierConf);
         }
     }
 
