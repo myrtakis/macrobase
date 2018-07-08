@@ -23,8 +23,10 @@ public class ConsoleApp {
     private final OptionSpec<String> streamOption;
     private final OptionSpec<String> outputOption;
     private final OptionSpec clearOutputOption;
+    private final OptionSpec includeInliersOutputOption;
 
     private String outputDir;
+    private boolean includeInliers = false;
 
     private ConsoleApp() {
         batchOption = optionParser.accepts("b", "Run batch pipeline (read all input at once)")
@@ -34,6 +36,7 @@ public class ConsoleApp {
         outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, etc.) to files in the specified dir")
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir").availableIf(outputOption);
+        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
     }
 
     private void runBatchPipeline(String confFilePath) throws Exception {
@@ -41,6 +44,7 @@ public class ConsoleApp {
 
         BatchPipeline pipeline = new BatchPipeline(conf);
         pipeline.setOutputDir(outputDir);
+        pipeline.setOutputIncludesInliers(includeInliers);
 
         Explanation result = pipeline.results();
 
@@ -52,6 +56,7 @@ public class ConsoleApp {
 
         StreamingPipeline pipeline = new StreamingPipeline(conf);
         pipeline.setOutputDir(outputDir);
+        pipeline.setOutputIncludesInliers(includeInliers);
 
         AtomicInteger counter = new AtomicInteger(1);
         pipeline.run(result -> {
@@ -90,6 +95,7 @@ public class ConsoleApp {
 
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);
+            includeInliers = options.has(includeInliersOutputOption);
             if (options.has(clearOutputOption)) {
                 try {
                     FileUtils.cleanDirectory(new File(outputDir));

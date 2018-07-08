@@ -19,8 +19,10 @@ public class Benchmark {
     private final OptionSpec<String> gsOption;
     private final OptionSpec<String> outputOption;
     private final OptionSpec clearOutputOption;
+    private final OptionSpec includeInliersOutputOption;
 
     private String outputDir;
+    private boolean includeInliers = false;
 
     private Benchmark() {
         aucOption = optionParser.accepts("auc", "Run evaluation (AUC, F1, etc.) of outlier detection algorithms")
@@ -30,6 +32,7 @@ public class Benchmark {
         outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir")
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir").availableIf(outputOption);
+        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
     }
 
     private void runAuc(String confFilePath) throws Exception {
@@ -37,6 +40,7 @@ public class Benchmark {
 
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
         pipeline.setOutputDir(outputDir);
+        pipeline.setOutputIncludesInliers(includeInliers);
 
         pipeline.run();
     }
@@ -75,6 +79,7 @@ public class Benchmark {
 
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);
+            includeInliers = options.has(includeInliersOutputOption);
             if (options.has(clearOutputOption)) {
                 try {
                     FileUtils.cleanDirectory(new File(outputDir));
