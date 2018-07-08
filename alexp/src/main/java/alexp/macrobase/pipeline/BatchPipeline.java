@@ -60,6 +60,9 @@ public class BatchPipeline extends Pipeline {
         df = classifier.getResults();
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
+
+        saveOutliers("outliers", classifier);
+
         sw = Stopwatch.createStarted();
 
         Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, classifier.getOutputColumnName(), attributes);

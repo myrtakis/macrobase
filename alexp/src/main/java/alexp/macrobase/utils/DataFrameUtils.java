@@ -3,9 +3,15 @@ package alexp.macrobase.utils;
 import com.github.chen0040.data.frame.BasicDataFrame;
 import com.github.chen0040.data.frame.DataRow;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import edu.stanford.futuredata.macrobase.ingest.CSVDataFrameWriter;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,5 +54,12 @@ public class DataFrameUtils {
             result.add(row);
         }
         return result;
+    }
+
+    public static void saveToCsv(String filePath, DataFrame data) throws IOException {
+        Files.createDirectories(Paths.get(filePath).getParent());
+
+        CSVDataFrameWriter writer = new CSVDataFrameWriter();
+        writer.writeToStream(data, new FileWriter(new File(filePath)));
     }
 }

@@ -1,2 +1,3 @@
 yahoo*.csv
-bench_output/
+*_output/
+output/
