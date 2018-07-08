@@ -1,6 +1,7 @@
 package alexp.macrobase.pipeline;
 
 import alexp.macrobase.ingest.Uri;
+import alexp.macrobase.utils.ConfigUtils;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
@@ -9,6 +10,7 @@ import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ public class BatchPipeline extends Pipeline {
 
     private final Uri inputURI;
 
+    private List<PipelineConfig> classifierConfigs;
+
     private String[] metricColumns;
     private String timeColumn;
     private boolean isStrPredicate = false;
@@ -32,17 +36,17 @@ public class BatchPipeline extends Pipeline {
 
         inputURI = new Uri(conf.get("inputURI"));
 
-        String classifierType = conf.get("classifier", "percentile");
+        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
 
-        //noinspection unchecked
-        metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
+        metricColumns = ConfigUtils.getAllValues(classifierConfigs, "metricColumns").toArray(new String[0]);
 
         timeColumn = conf.get("timeColumn");
+        ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
-        if (classifierType.equals("predicate")) {
-            Object rawCutoff = conf.get("cutoff");
-            isStrPredicate = rawCutoff instanceof String;
-        }
+//        if (classifierType.equals("predicate")) {
+//            Object rawCutoff = conf.get("cutoff");
+//            isStrPredicate = rawCutoff instanceof String;
+//        }
 
         attributes = conf.get("attributes");
     }
@@ -55,8 +59,7 @@ public class BatchPipeline extends Pipeline {
         final long loadMs = sw.elapsed(TimeUnit.MILLISECONDS);
         sw = Stopwatch.createStarted();
 
-        Classifier classifier = Pipelines.getClassifier(conf, metricColumns);
-        classifier.process(df);
+        Classifier classifier = Pipelines.classifyChained(df, classifierConfigs);
         df = classifier.getResults();
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);

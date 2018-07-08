@@ -1,11 +1,12 @@
 inputURI: "http://109.120.169.99/data.php"
 
-classifier: "percentile"
-metricColumns:
-  - "usage"
-cutoff: 1.0
-includeHi: true
-includeLo: true
+classifiers:
+  - classifier: "percentile"
+    metricColumns:
+      - "usage"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: true
 
 summarizer: "incremental"
 attributes:

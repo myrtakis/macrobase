@@ -3,12 +3,13 @@ query: "SELECT * FROM flights"
 idColumn: "id"
 maxReadBatchSize: 100000
 
-classifier: "percentile"
-metricColumns:
-  - "departure_delay"
-cutoff: 1.0
-includeHi: true
-includeLo: false
+classifiers:
+  - classifier: "percentile"
+    metricColumns:
+      - "departure_delay"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: false
 
 summarizer: "windowed"
 attributes:

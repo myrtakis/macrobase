@@ -1,12 +1,14 @@
 inputURI: "csv://alexp/demo/sample.csv"
 
 classifiers:
-  - classifier: "percentile"
+  - classifier: "lof-bkaluza"
     metricColumns:
       - "usage"
-    cutoff: 1.0
-    includeHi: true
-    includeLo: true
+    knn: 5
+    trainSize: 100
+  - classifier: "predicate"
+    predicate: ">="
+    cutoff: 1.5
 
 summarizer: "aplinear"
 attributes:

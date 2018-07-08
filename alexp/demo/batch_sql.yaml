@@ -1,12 +1,13 @@
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
 query: "SELECT * FROM flights"
 
-classifier: "percentile"
-metricColumns:
-  - "departure_delay"
-cutoff: 1.0
-includeHi: true
-includeLo: false
+classifiers:
+  - classifier: "percentile"
+    metricColumns:
+      - "departure_delay"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: false
 
 summarizer: "fpgrowth"
 attributes:

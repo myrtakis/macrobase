@@ -1,12 +1,13 @@
 inputURI: "csv://alexp/demo/sample.csv"
 
-classifier: "mcod"
-metricColumns:
-  - "usage"
-maxDistance: 1.0
-minNeighborCount: 30
-classifierWindowSize: 9999
-classifierSlide: 9999
+classifiers:
+  - classifier: "mcod"
+    metricColumns:
+      - "usage"
+    maxDistance: 1.0
+    minNeighborCount: 30
+    classifierWindowSize: 9999
+    classifierSlide: 9999
 
 summarizer: "aplinear"
 attributes:

@@ -3,12 +3,13 @@ table: "sensor_data"
 query: "SELECT * FROM sensor_data"
 idColumn: "reading_id"
 
-classifier: "percentile"
-metricColumns:
-  - "power_drain"
-cutoff: 1.0
-includeHi: true
-includeLo: false
+classifiers:
+  - classifier: "percentile"
+    metricColumns:
+      - "power_drain"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: false
 
 summarizer: "windowed"
 attributes:
