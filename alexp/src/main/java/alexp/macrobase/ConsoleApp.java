@@ -96,7 +96,7 @@ public class ConsoleApp {
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);
             includeInliers = options.has(includeInliersOutputOption);
-            if (options.has(clearOutputOption)) {
+            if (options.has(clearOutputOption) && Files.exists(Paths.get(outputDir))) {
                 try {
                     FileUtils.cleanDirectory(new File(outputDir));
                 } catch (IOException ex) {
