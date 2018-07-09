@@ -78,7 +78,7 @@ public class StreamingPipeline extends Pipeline {
             final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
             totalClassifierMs.addAndGet(classifierMs);
 
-            saveOutliers("outliers" + batchIndex.get(), classifier);
+            saveOutliers("outliers" + batchIndex.get(), classifier.getResults(), classifier.getOutputColumnName());
 
             Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, classifier.getOutputColumnName(), attributes);
 

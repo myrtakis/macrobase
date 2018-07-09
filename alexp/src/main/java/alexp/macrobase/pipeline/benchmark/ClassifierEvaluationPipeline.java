@@ -88,7 +88,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
         System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
-        saveOutliers("outliers_" + classifierType, classifier);
+        saveOutliers("outliers_" + classifierType, classifier.getResults(), classifier.getOutputColumnName());
 
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
         Curve aucAnalysis = aucCurve(classifierResult);

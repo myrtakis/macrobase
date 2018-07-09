@@ -64,7 +64,7 @@ public class BatchPipeline extends Pipeline {
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
 
-        saveOutliers("outliers", classifier);
+        saveOutliers("outliers", df, classifier.getOutputColumnName());
 
         sw = Stopwatch.createStarted();
 

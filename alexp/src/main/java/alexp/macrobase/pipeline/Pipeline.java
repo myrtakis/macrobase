@@ -1,7 +1,6 @@
 package alexp.macrobase.pipeline;
 
 import alexp.macrobase.utils.DataFrameUtils;
-import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import org.apache.commons.lang3.StringUtils;
 
@@ -55,16 +54,19 @@ public abstract class Pipeline {
         DataFrameUtils.saveToCsv(Paths.get(outputDir, baseFileName + ".csv").toString(), data);
     }
 
-    protected void saveOutliers(String baseFileName, Classifier classifier) throws IOException {
+    protected void saveOutliers(String baseFileName, DataFrame data, String outlierOutputColumn) throws IOException {
         if (StringUtils.isEmpty(outputDir)) {
             return;
         }
 
-        DataFrame data = classifier.getResults();
         if (!outputIncludesInliers) {
-            data = data.filter(classifier.getOutputColumnName(), (double v) -> v > 0.0);
+            data = data.filter(outlierOutputColumn, this::isOutlier);
         }
 
         saveData(baseFileName, data);
+    }
+
+    private boolean isOutlier(double value) {
+        return value > 0.0;
     }
 }
