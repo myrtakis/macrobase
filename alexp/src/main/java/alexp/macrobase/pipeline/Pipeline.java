@@ -1,12 +1,16 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.explanation.Itemset;
 import alexp.macrobase.utils.DataFrameUtils;
+import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 public abstract class Pipeline {
     protected long lastGeneratedTime = -1;
@@ -64,6 +68,26 @@ public abstract class Pipeline {
         }
 
         saveData(baseFileName, data);
+    }
+
+    protected void saveExplanation(String baseFileName, DataFrame data, String outlierOutputColumn, Explanation explanation) throws IOException, MacroBaseException {
+        if (StringUtils.isEmpty(outputDir)) {
+            return;
+        }
+
+        List<Itemset> itemsets = Pipelines.getItemsets(explanation);
+
+        if (!outputIncludesInliers) {
+            data = data.filter(outlierOutputColumn, this::isOutlier);
+        }
+
+        for (int i = 0; i < itemsets.size(); i++) {
+            Itemset itemset = itemsets.get(i);
+
+            DataFrame result = DataFrameUtils.filterByAll(data, itemset.getAttributes());
+
+            saveData(baseFileName + "_group" + (i + 1), result);
+        }
     }
 
     private boolean isOutlier(double value) {

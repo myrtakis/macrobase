@@ -74,17 +74,19 @@ public class StreamingPipeline extends Pipeline {
             Stopwatch sw = Stopwatch.createStarted();
 
             Classifier classifier = Pipelines.classifyChained(dataFrame, classifierConfigs);
+            DataFrame df = classifier.getResults();
 
             final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
             totalClassifierMs.addAndGet(classifierMs);
 
-            saveOutliers("outliers" + batchIndex.get(), classifier.getResults(), classifier.getOutputColumnName());
+            saveOutliers("outliers" + batchIndex.get(), df, classifier.getOutputColumnName());
 
             Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, classifier.getOutputColumnName(), attributes);
 
             sw = Stopwatch.createStarted();
 
-            summarizer.process(classifier.getResults());
+            summarizer.process(df);
+            Explanation explanation = summarizer.getResults();
 
             final long explanationMs = sw.elapsed(TimeUnit.MILLISECONDS);
             totalExplanationMs.addAndGet(explanationMs);
@@ -93,6 +95,8 @@ public class StreamingPipeline extends Pipeline {
                     classifierMs, totalClassifierMs.get(), explanationMs, totalExplanationMs.get());
 
             resultCallback.accept(summarizer.getResults());
+
+            saveExplanation("explanation" + batchIndex.get(), df, classifier.getOutputColumnName(), explanation);
         });
     }
 

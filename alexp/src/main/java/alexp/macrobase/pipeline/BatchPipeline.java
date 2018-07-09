@@ -76,6 +76,8 @@ public class BatchPipeline extends Pipeline {
 
         System.out.printf("Load time: %d ms\nClassification time: %d ms\nSummarization time: %d ms\n", loadMs, classifierMs, explanationMs);
 
+        saveExplanation("explanation", df, classifier.getOutputColumnName(), explanation);
+
         return explanation;
     }
 

@@ -12,9 +12,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.Predicate;
 
 public class DataFrameUtils {
     public static ArrayList<RealVector> toRowsRealVector(DataFrame data, String[] columns) {
@@ -61,5 +60,19 @@ public class DataFrameUtils {
 
         CSVDataFrameWriter writer = new CSVDataFrameWriter();
         writer.writeToStream(data, new FileWriter(new File(filePath)));
+    }
+
+    public static DataFrame filterByAll(DataFrame data, Map<String, String> attributes) {
+        if (attributes.isEmpty()) {
+            return data;
+        }
+
+        String column = attributes.keySet().iterator().next();
+        String val = attributes.get(column);
+
+        Map<String, String> rest = new HashMap<>(attributes);
+        rest.remove(column);
+
+        return filterByAll(data.filter(column, (Predicate<Object>) val::equals), rest);
     }
 }

@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.explanation.Itemset;
 import alexp.macrobase.ingest.*;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
@@ -9,6 +10,7 @@ import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
+import edu.stanford.futuredata.macrobase.analysis.summary.aplinear.APLExplanation;
 import edu.stanford.futuredata.macrobase.analysis.summary.aplinear.APLOutlierSummarizer;
 import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGExplanation;
 import edu.stanford.futuredata.macrobase.analysis.summary.fpg.FPGrowthSummarizer;
@@ -211,5 +213,18 @@ public class Pipelines {
         }
 
         return lastClassifier;
+    }
+
+    public static List<Itemset> getItemsets(Explanation explanation) throws MacroBaseException {
+        if (explanation instanceof APLExplanation) {
+            return ((APLExplanation) explanation).results().stream()
+                    .map(it -> new Itemset(it.get("matcher")))
+                    .collect(Collectors.toList());
+        } else if (explanation instanceof FPGExplanation) {
+            return ((FPGExplanation) explanation).getItemsets().stream()
+                    .map(it -> new Itemset(it.getItems()))
+                    .collect(Collectors.toList());
+        }
+        throw new MacroBaseException("Unknown explanation type " + explanation.getClass().getName());
     }
 }
