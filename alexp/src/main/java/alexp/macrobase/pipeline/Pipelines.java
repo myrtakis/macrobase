@@ -6,6 +6,7 @@ import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.mcod.McodClassifier;
+import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PredicateClassifier;
@@ -188,31 +189,39 @@ public class Pipelines {
         dataFrame.addColumn(column, time);
     }
 
-    public static Classifier classifyChained(DataFrame dataFrame, List<PipelineConfig> classifierConfigs) throws Exception {
-        Classifier lastClassifier = null;
+    public static List<Classifier> getClassifiersChain(List<PipelineConfig> classifierConfigs) throws MacroBaseException {
+        ArrayList<Classifier> classifiers = new ArrayList<>();
 
         for (int i = 0; i < classifierConfigs.size(); i++) {
             PipelineConfig classifierConf = classifierConfigs.get(i);
 
             List<String> metricColumns = classifierConf.get("metricColumns", new ArrayList<String>());
             if (metricColumns.isEmpty()) {
-                if (lastClassifier == null) {
+                if (classifiers.isEmpty()) {
                     throw new MacroBaseException("Metric column(s) not specified");
                 }
-                metricColumns.add(lastClassifier.getOutputColumnName());
+                metricColumns.add(Iterables.getLast(classifiers).getOutputColumnName());
             }
 
             Classifier classifier = getClassifier(classifierConf, metricColumns.toArray(new String[0]));
             if (i > 0) {
                 classifier.setOutputColumnName("_OUTLIER" + i);
             }
-            classifier.process(dataFrame);
-            dataFrame = classifier.getResults();
 
-            lastClassifier = classifier;
+            classifiers.add(classifier);
         }
 
-        return lastClassifier;
+        return classifiers;
+    }
+
+
+    public static Classifier classifyChained(DataFrame dataFrame, List<Classifier> classifiers) throws Exception {
+        for (Classifier classifier : classifiers) {
+            classifier.process(dataFrame);
+            dataFrame = classifier.getResults();
+        }
+
+        return Iterables.getLast(classifiers);
     }
 
     public static List<Itemset> getItemsets(Explanation explanation) throws MacroBaseException {

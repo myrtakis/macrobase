@@ -9,6 +9,7 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +24,7 @@ public class BatchPipeline extends Pipeline {
 
     private final Uri inputURI;
 
-    private List<PipelineConfig> classifierConfigs;
+    private List<Classifier> classifiersChain;
 
     private String[] metricColumns;
     private String timeColumn;
@@ -31,12 +32,12 @@ public class BatchPipeline extends Pipeline {
 
     private List<String> attributes;
 
-    public BatchPipeline(PipelineConfig conf) {
+    public BatchPipeline(PipelineConfig conf) throws MacroBaseException {
         this.conf = conf;
 
         inputURI = new Uri(conf.get("inputURI"));
 
-        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+        List<PipelineConfig> classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
 
         metricColumns = ConfigUtils.getAllValues(classifierConfigs, "metricColumns").toArray(new String[0]);
 
@@ -49,6 +50,8 @@ public class BatchPipeline extends Pipeline {
 //        }
 
         attributes = conf.get("attributes");
+
+        classifiersChain = Pipelines.getClassifiersChain(classifierConfigs);
     }
 
     public Explanation results() throws Exception {
@@ -59,7 +62,7 @@ public class BatchPipeline extends Pipeline {
         final long loadMs = sw.elapsed(TimeUnit.MILLISECONDS);
         sw = Stopwatch.createStarted();
 
-        Classifier classifier = Pipelines.classifyChained(df, classifierConfigs);
+        Classifier classifier = Pipelines.classifyChained(df, classifiersChain);
         df = classifier.getResults();
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);

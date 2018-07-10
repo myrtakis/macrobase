@@ -4,12 +4,14 @@ import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.utils.ConfigUtils;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,17 +33,17 @@ public class StreamingPipeline extends Pipeline {
 
     private List<String> attributes;
 
-    private List<PipelineConfig> classifierConfigs;
+    private List<Classifier> classifiersChain;
 
     private String timeColumn;
     private String idColumn;
 
-    public StreamingPipeline(PipelineConfig conf) {
+    public StreamingPipeline(PipelineConfig conf) throws MacroBaseException {
         this.conf = conf;
 
         inputURI = new Uri(conf.get("inputURI"));
 
-        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+        List<PipelineConfig> classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
 
         metricColumns = ConfigUtils.getAllValues(classifierConfigs, "metricColumns").toArray(new String[0]);
 
@@ -56,10 +58,14 @@ public class StreamingPipeline extends Pipeline {
         timeColumn = conf.get("timeColumn");
 
         ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
+
+        classifiersChain = Pipelines.getClassifiersChain(classifierConfigs);
     }
 
     public void run(Consumer<Explanation> resultCallback) throws Exception {
         StreamingDataFrameLoader dataLoader = getDataLoader();
+
+        Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, Iterables.getLast(classifiersChain).getOutputColumnName(), attributes);
 
         AtomicLong totalClassifierMs = new AtomicLong();
         AtomicLong totalExplanationMs = new AtomicLong();
@@ -73,16 +79,13 @@ public class StreamingPipeline extends Pipeline {
 
             Stopwatch sw = Stopwatch.createStarted();
 
-            Classifier classifier = Pipelines.classifyChained(dataFrame, classifierConfigs);
+            Classifier classifier = Pipelines.classifyChained(dataFrame, classifiersChain);
             DataFrame df = classifier.getResults();
 
             final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
             totalClassifierMs.addAndGet(classifierMs);
 
             saveOutliers("outliers" + batchIndex.get(), df, classifier.getOutputColumnName());
-
-            Operator<DataFrame, ? extends Explanation> summarizer = Pipelines.getSummarizer(conf, classifier.getOutputColumnName(), attributes);
-
             sw = Stopwatch.createStarted();
 
             summarizer.process(df);
