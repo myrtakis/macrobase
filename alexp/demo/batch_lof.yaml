@@ -5,15 +5,15 @@ classifiers:
     metricColumns:
       - "usage"
     knn: 5
-    trainSize: 100
+    trainSize: 200
   - classifier: "predicate"
     predicate: ">="
-    cutoff: 1.5
+    cutoff: 3.0
 
 summarizer: "aplinear"
 attributes:
   - "location"
   - "version"
 ratioMetric: "globalratio"
-minRatioMetric: 10.0
+minRatioMetric: 3.0
 minSupport: 0.2
