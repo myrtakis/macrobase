@@ -59,6 +59,10 @@ public class Pipelines {
             case HTTP:
                 return new HttpCsvStreamReader(inputURI.getPath(), requiredColumns)
                         .setColumnTypes(colTypes);
+            case CSV:
+                return new CsvStreamReader(inputURI.getPath(), requiredColumns)
+                        .setColumnTypes(colTypes)
+                        .setMaxBatchSize(conf.get("maxReadBatchSize", 5000));
             case JDBC:
                 return new SqlStreamReader(inputURI.getPath(), requiredColumns, conf.get("query"), conf.get("idColumn", "id"))
                         .setColumnTypes(colTypes)

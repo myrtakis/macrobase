@@ -1,0 +1,17 @@
+inputURI: "csv://alexp/demo/sample.csv"
+maxReadBatchSize: 600
+
+classifiers:
+  - classifier: "percentile"
+    metricColumns:
+      - "usage"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: true
+
+summarizer: "incremental"
+attributes:
+  - "location"
+  - "version"
+minSupport: 0.2
+numPanes: 2
