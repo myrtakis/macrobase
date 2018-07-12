@@ -20,9 +20,11 @@ public class Benchmark {
     private final OptionSpec<String> outputOption;
     private final OptionSpec clearOutputOption;
     private final OptionSpec includeInliersOutputOption;
+    private final OptionSpec streamOption;
 
     private String outputDir;
     private boolean includeInliers = false;
+    private boolean streaming = false;
 
     private Benchmark() {
         aucOption = optionParser.accepts("auc", "Run evaluation (AUC, F1, etc.) of outlier detection algorithms")
@@ -33,12 +35,14 @@ public class Benchmark {
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir").availableIf(outputOption);
         includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
+        streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)");
     }
 
     private void runAuc(String confFilePath) throws Exception {
         PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
 
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputIncludesInliers(includeInliers);
 
@@ -49,7 +53,9 @@ public class Benchmark {
         PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
 
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
+        pipeline.setOutputIncludesInliers(includeInliers);
 
         pipeline.runGridSearch();
     }
@@ -58,6 +64,7 @@ public class Benchmark {
         optionParser.printHelpOn(System.out);
         System.out.println("Examples:");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
+        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
         System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/bench_output --clear-output");
     }
@@ -76,6 +83,8 @@ public class Benchmark {
             showUsage();
             return 2;
         }
+
+        streaming = options.has(streamOption);
 
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);

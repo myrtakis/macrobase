@@ -1,7 +1,7 @@
 inputURI: "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword"
 query: "SELECT * FROM flights"
 idColumn: "id"
-maxReadBatchSize: 6000000
+maxReadBatchSize: 100000
 
 classifiers:
   - classifier: "mcod"
@@ -9,8 +9,8 @@ classifiers:
       - "departure_delay"
     maxDistance: 3.0
     minNeighborCount: 10
-    classifierWindowSize: 6000000
-    classifierSlide: 6000000
+    classifierWindowSize: 300000
+    classifierSlide: 100000
 
 summarizer: "windowed"
 attributes:

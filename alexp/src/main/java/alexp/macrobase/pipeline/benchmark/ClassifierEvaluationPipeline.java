@@ -19,7 +19,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class ClassifierEvaluationPipeline extends Pipeline {
     private final PipelineConfig conf;
@@ -30,9 +29,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     private String timeColumn;
     private String labelColumn;
 
+    private List<DataFrame> dataFrames = new ArrayList<>();
+    private List<int[]> labelsLists = new ArrayList<>();
+
     private List<PipelineConfig> classifierConfigs;
 
     private final String searchMeasure;
+
+    private boolean isStreaming = false;
 
     public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
         this.conf = conf;
@@ -50,11 +54,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
         searchMeasure = conf.get("searchMeasure", "");
+    }
 
+    public void setStreaming(boolean streaming) {
+        isStreaming = streaming;
     }
 
     public void run() throws Exception {
         System.out.println(inputURI.getOriginalString());
+
+        loadDara();
 
         for (PipelineConfig classifierConf : classifierConfigs) {
             run(classifierConf);
@@ -63,6 +72,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     public void runGridSearch() throws Exception {
         System.out.println(inputURI.getOriginalString());
+
+        loadDara();
 
         for (PipelineConfig classifierConf : classifierConfigs) {
             runGridSearch(classifierConf);
@@ -78,9 +89,33 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         System.out.println(classifier.getClass().getName());
         System.out.println(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
 
-        DataFrame dataFrame = loadDara();
-        int[] labels = getLabels(dataFrame);
+        if (isStreaming) {
+            Stopwatch sw = Stopwatch.createStarted();
 
+            for (int i = 0; i < dataFrames.size(); i++) {
+                int num = i + 1;
+
+                System.out.println();
+                System.out.println("Part #" + num);
+
+                DataFrame dataFrame = dataFrames.get(i);
+                int[] labels = labelsLists.get(i);
+
+                run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+            }
+
+            final long totalMs = sw.elapsed(TimeUnit.MILLISECONDS);
+            System.out.println();
+            System.out.println(String.format("Total time elapsed: %d ms (%.2f sec)", totalMs, totalMs / 1000.0));
+        } else {
+            DataFrame dataFrame = dataFrames.get(0);
+            int[] labels = labelsLists.get(0);
+
+            run(classifier, dataFrame, labels, classifierType, "");
+        }
+    }
+
+    private void run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         classifier.process(dataFrame);
@@ -88,7 +123,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
         System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
-        saveOutliers("outliers_" + classifierType, classifier.getResults(), classifier.getOutputColumnName());
+        saveOutliers("outliers_" + classifierType + fileNameSuffix, classifier.getResults(), classifier.getOutputColumnName());
 
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
         Curve aucAnalysis = aucCurve(classifierResult, labels);
@@ -115,12 +150,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         new AucChart()
                 .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
-                .saveToPng(aucAnalysis, Paths.get(chartOutputDir(), classifierType + ".png").toString());
+                .saveToPng(aucAnalysis, Paths.get(chartOutputDir(), classifierType + fileNameSuffix + ".png").toString());
     }
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
-        DataFrame dataFrame = loadDara();
-        int[] labels = getLabels(dataFrame);
+        DataFrame dataFrame = dataFrames.get(0);
+        int[] labels = labelsLists.get(0);
 
         System.out.println();
         System.out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
@@ -171,7 +206,25 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 .build();
     }
 
-    private DataFrame loadDara() throws Exception {
+    private void loadDara() throws Exception {
+        dataFrames.clear();
+
+        if (isStreaming) {
+            StreamingDataFrameLoader dataLoader = getDataLoader();
+
+            dataLoader.load(result -> {
+                dataFrames.add(result);
+
+                createAutoGeneratedColumns(result, timeColumn);
+            });
+        } else {
+            dataFrames.add(loadBatchDara());
+        }
+
+        labelsLists = dataFrames.stream().map(this::getLabels).collect(Collectors.toList());
+    }
+
+    private DataFrame loadBatchDara() throws Exception {
         Map<String, Schema.ColType> colTypes = new HashMap<>();
         colTypes.put(timeColumn, Schema.ColType.DOUBLE);
         colTypes.put(labelColumn, Schema.ColType.DOUBLE);
@@ -190,9 +243,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     private StreamingDataFrameLoader getDataLoader() throws Exception {
         Map<String, Schema.ColType> colTypes = new HashMap<>();
-        Schema.ColType metricType = Schema.ColType.DOUBLE;
-        for (String column : metricColumns) {
-            colTypes.put(column, metricType);
+        colTypes.put(timeColumn, Schema.ColType.DOUBLE);
+        colTypes.put(labelColumn, Schema.ColType.DOUBLE);
+        for (String metricColumn : metricColumns) {
+            colTypes.put(metricColumn, Schema.ColType.DOUBLE);
         }
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
