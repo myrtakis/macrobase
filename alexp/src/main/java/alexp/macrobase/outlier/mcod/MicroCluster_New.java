@@ -89,28 +89,28 @@ public class MicroCluster_New {
     }
 
     private void removeFromCluster(MCO d) {
-        //get the cluster
         ArrayList<MCO> cluster = micro_clusters.get(d.center);
-        if (cluster != null) {
-            cluster.remove(d);
-            micro_clusters.put(d.center, cluster);
+        if (cluster == null) {
+            return;
+        }
 
-            //cluster is shrinked 
-            if (cluster.size() < minNeighborCount + 1) {
-                //remove this cluster from micro cluster list
-                micro_clusters.remove(d.center);
-                dataList_set.remove(d.center);
-                cluster.sort(new MCComparatorArrivalTime());
-                //process the objects in clusters 
-                for (int i = 0; i < cluster.size(); i++) {
-                    MCO o = cluster.get(i);
-                    //reset all objects 
-                    resetObject(o);
-                    //put into PD 
+        cluster.remove(d);
 
-                    o.numberOfSucceeding = o.numberOfSucceeding + cluster.size() - 1 - i;
-                    addToPD(o, true);
-                }
+        //cluster is shrinked
+        if (cluster.size() < minNeighborCount + 1) {
+            //remove this cluster from micro cluster list
+            micro_clusters.remove(d.center);
+            dataList_set.remove(d.center);
+            cluster.sort(new MCComparatorArrivalTime());
+            //process the objects in clusters
+            for (int i = 0; i < cluster.size(); i++) {
+                MCO o = cluster.get(i);
+                //reset all objects
+                resetObject(o);
+                //put into PD
+
+                o.numberOfSucceeding = o.numberOfSucceeding + cluster.size() - 1 - i;
+                addToPD(o, true);
             }
         }
     }
@@ -154,13 +154,14 @@ public class MicroCluster_New {
             double distance = mtree.getDistanceFunction().calculate(o, inPD);
             if (distance <= maxDistance) {
                 //check inPD is succeeding or preceding neighbor
-                if (isSameSlide(inPD, o) == -1) {
+                final int sameSlideCmp = isSameSlide(inPD, o);
+                if (sameSlideCmp == -1) {
                     //is preceeding neighbor
                     o.exps.add(inPD.arrivalTime() + windowSize);
                     if (!fromCluster) {
                         inPD.numberOfSucceeding++;
                     }
-                } else if (isSameSlide(inPD, o) == 0) {
+                } else if (sameSlideCmp == 0) {
                     o.numberOfSucceeding++;
                     if (!fromCluster) {
                         inPD.numberOfSucceeding++;
@@ -170,22 +171,24 @@ public class MicroCluster_New {
                     if (!fromCluster) {
                         inPD.exps.add(o.arrivalTime() + windowSize);
                     }
-
                 }
                 //just keep k-numberofSucceedingNeighbor
                 if (!fromCluster) {
                     checkInlier(inPD);
                 }
-
             }
         });
 
         //find neighbors in clusters (3R/2)
         ArrayList<Integer> clusters = findClusterIn3_2Range(o);
-        clusters.stream().map((center_id) -> micro_clusters.get(center_id)).forEach((points) -> {
-            points.stream().filter((p) -> (isNeighbor(p, o))).forEach((p) -> {
+        clusters.stream()
+                .map((center_id) -> micro_clusters.get(center_id))
+                .forEach((points) -> {
+            points.stream()
+                    .filter((p) -> (isNeighbor(p, o)))
+                    .forEach((p) -> {
                 if (isSameSlide(o, p) <= 0) {
-                    //o is preceeding neighbor
+                    //o is preceding neighbor
                     o.numberOfSucceeding++;
                 } else {
                     //p is preceeding neighbor
@@ -274,10 +277,11 @@ public class MicroCluster_New {
         d.center = nearest_center_id;
         ArrayList<MCO> cluster = micro_clusters.get(nearest_center_id);
         cluster.add(d);
-        micro_clusters.put(nearest_center_id, cluster);
 
         //update for points in PD that has Rmc list contains center
-        PD.stream().filter((inPD) -> (inPD.Rmc.contains(nearest_center_id))).forEach((inPD) -> {
+        PD.stream()
+                .filter((inPD) -> (inPD.Rmc.contains(nearest_center_id)))
+                .forEach((inPD) -> {
             //check if inPD is neighbor of d
             double distance = mtree.getDistanceFunction().calculate(d, inPD);
             if (distance <= maxDistance) {
@@ -292,7 +296,6 @@ public class MicroCluster_New {
                 checkInlier(inPD);
             }
         });
-
     }
 
     private ArrayList<MCO> findNeighborR2InPD(MCO d) {
@@ -442,7 +445,7 @@ public class MicroCluster_New {
 
         int center;
         ArrayList<Integer> exps;
-        ArrayList<Integer> Rmc;
+        HashSet<Integer> Rmc;
 
         int ev;
         boolean isInCluster;
@@ -454,7 +457,7 @@ public class MicroCluster_New {
             super(d.arrivalTime(), d.values);
 
             exps = new ArrayList<>();
-            Rmc = new ArrayList<>();
+            Rmc = new HashSet<>();
             isCenter = false;
             isInCluster = false;
         }
