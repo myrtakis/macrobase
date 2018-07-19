@@ -1,0 +1,16 @@
+inputURI: "csv://alexp/demo/sample.csv"
+
+classifiers:
+  - classifier: "loci"
+    metricColumns:
+      - "usage"
+    alpha: 0.5
+    kSigma: 3
+
+summarizer: "aplinear"
+attributes:
+  - "location"
+  - "version"
+ratioMetric: "globalratio"
+minRatioMetric: 3.0
+minSupport: 0.2

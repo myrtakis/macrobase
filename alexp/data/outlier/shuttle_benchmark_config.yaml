@@ -17,15 +17,18 @@ classifiers:
     alpha: 0.9
     stoppingDelta: 0.00001
     trainSize: 10000
-  - classifier: "lof-bkaluza"
-    knn: 5
-    trainSize: 100
+  - classifier: "loci"
+    alpha: 0.5
+    kSigma: 3
   - classifier: "mcod"
     maxDistance: 17.0
     minNeighborCount: 180
-    classifierWindowSize: 10000
-    classifierSlide: 10000
+    classifierWindowSize: 50000
+    classifierSlide: 50000
     allowDuplicates: false
+  - classifier: "lof-bkaluza"
+    knn: 5
+    trainSize: 100
   - classifier: "lof-chen"
     minPtsLB: 3
     minPtsUB: 10

@@ -5,6 +5,7 @@ import alexp.macrobase.ingest.*;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
+import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -112,6 +113,12 @@ public class Pipelines {
                 classifier.setTrainSize(conf.get("trainSize", 10000));
                 classifier.setAlpha(conf.get("alpha", 0.5));
                 classifier.setStoppingDelta(conf.get("stoppingDelta", 0.001));
+                return classifier;
+            }
+            case "loci": {
+                LOCI classifier = new LOCI(metricColumns);
+                classifier.setAlpha(conf.get("alpha", 0.5));
+                classifier.setkSigma(conf.get("kSigma", 3));
                 return classifier;
             }
             case "lof-chen": {

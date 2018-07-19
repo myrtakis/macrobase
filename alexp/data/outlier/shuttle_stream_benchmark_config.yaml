@@ -18,6 +18,9 @@ classifiers:
     alpha: 0.9
     stoppingDelta: 0.00001
     trainSize: 4000
+  - classifier: "loci"
+    alpha: 0.5
+    kSigma: 3
   - classifier: "mcod"
     maxDistance: 17.0
     minNeighborCount: 180
