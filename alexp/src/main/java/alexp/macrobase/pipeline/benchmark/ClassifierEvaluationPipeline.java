@@ -6,6 +6,7 @@ import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
+import alexp.macrobase.utils.CollectionUtils;
 import alexp.macrobase.utils.ConfigUtils;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -65,8 +66,31 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         loadDara();
 
+        List<List<Curve>> aucCurves = new ArrayList<>();
+
         for (PipelineConfig classifierConf : classifierConfigs) {
-            run(classifierConf);
+            List<Curve> classifierCurves = run(classifierConf);
+            aucCurves.add(classifierCurves);
+        }
+
+        aucCurves = CollectionUtils.transpose(aucCurves);
+
+        List<String> classifierNames = classifierConfigs.stream().map(c -> c.<String>get("classifier").toUpperCase()).collect(Collectors.toList());
+        List<AucChart.Measure> measures = Arrays.asList(AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy);
+
+        for (int i = 0; i < aucCurves.size(); i++) {
+            List<Curve> classifierCurves = aucCurves.get(i);
+
+            String fileNameSuffix = isStreaming ? Integer.toString(i + 1) : "";
+
+            for (AucChart.Measure measure : measures) {
+                String measureFileName = measure.name.toLowerCase().replace(" ", "_").replace("-", "_");
+
+                new AucChart()
+                        .setName(measure.name + ", " + inputURI.shortDisplayPath())
+                        .createForAll(classifierCurves, classifierNames, measure)
+                        .saveToPng(Paths.get(chartOutputDir(), "all_" + measureFileName + fileNameSuffix + ".png").toString());
+            }
         }
     }
 
@@ -80,7 +104,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         }
     }
 
-    private void run(PipelineConfig classifierConf) throws Exception {
+    private List<Curve> run(PipelineConfig classifierConf) throws Exception {
         Classifier classifier = Pipelines.getClassifier(classifierConf, metricColumns);
 
         String classifierType = classifierConf.get("classifier");
@@ -88,6 +112,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         System.out.println();
         System.out.println(classifier.getClass().getName());
         System.out.println(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
+
+        List<Curve> curves = new ArrayList<>();
 
         if (isStreaming) {
             Stopwatch sw = Stopwatch.createStarted();
@@ -101,7 +127,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 DataFrame dataFrame = dataFrames.get(i);
                 int[] labels = labelsLists.get(i);
 
-                run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+                Curve curve = run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+                curves.add(curve);
             }
 
             final long totalMs = sw.elapsed(TimeUnit.MILLISECONDS);
@@ -111,11 +138,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);
 
-            run(classifier, dataFrame, labels, classifierType, "");
+            Curve curve = run(classifier, dataFrame, labels, classifierType, "");
+            curves.add(curve);
         }
+
+        return curves;
     }
 
-    private void run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
+    private Curve run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         classifier.process(dataFrame);
@@ -150,7 +180,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         new AucChart()
                 .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
-                .saveToPng(aucAnalysis, Paths.get(chartOutputDir(), classifierType + fileNameSuffix + ".png").toString());
+                .createForSingle(aucAnalysis,
+                        AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy)
+                .saveToPng(Paths.get(chartOutputDir(), classifierType + fileNameSuffix + ".png").toString());
+
+        return aucAnalysis;
     }
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
