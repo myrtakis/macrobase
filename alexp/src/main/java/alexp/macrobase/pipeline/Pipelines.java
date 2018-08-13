@@ -195,7 +195,7 @@ public class Pipelines {
         return column != null && column.startsWith("_");
     }
 
-    public static void generatedTimeColumn(DataFrame dataFrame, String column, long start) {
+    public static void generateTimeColumn(DataFrame dataFrame, String column, long start) {
         double[] time = LongStream.rangeClosed(start, dataFrame.getNumRows() + start).mapToDouble(n -> (double) n).toArray();
         dataFrame.addColumn(column, time);
     }
