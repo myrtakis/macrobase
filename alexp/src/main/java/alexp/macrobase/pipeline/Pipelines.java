@@ -7,6 +7,7 @@ import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
+import alexp.macrobase.utils.TimeUtils;
 import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.classify.PercentileClassifier;
@@ -26,6 +27,7 @@ import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -198,6 +200,12 @@ public class Pipelines {
     public static void generateTimeColumn(DataFrame dataFrame, String column, long start) {
         double[] time = LongStream.rangeClosed(start, dataFrame.getNumRows() + start).mapToDouble(n -> (double) n).toArray();
         dataFrame.addColumn(column, time);
+    }
+
+    public static void parseTimeColumn(DataFrame dataFrame, String sourceColumn, String destColumn, String format) {
+        String[] strValues = dataFrame.getStringColumnByName(sourceColumn);
+        double[] time = Arrays.stream(strValues).mapToDouble(s -> TimeUtils.dateTimeToUnixTimestamp(s, format)).toArray();
+        dataFrame.addColumn(destColumn, time);
     }
 
     public static List<Classifier> getClassifiersChain(List<PipelineConfig> classifierConfigs) throws MacroBaseException {
