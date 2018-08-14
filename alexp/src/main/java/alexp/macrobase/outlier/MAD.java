@@ -56,7 +56,7 @@ public class MAD extends Classifier {
 
     @Override
     public void process(DataFrame input) {
-        train(input.limit(trainSize));
+        train(input.limit(Math.min(trainSize, input.getNumRows() - 1))); // must be deep copy
 
         double[] metricColumn = input.getDoubleColumnByName(columnName);
 
