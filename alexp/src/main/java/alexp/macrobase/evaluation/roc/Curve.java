@@ -7,13 +7,10 @@ package alexp.macrobase.evaluation.roc;
 
 
 import alexp.macrobase.evaluation.ConfusionMatrix;
+import com.google.common.collect.Iterables;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>This class is a binary classification result analysis suitable for
@@ -714,6 +711,17 @@ public class Curve {
         double uPos = sumPosRanks - ((double) totalPositives * (double) totalPositives + (double) totalPositives) / 2.0;
         double uNeg = sumNegRanks - ((double) totalNegatives * (double) totalNegatives + (double) totalNegatives) / 2.0;
         return new double[] {uPos, uNeg};
+    }
+
+    // not sure if it's correct way to do this
+    public double threshold(int rank, double[] scores) {
+        List<Double> sorted = Arrays.stream(scores)
+                .distinct()
+                .boxed()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+        sorted.add(Iterables.getLast(sorted) - 1);
+        return sorted.get(rank);
     }
 
 

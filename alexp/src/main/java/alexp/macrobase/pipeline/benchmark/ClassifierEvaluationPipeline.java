@@ -19,8 +19,8 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.util.Pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -185,16 +185,19 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         System.out.println(String.format("ROC Area: %.4f", rocArea));
         System.out.println(String.format("PR Area: %.4f", prArea));
 
-        System.out.println("Stats for threshold with the highest F1-score:");
-
         FScore fScore = new FScore();
-        ConfusionMatrix confusionMatrix = IntStream.range(0, aucAnalysis.rankingSize()).
-                mapToObj(aucAnalysis::confusionMatrix)
-                .max(Comparator.comparing(matr -> {
+        Pair<Integer, ConfusionMatrix> confusionMatrixIt = IntStream.range(0, aucAnalysis.rankingSize()).
+                mapToObj(i -> new Pair<>(i, aucAnalysis.confusionMatrix(i)))
+                .max(Comparator.comparing(it -> {
+                    ConfusionMatrix matr = it.getValue();
                     double score = fScore.evaluate(matr);
                     return Double.isNaN(score) ? -1 : score;
                 })).get();
+        int rank = confusionMatrixIt.getKey();
+        ConfusionMatrix confusionMatrix = confusionMatrixIt.getValue();
+        double threshold = aucAnalysis.threshold(rank, classifierResult);
 
+        System.out.println(String.format("Stats for threshold (score > %.2f, rank %d) with the highest F1-score:", threshold, rank));
         System.out.println(confusionMatrix);
         System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
         System.out.println(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
