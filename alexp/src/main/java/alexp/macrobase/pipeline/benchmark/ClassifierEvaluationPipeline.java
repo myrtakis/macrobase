@@ -10,6 +10,7 @@ import alexp.macrobase.utils.CollectionUtils;
 import alexp.macrobase.utils.ConfigUtils;
 import alexp.macrobase.utils.TimeUtils;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -32,6 +33,16 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ClassifierEvaluationPipeline extends Pipeline {
+    public static class RunResult {
+        public final Curve curve;
+        public final List<ResultPoint> points;
+
+        public RunResult(Curve curve, List<ResultPoint> points) {
+            this.curve = curve;
+            this.points = points;
+        }
+    }
+
     private final PipelineConfig conf;
 
     private final Uri inputURI;
@@ -135,6 +146,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         System.out.println(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
 
         List<Curve> curves = new ArrayList<>();
+        List<ResultPoint> points = new ArrayList<>();
 
         if (isStreaming) {
             Stopwatch sw = Stopwatch.createStarted();
@@ -148,8 +160,9 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 DataFrame dataFrame = dataFrames.get(i);
                 int[] labels = labelsLists.get(i);
 
-                Curve curve = run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
-                curves.add(curve);
+                RunResult result = run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+                curves.add(result.curve);
+                points.addAll(result.points);
             }
 
             final long totalMs = sw.elapsed(TimeUnit.MILLISECONDS);
@@ -159,14 +172,22 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);
 
-            Curve curve = run(classifier, dataFrame, labels, classifierType, "");
-            curves.add(curve);
+            RunResult result = run(classifier, dataFrame, labels, classifierType, "");
+            curves.add(result.curve);
+            points = result.points;
+        }
+
+        if (metricColumns.length == 1) {
+            new AucChart()
+                    .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
+                    .createAnomaliesChart(points)
+                    .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + ".png").toString());
         }
 
         return curves;
     }
 
-    private Curve run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
+    private RunResult run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         classifier.process(dataFrame);
@@ -208,7 +229,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy)
                 .saveToPng(Paths.get(chartOutputDir(), classifierType + fileNameSuffix + ".png").toString());
 
-        return aucAnalysis;
+        double[] time = dataFrame.getDoubleColumnByName(timeColumn);
+        double[] values = dataFrame.getDoubleColumnByName(metricColumns[0]);
+        List<ResultPoint> points = Streams.mapWithIndex(Arrays.stream(time), (t, ind) -> {
+            int i = (int) ind;
+            return new ResultPoint(t, values[i], classifierResult[i], threshold, labels[i] == 1);
+        }).collect(Collectors.toList());
+
+        return new RunResult(aucAnalysis, points);
     }
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
