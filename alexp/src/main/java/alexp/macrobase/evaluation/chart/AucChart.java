@@ -1,5 +1,8 @@
-package alexp.macrobase.evaluation;
+package alexp.macrobase.evaluation.chart;
 
+import alexp.macrobase.evaluation.Accuracy;
+import alexp.macrobase.evaluation.ConfusionMatrix;
+import alexp.macrobase.evaluation.FScore;
 import alexp.macrobase.evaluation.roc.Curve;
 import com.google.common.collect.Streams;
 import joptsimple.internal.Strings;
@@ -22,7 +25,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class AucChart {
+public class AucChart extends Chart {
     @FunctionalInterface
     public interface SeriesSupplier extends Function<Curve, XYSeries> {
     }
@@ -85,7 +88,7 @@ public class AucChart {
         }, "F1-score");
 
         public static Measure Accuracy = new Measure(aucCurve -> {
-            Accuracy accuracy = new Accuracy();
+            alexp.macrobase.evaluation.Accuracy accuracy = new Accuracy();
             double[][] points = aucCurve.rocPoints();
 
             final XYSeries series = new XYSeries("Accuracy");
@@ -98,10 +101,6 @@ public class AucChart {
         }, "Accuracy");
 
     }
-
-    private String name;
-
-    private JFreeChart chart;
 
     public AucChart createForSingle(Curve aucCurve, Measure... measures) {
         final XYSeriesCollection data = new XYSeriesCollection();
@@ -145,70 +144,9 @@ public class AucChart {
         return this;
     }
 
-    public AucChart createAnomaliesChart(List<ResultPoint> points) {
-        final XYSeriesCollection data = new XYSeriesCollection();
-
-        final XYSeries normalSeries = new XYSeries("Normal values (TN)");
-        final XYSeries labelSeries = new XYSeries("Undetected anomalies (FN)");
-        final XYSeries correctResultSeries = new XYSeries("Correctly detected anomalies (TP)");
-        final XYSeries wrongResultSeries = new XYSeries("Incorrectly detected anomalies (FP)");
-
-        points.forEach(p -> {
-            if (p.isLabel()) {
-                if (p.getScore() > p.getThreshold()) {
-                    correctResultSeries.add(p.getTime(), p.getValue());
-                } else {
-                    labelSeries.add(p.getTime(), p.getValue());
-                }
-            } else {
-                if (p.getScore() > p.getThreshold()) {
-                    wrongResultSeries.add(p.getTime(), p.getValue());
-                } else {
-                    normalSeries.add(p.getTime(), p.getValue());
-                }
-            }
-        });
-
-        data.addSeries(normalSeries);
-        data.addSeries(labelSeries);
-        data.addSeries(correctResultSeries);
-        data.addSeries(wrongResultSeries);
-
-        chart = ChartFactory.createScatterPlot(
-                name,
-                "Time",
-                "Value",
-                data,
-                PlotOrientation.VERTICAL,
-                true,
-                false,
-                false
-        );
-
-        XYItemRenderer renderer = ((XYPlot) chart.getPlot()).getRenderer();
-        renderer.setSeriesPaint(0, new Color(123, 156, 255));
-        renderer.setSeriesPaint(1, new Color(255, 0, 0));
-        renderer.setSeriesPaint(2, new Color(0, 255, 0));
-        renderer.setSeriesPaint(3, new Color(255, 216, 51));
-        for (int i = 0; i < data.getSeries().size(); i++) {
-            renderer.setSeriesShape(i, renderer.getDefaultShape());
-        }
-
-        return this;
-    }
-
-    public void saveToPng(String filePath) throws IOException {
-        new File(filePath).getParentFile().mkdirs();
-
-        ChartUtils.saveChartAsPNG(new File(filePath), chart, 800, 600);
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    @Override
     public AucChart setName(String name) {
-        this.name = name;
+        super.setName(name);
         return this;
     }
 }

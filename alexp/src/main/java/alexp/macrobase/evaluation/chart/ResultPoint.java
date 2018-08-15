@@ -1,4 +1,4 @@
-package alexp.macrobase.evaluation;
+package alexp.macrobase.evaluation.chart;
 
 public class ResultPoint {
     private final double time;

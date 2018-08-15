@@ -1,6 +1,7 @@
 package alexp.macrobase.pipeline.benchmark;
 
 import alexp.macrobase.evaluation.*;
+import alexp.macrobase.evaluation.chart.*;
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
@@ -178,7 +179,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         }
 
         if (metricColumns.length == 1) {
-            new AucChart()
+            new AnomalyDataChart()
                     .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
                     .createAnomaliesChart(points)
                     .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + ".png").toString());
