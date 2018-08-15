@@ -19,4 +19,4 @@ classifiers:
     includeLo: true
   - classifier: "lof-bkaluza"
     knn: 15
-    trainSize: 100
+    trainSize: 200
