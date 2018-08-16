@@ -318,7 +318,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                     long end = TimeUtils.dateTimeToUnixTimestamp(arr.get(1).getAsString(), timeFormat);
 
                     for (int i = 0; i < labels.length; i++) {
-                        if (time[i] >= start && time[i] < end) {
+                        if (time[i] >= start && time[i] <= end) {
                             labels[i] = 1.0;
                         }
 
