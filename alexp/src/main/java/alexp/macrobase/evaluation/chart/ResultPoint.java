@@ -4,7 +4,7 @@ public class ResultPoint {
     private final double time;
     private final double value;
     private final double score;
-    private final double threshold;
+    private double threshold;
     private final boolean label;
 
     public ResultPoint(double time, double value, double score, double threshold, boolean label) {
@@ -29,6 +29,10 @@ public class ResultPoint {
 
     public double getThreshold() {
         return threshold;
+    }
+
+    public void setThreshold(double threshold) {
+        this.threshold = threshold;
     }
 
     public boolean isLabel() {
