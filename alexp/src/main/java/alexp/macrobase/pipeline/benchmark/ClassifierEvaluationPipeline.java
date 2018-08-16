@@ -37,10 +37,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     public static class RunResult {
         public final Curve curve;
         public final List<ResultPoint> points;
+        public final int bestRank;
 
-        public RunResult(Curve curve, List<ResultPoint> points) {
+        public RunResult(Curve curve, List<ResultPoint> points, int bestRank) {
             this.curve = curve;
             this.points = points;
+            this.bestRank = bestRank;
         }
     }
 
@@ -148,6 +150,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         List<Curve> curves = new ArrayList<>();
         List<ResultPoint> points = new ArrayList<>();
+        List<RunResult> results = new ArrayList<>();
 
         if (isStreaming) {
             Stopwatch sw = Stopwatch.createStarted();
@@ -162,6 +165,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 int[] labels = labelsLists.get(i);
 
                 RunResult result = run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+                results.add(result);
                 curves.add(result.curve);
                 points.addAll(result.points);
             }
@@ -174,6 +178,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             int[] labels = labelsLists.get(0);
 
             RunResult result = run(classifier, dataFrame, labels, classifierType, "");
+            results.add(result);
             curves.add(result.curve);
             points = result.points;
         }
@@ -183,6 +188,17 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                     .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
                     .createAnomaliesChart(points)
                     .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + ".png").toString());
+
+            if (curves.stream().anyMatch(c -> c.rankingSize() <= 3) && results.stream().anyMatch(it -> it.bestRank == 0 || it.bestRank >= it.curve.rankingSize() - 1)) {
+                double threshold = 0.5;
+                for (ResultPoint point : points) {
+                    point.setThreshold(threshold);
+                }
+                new AnomalyDataChart()
+                        .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
+                        .createAnomaliesChart(points)
+                        .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + "_middle_threshold.png").toString());
+            }
         }
 
         return curves;
@@ -237,7 +253,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             return new ResultPoint(t, values[i], classifierResult[i], threshold, labels[i] == 1);
         }).collect(Collectors.toList());
 
-        return new RunResult(aucAnalysis, points);
+        return new RunResult(aucAnalysis, points, rank);
     }
 
     private void runGridSearch(PipelineConfig classifierConf) throws Exception {
