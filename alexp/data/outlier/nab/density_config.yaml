@@ -1,4 +1,4 @@
-inputURI: "csv://alexp/data/outlier/nab/data/artificialWithAnomaly/art_daily_flatmiddle.csv"
+inputURI: "csv://alexp/data/outlier/nab/data/artificialWithAnomaly/art_increase_spike_density.csv"
 timeColumn: "timestamp"
 timeFormat: "yyyy-MM-dd HH:mm:ss"
 metricColumns:
