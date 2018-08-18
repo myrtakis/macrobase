@@ -10,7 +10,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import java.awt.*;
 import java.util.List;
 
-public class AnomalyDataChart extends Chart {
+public class AnomalyDataChart extends Chart<AnomalyDataChart> {
     public AnomalyDataChart createAnomaliesChart(List<ResultPoint> points) {
         final XYSeriesCollection data = new XYSeriesCollection();
 
@@ -64,8 +64,7 @@ public class AnomalyDataChart extends Chart {
     }
 
     @Override
-    public AnomalyDataChart setName(String name) {
-        super.setName(name);
+    protected AnomalyDataChart self() {
         return this;
     }
 }

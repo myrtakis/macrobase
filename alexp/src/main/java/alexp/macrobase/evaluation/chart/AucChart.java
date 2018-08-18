@@ -9,23 +9,16 @@ import joptsimple.internal.Strings;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtils;
-import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class AucChart extends Chart {
+public class AucChart extends Chart<AucChart> {
     @FunctionalInterface
     public interface SeriesSupplier extends Function<Curve, XYSeries> {
     }
@@ -145,8 +138,7 @@ public class AucChart extends Chart {
     }
 
     @Override
-    public AucChart setName(String name) {
-        super.setName(name);
+    protected AucChart self() {
         return this;
     }
 }

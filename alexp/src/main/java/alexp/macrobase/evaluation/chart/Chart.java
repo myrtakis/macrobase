@@ -6,7 +6,7 @@ import org.jfree.chart.JFreeChart;
 import java.io.File;
 import java.io.IOException;
 
-public abstract class Chart {
+public abstract class Chart<T extends Chart<T>> {
     protected String name;
 
     protected JFreeChart chart;
@@ -21,8 +21,11 @@ public abstract class Chart {
         return name;
     }
 
-    public Chart setName(String name) {
+    public T setName(String name) {
         this.name = name;
-        return this;
+        return self();
     }
+
+    protected abstract T self();
+
 }
