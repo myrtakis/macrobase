@@ -1,0 +1,22 @@
+inputURI: "csv://alexp/data/outlier/nab/data/artificialWithAnomaly/"
+timeColumn: "timestamp"
+timeFormat: "yyyy-MM-dd HH:mm:ss"
+metricColumns:
+  - "value"
+nabLabelFile: "alexp/data/outlier/nab/labels/only_anomalies_art_windows.json"
+
+classifiers:
+  - classifier: "mad"
+    trainSize: 10000
+  - classifier: "mcod"
+    maxDistance: 10.0
+    minNeighborCount: 20
+    classifierWindowSize: 100000
+    classifierSlide: 100000
+  - classifier: "percentile"
+    cutoff: 1.0
+    includeHi: true
+    includeLo: true
+  - classifier: "lof-bkaluza"
+    knn: 15
+    trainSize: 200

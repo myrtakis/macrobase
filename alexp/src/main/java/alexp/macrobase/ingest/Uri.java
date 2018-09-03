@@ -1,6 +1,17 @@
 package alexp.macrobase.ingest;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.io.FilenameUtils;
+
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 public class Uri {
     public enum Type {
@@ -69,6 +80,10 @@ public class Uri {
         return type;
     }
 
+    public boolean isDir() {
+        return path.endsWith("/") || path.endsWith("\\");
+    }
+
     public String shortDisplayPath() {
         switch (type) {
             case CSV:
@@ -80,6 +95,52 @@ public class Uri {
                 return "";
             default:
                 return getPath();
+        }
+    }
+
+    public String baseName() {
+        if (isDir()) {
+            return FilenameUtils.getBaseName(path.substring(0, path.length() - 1));
+        }
+        switch (type) {
+            case CSV:
+            case XLSX:
+                return FilenameUtils.getBaseName(path);
+            default:
+                return "";
+        }
+    }
+
+    public List<String> getDirFiles(boolean recursive, List<String> extensions) throws IOException {
+        if (!isDir()) {
+            throw new IllegalStateException(path + "is not a dir");
+        }
+
+        switch (type) {
+            case CSV:
+            case XLSX:
+                break;
+            default:
+                throw new IllegalStateException("Cannot load files for type " + type);
+        }
+
+        Path root = Paths.get(path);
+
+        return Files.walk(root, recursive ? 255 : 1)
+                .filter(p -> Files.isRegularFile(p) && (extensions == null || extensions.isEmpty() || extensions.stream().anyMatch(ext -> p.toString().endsWith(ext))))
+                .map(p -> root.relativize(p).toString())
+                .sorted()
+                .collect(toList());
+    }
+
+    public List<String> getDirFiles(boolean recursive) throws IOException {
+        switch (type) {
+            case CSV:
+                return getDirFiles(recursive, Lists.newArrayList(".csv"));
+            case XLSX:
+                return getDirFiles(recursive, Lists.newArrayList(".xlsx", ".xlsm"));
+            default:
+                return getDirFiles(recursive, new ArrayList<>());
         }
     }
 }

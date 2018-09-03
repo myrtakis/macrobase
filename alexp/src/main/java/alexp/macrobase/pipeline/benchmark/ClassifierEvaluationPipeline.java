@@ -21,6 +21,7 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Pair;
 
@@ -97,6 +98,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     public void run() throws Exception {
+        if (inputURI.isDir()) {
+            runDir();
+            return;
+        }
+
         System.out.println(inputURI.getOriginalString());
 
         loadDara();
@@ -126,6 +132,22 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         .createForAll(classifierCurves, classifierNames, measure)
                         .saveToPng(Paths.get(chartOutputDir(), "all_" + measureFileName + fileNameSuffix + ".png").toString());
             }
+        }
+    }
+
+    private void runDir() throws Exception {
+        for (String path : inputURI.getDirFiles(true)) {
+            conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
+
+            ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+            pipeline.setStreaming(isStreaming);
+            pipeline.setOutputDir(getOutputDir() + "/" + FilenameUtils.getPath(path));
+            pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
+
+            pipeline.run();
+
+            System.out.println();
+            System.out.println();
         }
     }
 

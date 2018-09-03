@@ -1,0 +1,15 @@
+inputURI: "csv://alexp/data/outlier/nab/data/"
+timeColumn: "timestamp"
+timeFormat: "yyyy-MM-dd HH:mm:ss"
+metricColumns:
+  - "value"
+nabLabelFile: "alexp/data/outlier/nab/labels/combined_windows.json"
+
+classifiers:
+  - classifier: "mad"
+    trainSize: 10000
+  - classifier: "mcod"
+    maxDistance: 10.0
+    minNeighborCount: 20
+    classifierWindowSize: 100000
+    classifierSlide: 100000
