@@ -398,7 +398,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return colTypes;
     }
 
+    public static String defaultOutputDir() {
+        return "alexp/bench_output";
+    }
+
+    @Override
+    public String getOutputDir() {
+        return StringUtils.isEmpty(super.getOutputDir()) ? defaultOutputDir() :super. getOutputDir();
+    }
+
     private String chartOutputDir() {
-        return StringUtils.isEmpty(getOutputDir()) ? "alexp/bench_output" : getOutputDir();
+        return getOutputDir();
     }
 }

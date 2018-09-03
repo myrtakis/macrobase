@@ -51,15 +51,15 @@ public abstract class Pipeline {
     }
 
     protected void saveData(String baseFileName, DataFrame data) throws IOException {
-        if (StringUtils.isEmpty(outputDir)) {
+        if (StringUtils.isEmpty(getOutputDir())) {
             return;
         }
 
-        DataFrameUtils.saveToCsv(Paths.get(outputDir, baseFileName + ".csv").toString(), data);
+        DataFrameUtils.saveToCsv(Paths.get(getOutputDir(), baseFileName + ".csv").toString(), data);
     }
 
     protected void saveOutliers(String baseFileName, DataFrame data, String outlierOutputColumn) throws IOException {
-        if (StringUtils.isEmpty(outputDir)) {
+        if (StringUtils.isEmpty(getOutputDir())) {
             return;
         }
 
@@ -71,7 +71,7 @@ public abstract class Pipeline {
     }
 
     protected void saveExplanation(String baseFileName, DataFrame data, String outlierOutputColumn, Explanation explanation) throws IOException, MacroBaseException {
-        if (StringUtils.isEmpty(outputDir)) {
+        if (StringUtils.isEmpty(getOutputDir())) {
             return;
         }
 

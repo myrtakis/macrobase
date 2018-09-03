@@ -6,6 +6,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,9 +32,9 @@ public class Benchmark {
                 .withRequiredArg().describedAs("config_file_path");
         gsOption = optionParser.accepts("gs", "Run Grid Search for parameters of outlier detection algorithms")
                 .withRequiredArg().describedAs("config_file_path");
-        outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir")
+        outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
                 .withRequiredArg().describedAs("dir_path");
-        clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir").availableIf(outputOption);
+        clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
         includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)");
     }
@@ -66,7 +67,8 @@ public class Benchmark {
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
         System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/bench_output --clear-output");
+        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
+        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output");
     }
 
     private int run(String[] args) throws Exception {
@@ -89,9 +91,13 @@ public class Benchmark {
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);
             includeInliers = options.has(includeInliersOutputOption);
-            if (options.has(clearOutputOption) && Files.exists(Paths.get(outputDir))) {
+        }
+
+        if (options.has(clearOutputOption)) {
+            String dirToClear = StringUtils.isEmpty(outputDir) ? ClassifierEvaluationPipeline.defaultOutputDir() : outputDir;
+            if (!StringUtils.isEmpty(dirToClear) && Files.exists(Paths.get(dirToClear))) {
                 try {
-                    FileUtils.cleanDirectory(new File(outputDir));
+                    FileUtils.cleanDirectory(new File(dirToClear));
                 } catch (IOException ex) {
                     System.out.println(ex.getMessage());
                 }
