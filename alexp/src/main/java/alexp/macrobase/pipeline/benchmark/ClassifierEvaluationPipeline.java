@@ -345,8 +345,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         }
 
                     }
-                    dataFrame.addColumn(labelColumn, labels);
                 }
+                dataFrame.addColumn(labelColumn, labels);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage());
             }
