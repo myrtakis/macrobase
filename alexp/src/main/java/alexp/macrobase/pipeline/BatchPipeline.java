@@ -62,7 +62,7 @@ public class BatchPipeline extends Pipeline {
         final long loadMs = sw.elapsed(TimeUnit.MILLISECONDS);
         sw = Stopwatch.createStarted();
 
-        Classifier classifier = Pipelines.classifyChained(df, classifiersChain);
+        Classifier classifier = Pipelines.processChained(df, classifiersChain);
         df = classifier.getResults();
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);

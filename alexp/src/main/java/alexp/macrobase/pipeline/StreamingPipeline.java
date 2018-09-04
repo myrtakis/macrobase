@@ -79,7 +79,7 @@ public class StreamingPipeline extends Pipeline {
 
             Stopwatch sw = Stopwatch.createStarted();
 
-            Classifier classifier = Pipelines.classifyChained(dataFrame, classifiersChain);
+            Classifier classifier = Pipelines.processChained(dataFrame, classifiersChain);
             DataFrame df = classifier.getResults();
 
             final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);

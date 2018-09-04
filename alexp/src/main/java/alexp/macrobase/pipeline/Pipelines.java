@@ -21,6 +21,7 @@ import edu.stanford.futuredata.macrobase.analysis.summary.fpg.IncrementalSummari
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
+import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.operator.WindowedOperator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
@@ -233,14 +234,13 @@ public class Pipelines {
         return classifiers;
     }
 
-
-    public static Classifier classifyChained(DataFrame dataFrame, List<Classifier> classifiers) throws Exception {
-        for (Classifier classifier : classifiers) {
+    public static <T extends Transformer> T processChained(DataFrame dataFrame, List<T> transformers) throws Exception {
+        for (Transformer classifier : transformers) {
             classifier.process(dataFrame);
             dataFrame = classifier.getResults();
         }
 
-        return Iterables.getLast(classifiers);
+        return Iterables.getLast(transformers);
     }
 
     public static List<Itemset> getItemsets(Explanation explanation) throws MacroBaseException {
