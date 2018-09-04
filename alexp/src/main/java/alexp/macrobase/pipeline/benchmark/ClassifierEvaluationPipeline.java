@@ -11,6 +11,7 @@ import alexp.macrobase.utils.CollectionUtils;
 import alexp.macrobase.utils.ConfigUtils;
 import alexp.macrobase.utils.TimeUtils;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -51,6 +52,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     private final Uri inputURI;
 
+    private final String inputDirRelativePath; // for dir URI (csv://somedir/), if it contains subdirs with input
+
     private String[] metricColumns;
     private String originalTimeColumn;
     private String timeColumn;
@@ -68,8 +71,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     private boolean isStreaming = false;
 
-    public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
+    private String nabOutputDir;
+
+    private ClassifierEvaluationPipeline(PipelineConfig conf, String inputDirRelativePath) throws Exception {
         this.conf = conf;
+        this.inputDirRelativePath = inputDirRelativePath;
 
         inputURI = new Uri(conf.get("inputURI"));
 
@@ -91,6 +97,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
         searchMeasure = conf.get("searchMeasure", "");
+    }
+
+    public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
+        this(conf, null);
     }
 
     public void setStreaming(boolean streaming) {
@@ -139,9 +149,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         for (String path : inputURI.getDirFiles(true)) {
             conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
 
-            ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+            String subdirPath = FilenameUtils.getPath(path);
+
+            ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, subdirPath);
             pipeline.setStreaming(isStreaming);
-            pipeline.setOutputDir(getOutputDir() + "/" + FilenameUtils.getPath(path));
+            pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
+            pipeline.setNabOutputDir(nabOutputDir);
             pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
 
             pipeline.run();
@@ -223,6 +236,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             }
         }
 
+        if (!StringUtils.isEmpty(getNabOutputDir())) {
+            saveNabOutput(Paths.get(getNabOutputDir(), classifierType, inputDirRelativePath).toString(), classifierType + "_" + inputURI.baseName(), points);
+        }
+
         return curves;
     }
 
@@ -270,9 +287,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         double[] time = dataFrame.getDoubleColumnByName(timeColumn);
         double[] values = dataFrame.getDoubleColumnByName(metricColumns[0]);
+        String[] timeStrings = dataFrame.getSchema().getColumnTypeByName(originalTimeColumn) == Schema.ColType.STRING ? dataFrame.getStringColumnByName(originalTimeColumn) : null;
         List<ResultPoint> points = Streams.mapWithIndex(Arrays.stream(time), (t, ind) -> {
             int i = (int) ind;
-            return new ResultPoint(t, values[i], classifierResult[i], threshold, labels[i] == 1);
+            return new ResultPoint(t, timeStrings == null ? null : timeStrings[i], values[i], classifierResult[i], threshold, labels[i] == 1);
         }).collect(Collectors.toList());
 
         return new RunResult(aucAnalysis, points, rank);
@@ -420,6 +438,21 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return colTypes;
     }
 
+    private  void saveNabOutput(String dir, String name, List<ResultPoint> points) throws IOException {
+        String[] timestamps = points.stream().map(ResultPoint::getTimeStr).toArray(String[]::new);
+        double[] values = points.stream().mapToDouble(ResultPoint::getValue).toArray();
+        double[] scores = points.stream().mapToDouble(ResultPoint::getScore).toArray();
+        double[] labels = points.stream().mapToDouble(p -> p.isLabel() ? 1.0 : 0.0).toArray();
+
+        DataFrame df = new DataFrame();
+        df.addColumn("timestamp", timestamps);
+        df.addColumn("value", values);
+        df.addColumn("anomaly_score", scores);
+        df.addColumn("label", labels);
+
+        saveData(dir, name, df);
+    }
+
     public static String defaultOutputDir() {
         return "alexp/bench_output";
     }
@@ -427,6 +460,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     @Override
     public String getOutputDir() {
         return StringUtils.isEmpty(super.getOutputDir()) ? defaultOutputDir() :super. getOutputDir();
+    }
+
+    public String getNabOutputDir() {
+        return nabOutputDir;
+    }
+
+    public void setNabOutputDir(String nabOutputDir) {
+        this.nabOutputDir = nabOutputDir;
     }
 
     private String chartOutputDir() {

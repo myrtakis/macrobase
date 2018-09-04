@@ -22,8 +22,10 @@ public class Benchmark {
     private final OptionSpec clearOutputOption;
     private final OptionSpec includeInliersOutputOption;
     private final OptionSpec streamOption;
+    private final OptionSpec<String> nabOption;
 
     private String outputDir;
+    private String nabOutputDir;
     private boolean includeInliers = false;
     private boolean streaming = false;
 
@@ -37,6 +39,8 @@ public class Benchmark {
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
         includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)");
+        nabOption = optionParser.accepts("nab", "Save output in Numenta Anomaly Benchmark format (detection phase) in the specified dir (by default NAB subdir in the output dir)")
+                .availableIf(aucOption).withOptionalArg().describedAs("dir_path");
     }
 
     private void runAuc(String confFilePath) throws Exception {
@@ -45,6 +49,7 @@ public class Benchmark {
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
+        pipeline.setNabOutputDir(nabOutputDir);
         pipeline.setOutputIncludesInliers(includeInliers);
 
         pipeline.run();
@@ -68,7 +73,8 @@ public class Benchmark {
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
         System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output");
+        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
+        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
     }
 
     private int run(String[] args) throws Exception {
@@ -109,6 +115,20 @@ public class Benchmark {
             if (!Files.exists(Paths.get(confFilePath))) {
                 System.out.println("Config file not found");
                 return 3;
+            }
+
+            if (options.has(nabOption)) {
+                nabOutputDir = nabOption.value(options);
+                if (nabOutputDir == null) {
+                    nabOutputDir = (StringUtils.isEmpty(outputDir) ? ClassifierEvaluationPipeline.defaultOutputDir() : outputDir) + "/NAB";
+                }
+                if (options.has(clearOutputOption) && Files.exists(Paths.get(nabOutputDir))) {
+                    try {
+                        FileUtils.cleanDirectory(new File(nabOutputDir));
+                    } catch (IOException ex) {
+                        System.out.println(ex.getMessage());
+                    }
+                }
             }
 
             runAuc(confFilePath);
