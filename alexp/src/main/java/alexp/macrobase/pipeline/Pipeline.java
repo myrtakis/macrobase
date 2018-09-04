@@ -50,12 +50,16 @@ public abstract class Pipeline {
         });
     }
 
+    protected void saveData(String dir, String baseFileName, DataFrame data) throws IOException {
+        DataFrameUtils.saveToCsv(Paths.get(dir, baseFileName + ".csv").toString(), data);
+    }
+
     protected void saveData(String baseFileName, DataFrame data) throws IOException {
         if (StringUtils.isEmpty(getOutputDir())) {
             return;
         }
 
-        DataFrameUtils.saveToCsv(Paths.get(getOutputDir(), baseFileName + ".csv").toString(), data);
+        saveData(getOutputDir(), baseFileName, data);
     }
 
     protected void saveOutliers(String baseFileName, DataFrame data, String outlierOutputColumn) throws IOException {

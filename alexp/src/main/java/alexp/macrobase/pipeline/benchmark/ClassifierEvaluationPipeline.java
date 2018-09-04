@@ -130,7 +130,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 new AucChart()
                         .setName(measure.name + ", " + inputURI.shortDisplayPath())
                         .createForAll(classifierCurves, classifierNames, measure)
-                        .saveToPng(Paths.get(chartOutputDir(), "all_" + measureFileName + fileNameSuffix + ".png").toString());
+                        .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "all_" + measureFileName + fileNameSuffix + ".png").toString());
             }
         }
     }
@@ -186,7 +186,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 DataFrame dataFrame = dataFrames.get(i);
                 int[] labels = labelsLists.get(i);
 
-                RunResult result = run(classifier, dataFrame, labels, classifierType, Integer.toString(num));
+                RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), Integer.toString(num));
                 results.add(result);
                 curves.add(result.curve);
                 points.addAll(result.points);
@@ -199,7 +199,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);
 
-            RunResult result = run(classifier, dataFrame, labels, classifierType, "");
+            RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), "");
             results.add(result);
             curves.add(result.curve);
             points = result.points;
@@ -209,7 +209,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             new AnomalyDataChart()
                     .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
                     .createAnomaliesChart(points)
-                    .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + ".png").toString());
+                    .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "data_" + classifierType + ".png").toString());
 
             if (curves.stream().anyMatch(c -> c.rankingSize() <= 3) && results.stream().anyMatch(it -> it.bestRank == 0 || it.bestRank >= it.curve.rankingSize() - 1)) {
                 double threshold = 0.5;
@@ -219,14 +219,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 new AnomalyDataChart()
                         .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
                         .createAnomaliesChart(points)
-                        .saveToPng(Paths.get(chartOutputDir(), "data_" + classifierType + "_middle_threshold.png").toString());
+                        .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "data_" + classifierType + "_middle_threshold.png").toString());
             }
         }
 
         return curves;
     }
 
-    private RunResult run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNameSuffix) throws Exception {
+    private RunResult run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNamePrefix, String fileNameSuffix) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         classifier.process(dataFrame);
@@ -234,7 +234,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
         System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
-        saveOutliers("outliers_" + classifierType + fileNameSuffix, classifier.getResults(), classifier.getOutputColumnName());
+        saveOutliers(fileNamePrefix + "outliers_" + classifierType + fileNameSuffix, classifier.getResults(), classifier.getOutputColumnName());
 
         double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
         Curve aucAnalysis = aucCurve(classifierResult, labels);
@@ -266,7 +266,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
                 .createForSingle(aucAnalysis,
                         AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy)
-                .saveToPng(Paths.get(chartOutputDir(), classifierType + fileNameSuffix + ".png").toString());
+                .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix + classifierType + fileNameSuffix + ".png").toString());
 
         double[] time = dataFrame.getDoubleColumnByName(timeColumn);
         double[] values = dataFrame.getDoubleColumnByName(metricColumns[0]);
@@ -431,5 +431,13 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     private String chartOutputDir() {
         return getOutputDir();
+    }
+
+    private String fileNamePrefix() {
+        String prefix = inputURI.baseName();
+        if (!prefix.isEmpty()) {
+            prefix += "___";
+        }
+        return prefix;
     }
 }
