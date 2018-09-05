@@ -7,7 +7,11 @@ import java.util.stream.Collectors;
 
 public class ConfigUtils {
     public static List<PipelineConfig> getObjectsList(PipelineConfig config, String key) {
-        return config.<List<Map<String, Object>>>get(key).stream()
+        List<Map<String, Object>> item = config.get(key);
+        if (item == null) {
+            return new ArrayList<>();
+        }
+        return item.stream()
                 .map(PipelineConfig::new)
                 .collect(Collectors.toList());
     }

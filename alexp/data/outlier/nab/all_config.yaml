@@ -8,8 +8,15 @@ nabLabelFile: "alexp/data/outlier/nab/labels/combined_windows.json"
 classifiers:
   - classifier: "mad"
     trainSize: 10000
+    normalizers:
+      - normalizer: "minmax"
   - classifier: "mcod"
     maxDistance: 10.0
     minNeighborCount: 20
     classifierWindowSize: 100000
     classifierSlide: 100000
+  - classifier: "lof-bkaluza"
+    knn: 15
+    trainSize: 200
+    normalizers:
+      - normalizer: "minmax"

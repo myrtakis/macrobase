@@ -2,6 +2,8 @@ package alexp.macrobase.pipeline;
 
 import alexp.macrobase.explanation.Itemset;
 import alexp.macrobase.ingest.*;
+import alexp.macrobase.normalization.MinMaxNormalizer;
+import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
@@ -190,6 +192,19 @@ public class Pipelines {
             }
             default: {
                 throw new MacroBaseException("Bad Summarizer Type " + summarizerType);
+            }
+        }
+    }
+
+    public static Normalizer getNormalizer(PipelineConfig conf) throws MacroBaseException {
+        String type = conf.get("normalizer");
+
+        switch (type.toLowerCase()) {
+            case "minmax": {
+                return new MinMaxNormalizer();
+            }
+            default: {
+                throw new RuntimeException("Bad Normalizer Type " + type);
             }
         }
     }

@@ -5,6 +5,7 @@ import alexp.macrobase.evaluation.chart.*;
 import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
+import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.utils.CollectionUtils;
@@ -237,7 +238,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         }
 
         if (!StringUtils.isEmpty(getNabOutputDir())) {
-            saveNabOutput(Paths.get(getNabOutputDir(), classifierType, inputDirRelativePath).toString(), classifierType + "_" + inputURI.baseName(), points);
+            List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
+            Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
+
+            saveNabOutput(Paths.get(getNabOutputDir(), classifierType, inputDirRelativePath).toString(), classifierType + "_" + inputURI.baseName(),
+                    points, normalizer);
         }
 
         return curves;
@@ -438,7 +443,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return colTypes;
     }
 
-    private  void saveNabOutput(String dir, String name, List<ResultPoint> points) throws IOException {
+    private  void saveNabOutput(String dir, String name, List<ResultPoint> points, Normalizer normalizer) throws Exception {
         String[] timestamps = points.stream().map(ResultPoint::getTimeStr).toArray(String[]::new);
         double[] values = points.stream().mapToDouble(ResultPoint::getValue).toArray();
         double[] scores = points.stream().mapToDouble(ResultPoint::getScore).toArray();
@@ -447,8 +452,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         DataFrame df = new DataFrame();
         df.addColumn("timestamp", timestamps);
         df.addColumn("value", values);
-        df.addColumn("anomaly_score", scores);
+        df.addColumn(normalizer == null ? "anomaly_score" : "raw_score", scores);
         df.addColumn("label", labels);
+
+        if (normalizer != null) {
+            normalizer.setColumnName("raw_score").setOutputColumnName("anomaly_score");
+            normalizer.process(df);
+            df = normalizer.getResults();
+        }
 
         saveData(dir, name, df);
     }
