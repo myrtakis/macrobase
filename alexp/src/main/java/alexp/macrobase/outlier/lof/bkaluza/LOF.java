@@ -5,10 +5,7 @@ import alexp.macrobase.utils.DataFrameUtils;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 
 import java.lang.Math;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 
@@ -254,7 +251,7 @@ public class LOF extends MultiMetricClassifier {
 
     private int[] sortedIndices(double[] array) {
         return IntStream.range(0, array.length)
-                .boxed().sorted((i, j) -> (int) (1000 * (array[i] - array[j])))
+                .boxed().sorted(Comparator.comparingDouble(i -> array[i]))
                 .mapToInt(ele -> ele).toArray();
     }
 
