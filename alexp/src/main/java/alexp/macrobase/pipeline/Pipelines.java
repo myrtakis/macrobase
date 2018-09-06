@@ -135,7 +135,8 @@ public class Pipelines {
             }
             case "lof-bkaluza": {
                 LOF classifier = new LOF(metricColumns, LOF.Distance.EUCLIDIAN);
-                classifier.setTrainSize(conf.get("trainSize", 10000));
+                classifier.setTrainSize(conf.get("trainSize", 100));
+                classifier.setRetrainOnEachInput(conf.get("retrainOnEachInput", true));
                 classifier.setkNN(conf.get("knn", 5));
                 return classifier;
             }

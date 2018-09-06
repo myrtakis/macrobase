@@ -54,7 +54,9 @@ public class LOF extends MultiMetricClassifier {
 
     private int kNN = 5;
 
-    private int trainSize = 10000;
+    private int trainSize = 100;
+
+    private boolean retrainOnEachInput = true;
 
     public LOF(String[] columns, Distance distanceMeasure) {
         super(columns);
@@ -65,7 +67,9 @@ public class LOF extends MultiMetricClassifier {
     public void process(DataFrame input) throws Exception {
         List<double[]> inputRows = DataFrameUtils.toRowArray(input, columns);
 
-        train(inputRows.subList(0, Math.min(trainSize, input.getNumRows())));
+        if (distTable == null || retrainOnEachInput) {
+            train(inputRows.subList(0, Math.min(trainSize, input.getNumRows())));
+        }
 
         output = input.copy();
 
@@ -151,6 +155,10 @@ public class LOF extends MultiMetricClassifier {
 
     public void setTrainSize(int trainSize) {
         this.trainSize = trainSize;
+    }
+
+    public void setRetrainOnEachInput(boolean retrainOnEachInput) {
+        this.retrainOnEachInput = retrainOnEachInput;
     }
 
     private double getLofIdx(int index, int kNN) {
