@@ -6,6 +6,7 @@ import alexp.macrobase.normalization.MinMaxNormalizer;
 import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.outlier.MAD;
 import alexp.macrobase.outlier.MinCovDet;
+import alexp.macrobase.outlier.RandomClassifier;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
@@ -138,6 +139,11 @@ public class Pipelines {
                 classifier.setTrainSize(conf.get("trainSize", 100));
                 classifier.setRetrainOnEachInput(conf.get("retrainOnEachInput", true));
                 classifier.setkNN(conf.get("knn", 5));
+                return classifier;
+            }
+            case "random": {
+                RandomClassifier classifier = new RandomClassifier(metricColumns);
+                classifier.setBinary(conf.get("binary", true));
                 return classifier;
             }
             default: {
