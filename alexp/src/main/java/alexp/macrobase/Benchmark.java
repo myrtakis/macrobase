@@ -1,6 +1,7 @@
 package alexp.macrobase;
 
 import alexp.macrobase.pipeline.benchmark.ClassifierEvaluationPipeline;
+import alexp.macrobase.utils.ConfigUtils;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -44,7 +45,7 @@ public class Benchmark {
     }
 
     private void runAuc(String confFilePath) throws Exception {
-        PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
+        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
@@ -56,7 +57,7 @@ public class Benchmark {
     }
 
     private void runGridSearch(String confFilePath) throws Exception {
-        PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
+        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);

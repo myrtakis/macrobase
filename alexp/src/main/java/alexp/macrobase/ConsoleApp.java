@@ -2,6 +2,7 @@ package alexp.macrobase;
 
 import alexp.macrobase.pipeline.BatchPipeline;
 import alexp.macrobase.pipeline.StreamingPipeline;
+import alexp.macrobase.utils.ConfigUtils;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import joptsimple.OptionParser;
@@ -40,7 +41,7 @@ public class ConsoleApp {
     }
 
     private void runBatchPipeline(String confFilePath) throws Exception {
-        PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
+        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
         BatchPipeline pipeline = new BatchPipeline(conf);
         pipeline.setOutputDir(outputDir);
@@ -52,7 +53,7 @@ public class ConsoleApp {
     }
 
     private void runStreamingPipeline(String confFilePath) throws Exception {
-        PipelineConfig conf = PipelineConfig.fromYamlFile(confFilePath);
+        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
         StreamingPipeline pipeline = new StreamingPipeline(conf);
         pipeline.setOutputDir(outputDir);

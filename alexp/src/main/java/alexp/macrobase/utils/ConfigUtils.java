@@ -31,4 +31,8 @@ public class ConfigUtils {
     public static void addToAll(List<Map<String, Object>> configs, String key, Object val) {
         configs.forEach(conf -> conf.put(key, val));
     }
+
+    public static PipelineConfig loadFromFile(String confFilePath) throws Exception {
+        return PipelineConfig.fromYamlFile(confFilePath);
+    }
 }
