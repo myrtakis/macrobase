@@ -32,6 +32,24 @@ public class ConfigUtils {
         configs.forEach(conf -> conf.put(key, val));
     }
 
+    public static PipelineConfig merge(Map<String, Object> srcConf, Map<String, Object> conf) {
+        Map<String, Object> currConf = new HashMap<>(srcConf);
+        currConf.putAll(conf);
+        return new PipelineConfig(currConf);
+    }
+
+    public static PipelineConfig merge(PipelineConfig srcConf, PipelineConfig conf) {
+        return merge(srcConf.getValues(), conf.getValues());
+    }
+
+    public static PipelineConfig merge(Map<String, Object> srcConf, PipelineConfig conf) {
+        return merge(srcConf, conf.getValues());
+    }
+
+    public static PipelineConfig merge(PipelineConfig srcConf, Map<String, Object> conf) {
+        return merge(srcConf.getValues(), conf);
+    }
+
     public static PipelineConfig loadFromFile(String confFilePath) throws Exception {
         return PipelineConfig.fromYamlFile(confFilePath);
     }

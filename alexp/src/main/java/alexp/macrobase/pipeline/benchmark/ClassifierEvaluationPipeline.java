@@ -171,7 +171,13 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         loadDara();
 
         for (PipelineConfig classifierConf : classifierConfigs) {
-            runGridSearch(classifierConf);
+            System.out.println();
+            System.out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
+
+            SortedMap<Double, Map<String, Object>> results  = runGridSearch(classifierConf);
+
+            System.out.println(searchMeasure.toUpperCase());
+            results.forEach((score, params) -> System.out.println(String.format("%.4f: %s", score, params)));
         }
     }
 
@@ -301,12 +307,9 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return new RunResult(aucAnalysis, points, rank);
     }
 
-    private void runGridSearch(PipelineConfig classifierConf) throws Exception {
+    private SortedMap<Double, Map<String, Object>> runGridSearch(PipelineConfig classifierConf) throws Exception {
         DataFrame dataFrame = dataFrames.get(0);
         int[] labels = labelsLists.get(0);
-
-        System.out.println();
-        System.out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
 
         Map<String, Object[]> searchParams = classifierConf.<ArrayList<Map<String, Object>>>get("searchParams").stream()
                 .collect(Collectors.toMap(o -> o.keySet().iterator().next(), o -> ((ArrayList) o.values().iterator().next()).toArray()));
@@ -315,10 +318,9 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         searchParams.forEach(gs::addParam);
 
         gs.run(params -> {
-            Map<String, Object> currConf = new HashMap<>(classifierConf.getValues());
-            currConf.putAll(params);
+            PipelineConfig conf = ConfigUtils.merge(classifierConf, params);
 
-            Classifier classifier = Pipelines.getClassifier(new PipelineConfig(currConf), metricColumns);
+            Classifier classifier = Pipelines.getClassifier(conf, metricColumns);
 
             classifier.process(dataFrame);
 
@@ -342,8 +344,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             }
         });
 
-        System.out.println(searchMeasure.toUpperCase());
-        gs.getResults().forEach((score, params) -> System.out.println(String.format("%.4f: %s", score, params)));
+        return gs.getResults();
     }
 
     private int[] getLabels(DataFrame dataFrame) {
