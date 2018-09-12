@@ -5,8 +5,10 @@ import alexp.macrobase.utils.DataFrameUtils;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -18,6 +20,8 @@ public abstract class Pipeline {
     private String outputDir;
 
     private boolean outputIncludesInliers = false;
+
+    private StringBuilder infoText = new StringBuilder();
 
     public String getOutputDir() {
         return outputDir;
@@ -96,5 +100,27 @@ public abstract class Pipeline {
 
     private boolean isOutlier(double value) {
         return value > 0.0;
+    }
+
+    protected void printInfo() {
+        printInfo("");
+    }
+
+    protected void printInfo(Object obj) {
+        printInfo(obj.toString());
+    }
+
+    // TODO: multiple buffers (to clear only some of the info and leave "global" etc.)
+    protected void printInfo(String line) {
+        System.out.println(line);
+
+        infoText.append(line).append(System.lineSeparator());
+    }
+
+    protected void saveInfo(String basefileName) throws IOException {
+        String filePath = Paths.get(getOutputDir(), basefileName + ".txt").toString();
+        FileUtils.write(new File(filePath), infoText.toString(), "utf-8");
+
+        infoText = new StringBuilder();
     }
 }

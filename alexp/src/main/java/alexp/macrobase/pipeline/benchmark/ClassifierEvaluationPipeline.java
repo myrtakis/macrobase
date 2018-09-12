@@ -8,11 +8,8 @@ import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
-import alexp.macrobase.utils.CollectionUtils;
-import alexp.macrobase.utils.ConfigUtils;
-import alexp.macrobase.utils.TimeUtils;
+import alexp.macrobase.utils.*;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -187,8 +184,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         String classifierType = classifierConf.get("classifier");
 
         System.out.println();
-        System.out.println(classifier.getClass().getName());
-        System.out.println(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
+        printInfo(classifier.getClass().getName());
+        printInfo(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
 
         List<Curve> curves = new ArrayList<>();
         List<ResultPoint> points = new ArrayList<>();
@@ -260,7 +257,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         classifier.process(dataFrame);
 
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
-        System.out.println(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
+        printInfo(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
         saveOutliers(fileNamePrefix + "outliers_" + classifierType + fileNameSuffix, classifier.getResults(), classifier.getOutputColumnName());
 
@@ -270,8 +267,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         double rocArea = aucAnalysis.rocArea();
         double prArea = aucAnalysis.prArea();
 
-        System.out.println(String.format("ROC Area: %.4f", rocArea));
-        System.out.println(String.format("PR Area: %.4f", prArea));
+        printInfo(String.format("ROC Area: %.4f", rocArea));
+        printInfo(String.format("PR Area: %.4f", prArea));
 
         FScore fScore = new FScore();
         Pair<Integer, ConfusionMatrix> confusionMatrixIt = IntStream.range(0, aucAnalysis.rankingSize()).
@@ -285,10 +282,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         ConfusionMatrix confusionMatrix = confusionMatrixIt.getValue();
         double threshold = aucAnalysis.threshold(rank, classifierResult);
 
-        System.out.println(String.format("Stats for threshold (score > %.2f, rank %d) with the highest F1-score:", threshold, rank));
-        System.out.println(confusionMatrix);
-        System.out.println(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
-        System.out.println(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
+        printInfo(String.format("Stats for threshold (score > %.2f, rank %d) with the highest F1-score:", threshold, rank));
+        printInfo(confusionMatrix);
+        printInfo(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
+        printInfo(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
+
+        saveInfo(fileNamePrefix + classifierType + "_info" + fileNameSuffix);
 
         new AucChart()
                 .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
