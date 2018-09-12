@@ -57,6 +57,14 @@ public class ConfusionMatrix {
         return truePositive() + falsePositive() + falseNegative() + trueNegative();
     }
 
+    public int positiveCount() {
+        return tp + fp;
+    }
+
+    public int negativeCount() {
+        return tn + fn;
+    }
+
     public double precision() {
         return truePositive() / ((double) truePositive() + falsePositive());
     }

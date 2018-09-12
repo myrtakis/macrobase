@@ -331,7 +331,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                     Curve curve = aucCurve(classifierResult, labels);
                     FScore fScore = new FScore();
                     return IntStream.range(0, curve.rocPoints().length)
-                            .mapToDouble(i -> fScore.evaluate(curve.confusionMatrix(i)))
+                            .mapToDouble(i -> {
+                                ConfusionMatrix matr = curve.confusionMatrix(i);
+                                return matr.positiveCount() == 0 || matr.negativeCount() == 0 ? -1 : fScore.evaluate(matr);
+                            })
                             .filter(d -> !Double.isNaN(d))
                             .max().getAsDouble();
                 }
