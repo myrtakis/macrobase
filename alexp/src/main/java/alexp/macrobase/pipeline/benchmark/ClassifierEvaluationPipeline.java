@@ -10,6 +10,7 @@ import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.utils.*;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -65,7 +66,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     private List<PipelineConfig> classifierConfigs;
 
-    private final String searchMeasure;
+    private Map<String, PipelineConfig> gridSearchClassifierConfigs;
+    private String searchMeasure;
 
     private boolean isStreaming = false;
 
@@ -95,6 +97,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
         searchMeasure = conf.get("searchMeasure", "");
+
+        PipelineConfig gsConf = ConfigUtils.getObj(conf, "gridsearch");
+        if (gsConf != null) {
+            List<PipelineConfig> configs = ConfigUtils.getObjectsList(gsConf, "classifiers");
+            ConfigUtils.addToAllConfigs(configs, "timeColumn", timeColumn);
+
+            gridSearchClassifierConfigs = configs.stream().collect(Collectors.toMap(it -> it.get("classifier"), it -> it));
+
+            searchMeasure = gsConf.get("searchMeasure", "");
+        }
     }
 
     public ClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
@@ -167,7 +179,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         loadDara();
 
-        for (PipelineConfig classifierConf : classifierConfigs) {
+        for (PipelineConfig classifierConf : gridSearchClassifierConfigs != null ? gridSearchClassifierConfigs.values(): classifierConfigs) {
             System.out.println();
             System.out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
 
@@ -179,9 +191,18 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     private List<Curve> run(PipelineConfig classifierConf) throws Exception {
-        Classifier classifier = Pipelines.getClassifier(classifierConf, metricColumns);
-
         String classifierType = classifierConf.get("classifier");
+
+        if (gridSearchClassifierConfigs != null && gridSearchClassifierConfigs.containsKey(classifierType)) {
+            SortedMap<Double, Map<String, Object>> gsResults = runGridSearch(gridSearchClassifierConfigs.get(classifierType));
+
+            System.out.println();
+            gsResults.forEach((score, params) -> printInfo(String.format("%.4f: %s", score, params)));
+
+            classifierConf = ConfigUtils.merge(classifierConf, Iterables.getLast(gsResults.values()));
+        }
+
+        Classifier classifier = Pipelines.getClassifier(classifierConf, metricColumns);
 
         System.out.println();
         printInfo(classifier.getClass().getName());

@@ -1,5 +1,6 @@
 package alexp.macrobase.utils;
 
+import edu.stanford.futuredata.macrobase.pipeline.Pipeline;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 
 import java.util.*;
@@ -22,6 +23,11 @@ public class ConfigUtils {
                 .filter(Objects::nonNull)
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
+    }
+
+    public static PipelineConfig getObj(PipelineConfig conf, String key) {
+        Map<String, Object> values = conf.get(key);
+        return values == null ? null : new PipelineConfig(values);
     }
 
     public static void addToAllConfigs(List<PipelineConfig> configs, String key, Object val) {
