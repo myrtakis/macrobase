@@ -20,6 +20,7 @@ import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
+import one.util.streamex.MoreCollectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -358,6 +359,24 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                                 return matr.positiveCount() == 0 || matr.negativeCount() == 0 ? -1 : fScore.evaluate(matr);
                             })
                             .filter(d -> !Double.isNaN(d))
+                            .max().getAsDouble();
+                }
+                case "nab": {
+                    Curve curve = aucCurve(classifierResult, labels);
+                    NabScore scorer = new NabScore();
+                    return IntStream.range(0, curve.rankingSize())
+                            .mapToObj(i -> new Pair<>(i, curve.confusionMatrix(i)))
+                            .mapToDouble(it -> {
+                                if (it.getValue().positiveCount() == 0 && curve.rankingSize() == 3) {
+                                    return -99999999;
+                                }
+                                double threshold = curve.threshold(it.getKey(), classifierResult);
+                                boolean[] results = Arrays.stream(classifierResult)
+                                        .mapToObj(value -> threshold < value)
+                                        .collect(MoreCollectors.toBooleanArray(obj -> (boolean)obj));
+
+                                return scorer.evaluate(results, labels);
+                            })
                             .max().getAsDouble();
                 }
                 default: throw new RuntimeException("Unknown search measure " + searchMeasure);
