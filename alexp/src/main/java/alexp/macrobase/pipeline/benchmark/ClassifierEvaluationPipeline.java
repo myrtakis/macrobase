@@ -338,6 +338,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         GridSearch gs = new GridSearch();
         searchParams.forEach(gs::addParam);
 
+        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
+        Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
+
+        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(classifierConf,"threshold");
+
         gs.run(params -> {
             PipelineConfig conf = ConfigUtils.merge(classifierConf, params);
 
@@ -345,7 +350,13 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
             classifier.process(dataFrame);
 
-            double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
+            DataFrame classifierResultDf = classifier.getResults();
+            if (normalizer != null) {
+                normalizer.setColumnName(classifier.getOutputColumnName()).setOutputColumnName(classifier.getOutputColumnName());
+                normalizer.process(classifierResultDf);
+                classifierResultDf = normalizer.getResults();
+            }
+            double[] classifierResult = classifierResultDf.getDoubleColumnByName(classifier.getOutputColumnName());
 
             switch (searchMeasure) {
                 case "roc": return aucCurve(classifierResult, labels).rocArea();
@@ -362,8 +373,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                             .max().getAsDouble();
                 }
                 case "nab": {
-                    Curve curve = aucCurve(classifierResult, labels);
                     NabScore scorer = new NabScore();
+                    if (fixedThreshold.isPresent()) {
+                        boolean[] results = Arrays.stream(classifierResult)
+                                .mapToObj(value -> fixedThreshold.getAsDouble() < value)
+                                .collect(MoreCollectors.toBooleanArray(obj -> (boolean)obj));
+
+                        return scorer.evaluate(results, labels);
+                    }
+
+                    Curve curve = aucCurve(classifierResult, labels);
                     return IntStream.range(0, curve.rankingSize())
                             .mapToObj(i -> new Pair<>(i, curve.confusionMatrix(i)))
                             .mapToDouble(it -> {

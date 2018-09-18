@@ -30,6 +30,11 @@ public class ConfigUtils {
         return values == null ? null : new PipelineConfig(values);
     }
 
+    public static OptionalDouble getOptionalDouble(PipelineConfig conf, String key) {
+        Double value = conf.get(key);
+        return value == null ? OptionalDouble.empty() : OptionalDouble.of(value);
+    }
+
     public static void addToAllConfigs(List<PipelineConfig> configs, String key, Object val) {
         addToAll(configs.stream().map(PipelineConfig::getValues).collect(Collectors.toList()), key, val);
     }
