@@ -11,6 +11,7 @@ classifiers:
     classifierSlide: 100000
   - classifier: "lof-bkaluza"
     trainSize: 200
+    threshold: 0.85
     normalizers:
       - normalizer: "minmax"
 

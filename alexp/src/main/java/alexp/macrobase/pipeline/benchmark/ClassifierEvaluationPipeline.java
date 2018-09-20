@@ -213,6 +213,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         List<ResultPoint> points = new ArrayList<>();
         List<RunResult> results = new ArrayList<>();
 
+        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(classifierConf,"threshold");
+
+        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
+        Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
+
         if (isStreaming) {
             Stopwatch sw = Stopwatch.createStarted();
 
@@ -225,7 +230,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 DataFrame dataFrame = dataFrames.get(i);
                 int[] labels = labelsLists.get(i);
 
-                RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), Integer.toString(num));
+                RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), Integer.toString(num), normalizer, fixedThreshold);
                 results.add(result);
                 curves.add(result.curve);
                 points.addAll(result.points);
@@ -238,7 +243,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);
 
-            RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), "");
+            RunResult result = run(classifier, dataFrame, labels, classifierType, fileNamePrefix(), "", normalizer, fixedThreshold);
             results.add(result);
             curves.add(result.curve);
             points = result.points;
@@ -260,12 +265,19 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         .createAnomaliesChart(points)
                         .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "data_" + classifierType + "_middle_threshold.png").toString());
             }
+
+            if (fixedThreshold.isPresent()) {
+                for (ResultPoint point : points) {
+                    point.setThreshold(fixedThreshold.getAsDouble());
+                }
+                new AnomalyDataChart()
+                        .setName(classifierType.toUpperCase() + ", " + inputURI.shortDisplayPath())
+                        .createAnomaliesChart(points)
+                        .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "data_" + classifierType + "_fixed_threshold.png").toString());
+            }
         }
 
         if (!StringUtils.isEmpty(getNabOutputDir())) {
-            List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
-            Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
-
             saveNabOutput(Paths.get(getNabOutputDir(), classifierType, inputDirRelativePath).toString(), classifierType + "_" + inputURI.baseName(),
                     points, normalizer);
         }
@@ -273,7 +285,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return curves;
     }
 
-    private RunResult run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNamePrefix, String fileNameSuffix) throws Exception {
+    private RunResult run(Classifier classifier, DataFrame dataFrame, int[] labels, String classifierType, String fileNamePrefix, String fileNameSuffix, Normalizer normalizer, OptionalDouble fixedThreshold) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         classifier.process(dataFrame);
@@ -281,9 +293,20 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
         printInfo(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
 
-        saveOutliers(fileNamePrefix + "outliers_" + classifierType + fileNameSuffix, classifier.getResults(), classifier.getOutputColumnName());
+        DataFrame resultsDf = classifier.getResults();
 
-        double[] classifierResult = classifier.getResults().getDoubleColumnByName(classifier.getOutputColumnName());
+        double[] classifierResult = resultsDf.getDoubleColumnByName(classifier.getOutputColumnName());
+
+        double[] normalizedClassifierResult = null;
+        if (normalizer != null) {
+            normalizer.setColumnName(classifier.getOutputColumnName()).setOutputColumnName("__norm_" + classifier.getOutputColumnName());
+            normalizer.process(classifier.getResults());
+            resultsDf = normalizer.getResults();
+            normalizedClassifierResult = resultsDf.getDoubleColumnByName(normalizer.getOutputColumnName());
+        }
+
+        saveOutliers(fileNamePrefix + "outliers_" + classifierType + fileNameSuffix, resultsDf, classifier.getOutputColumnName());
+
         Curve aucAnalysis = aucCurve(classifierResult, labels);
 
         double rocArea = aucAnalysis.rocArea();
@@ -304,11 +327,23 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         ConfusionMatrix confusionMatrix = confusionMatrixIt.getValue();
         double threshold = aucAnalysis.threshold(rank, classifierResult);
 
-        printInfo(String.format("Stats for threshold (score > %.2f, rank %d) with the highest F1-score:", threshold, rank));
+        printInfo(String.format("Stats for threshold (%s > %.2f, rank %d) with the highest F1-score:", normalizer == null ? "score" : "raw score", threshold, rank));
         printInfo(confusionMatrix);
         printInfo(String.format("Accuracy: %.4f", new Accuracy().evaluate(confusionMatrix)));
         printInfo(String.format("F1-score: %.4f", fScore.evaluate(confusionMatrix)));
 
+        double[] time = dataFrame.getDoubleColumnByName(timeColumn);
+        double[] values = dataFrame.getDoubleColumnByName(metricColumns[0]);
+        String[] timeStrings = dataFrame.getSchema().getColumnTypeByName(originalTimeColumn) == Schema.ColType.STRING ? dataFrame.getStringColumnByName(originalTimeColumn) : null;
+        double[] scores = normalizedClassifierResult == null ? classifierResult : normalizedClassifierResult;
+
+        if (fixedThreshold.isPresent()) {
+            ConfusionMatrix fixedConfusionMatrix = new ConfusionMatrix(scores, labels, fixedThreshold.getAsDouble());
+            printInfo(String.format("Stats for the fixed threshold (%s > %.2f):", normalizer == null ? "score" : "normalized score", fixedThreshold.getAsDouble()));
+            printInfo(fixedConfusionMatrix);
+            printInfo(String.format("Accuracy: %.4f", new Accuracy().evaluate(fixedConfusionMatrix)));
+            printInfo(String.format("F1-score: %.4f", fScore.evaluate(fixedConfusionMatrix)));
+        }
         saveInfo(fileNamePrefix + classifierType + "_info" + fileNameSuffix);
 
         new AucChart()
@@ -317,12 +352,9 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy)
                 .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix + classifierType + fileNameSuffix + ".png").toString());
 
-        double[] time = dataFrame.getDoubleColumnByName(timeColumn);
-        double[] values = dataFrame.getDoubleColumnByName(metricColumns[0]);
-        String[] timeStrings = dataFrame.getSchema().getColumnTypeByName(originalTimeColumn) == Schema.ColType.STRING ? dataFrame.getStringColumnByName(originalTimeColumn) : null;
         List<ResultPoint> points = Streams.mapWithIndex(Arrays.stream(time), (t, ind) -> {
             int i = (int) ind;
-            return new ResultPoint(t, timeStrings == null ? null : timeStrings[i], values[i], classifierResult[i], threshold, labels[i] == 1);
+            return new ResultPoint(t, timeStrings == null ? null : timeStrings[i], values[i], scores[i], threshold, labels[i] == 1);
         }).collect(Collectors.toList());
 
         return new RunResult(aucAnalysis, points, rank);
