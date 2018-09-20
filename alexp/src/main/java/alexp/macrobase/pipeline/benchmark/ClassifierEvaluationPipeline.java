@@ -6,6 +6,7 @@ import alexp.macrobase.evaluation.roc.Curve;
 import alexp.macrobase.ingest.StreamingDataFrameLoader;
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.normalization.Normalizer;
+import alexp.macrobase.outlier.ParametersAutoTuner;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.utils.*;
@@ -204,6 +205,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         }
 
         Classifier classifier = Pipelines.getClassifier(classifierConf, metricColumns);
+
+        if (classifierConf.get("autoTune", false)) {
+            ParametersAutoTuner tuner = (ParametersAutoTuner) classifier;
+            if (tuner == null) {
+                throw new Exception("Not ParametersAutoTuner");
+            }
+
+            classifierConf = ConfigUtils.merge(classifierConf,
+                    tuner.tuneParameters(dataFrames.get(0).limit(classifierConf.get("tuneSetSize", 500))));
+        }
 
         System.out.println();
         printInfo(classifier.getClass().getName());

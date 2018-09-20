@@ -1,14 +1,15 @@
 package alexp.macrobase.outlier.mcod;
 
 import alexp.macrobase.outlier.MultiMetricClassifier;
+import alexp.macrobase.outlier.ParametersAutoTuner;
+import alexp.macrobase.outlier.lof.chen.DistanceMeasureService;
+import alexp.macrobase.utils.DataFrameUtils;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class McodClassifier extends MultiMetricClassifier {
+public class McodClassifier extends MultiMetricClassifier implements ParametersAutoTuner {
     private double maxDistance = 1; // R in paper
     private int minNeighborCount = 30; // k in paper
     private int windowSize = 1000; // W in paper
@@ -69,6 +70,66 @@ public class McodClassifier extends MultiMetricClassifier {
     @Override
     public DataFrame getResults() {
         return output;
+    }
+
+    @Override
+    public Map<String, Object> tuneParameters(DataFrame trainSet) {
+        List<double[]> items = DataFrameUtils.getDoubleRows(trainSet, columns);
+
+        double[] minDistances = new double[items.size()];
+
+        for (int i = 0; i < items.size(); i++) {
+            double[] item = items.get(i);
+            double min = Double.MAX_VALUE / items.size();
+            for (int j = 0; j < items.size(); j++) {
+                if (i == j) {
+                    continue;
+                }
+                double[] otherItem = items.get(j);
+
+                double dist = DistanceMeasureService.euclideanDistance(item, otherItem);
+                if (dist <= 0.00000001) {
+                    continue;
+                }
+                if (dist < min) {
+                    min = dist;
+                }
+            }
+            minDistances[i] = min;
+        }
+
+        double r = Arrays.stream(minDistances).max().getAsDouble() * 4;
+
+        int[] neighborsCounts = new int[items.size()];
+        Arrays.fill(neighborsCounts, 0);
+
+        for (int i = 0; i < items.size(); i++) {
+            double[] item = items.get(i);
+            for (int j = 0; j < items.size(); j++) {
+                if (i == j) {
+                    continue;
+                }
+                double[] otherItem = items.get(j);
+                if (item == otherItem) {
+                    continue;
+                }
+
+                double dist = DistanceMeasureService.euclideanDistance(item, otherItem);
+                if (dist < r) {
+                    neighborsCounts[i]++;
+                }
+            }
+        }
+
+        double k = Arrays.stream(neighborsCounts).min().getAsInt();
+
+        setMaxDistance(r);
+        setMinNeighborCount((int) Math.round(k));
+
+        Map<String, Object> newConf = new HashMap<>();
+        newConf.put("minNeighborCount", minNeighborCount);
+        newConf.put("maxDistance", maxDistance);
+        return newConf;
     }
 
     public double getMaxDistance() {

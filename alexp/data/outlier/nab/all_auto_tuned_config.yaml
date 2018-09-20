@@ -1,0 +1,14 @@
+inputURI: "csv://alexp/data/outlier/nab/data/"
+timeColumn: "timestamp"
+timeFormat: "yyyy-MM-dd HH:mm:ss"
+metricColumns:
+  - "value"
+nabLabelFile: "alexp/data/outlier/nab/labels/combined_windows.json"
+
+classifiers:
+  - classifier: "mcod"
+    classifierWindowSize: 100000
+    classifierSlide: 100000
+    autoTune: true
+    tuneSetSize: 600
+    threshold: 0.5

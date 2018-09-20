@@ -75,4 +75,21 @@ public class DataFrameUtils {
 
         return filterByAll(data.filter(column, (Predicate<Object>) val::equals), rest);
     }
+
+    public static List<double[]> getDoubleRows(DataFrame data, String... columns) {
+        List<double[]> rows = new ArrayList<>();
+        List<double[]> columnsValues = new ArrayList<>();
+        for (String column : columns) {
+            columnsValues.add(data.getDoubleColumnByName(column));
+        }
+
+        for (int i = 0; i < columnsValues.get(0).length; i++) {
+            double[] row = new double[columnsValues.size()];
+            for (int j = 0; j < columnsValues.size(); j++) {
+                row[j] = columnsValues.get(j)[i];
+            }
+            rows.add(row);
+        }
+        return rows;
+    }
 }
