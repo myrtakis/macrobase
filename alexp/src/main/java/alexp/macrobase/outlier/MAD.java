@@ -1,5 +1,6 @@
 package alexp.macrobase.outlier;
 
+import alexp.macrobase.utils.MathUtils;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import java.util.Arrays;
@@ -21,11 +22,7 @@ public class MAD extends Classifier {
 
         Arrays.sort(metricColumn);
 
-        if (metricColumn.length % 2 == 0) {
-            median = (metricColumn[metricColumn.length / 2 - 1] + metricColumn[metricColumn.length / 2]) / 2;
-        } else {
-            median = metricColumn[(int) Math.ceil(metricColumn.length / 2)];
-        }
+        median = MathUtils.middle(metricColumn);
 
         double[] residuals = new double[metricColumn.length];
         for (int i = 0; i < metricColumn.length; i++) {
@@ -34,12 +31,7 @@ public class MAD extends Classifier {
 
         Arrays.sort(residuals);
 
-        if (metricColumn.length % 2 == 0) {
-            MAD = (residuals[metricColumn.length / 2 - 1] +
-                   residuals[metricColumn.length / 2]) / 2;
-        } else {
-            MAD = residuals[(int) Math.ceil(metricColumn.length / 2)];
-        }
+        MAD = MathUtils.middle(residuals);
 
         if (MAD == 0) {
             double trimmedMeanFallback = 0.05;
