@@ -29,8 +29,3 @@ classifiers:
   - classifier: "lof-bkaluza"
     knn: 5
     trainSize: 100
-  - classifier: "lof-chen"
-    minPtsLB: 3
-    minPtsUB: 10
-    trainSize: 100
-    parallel: false
