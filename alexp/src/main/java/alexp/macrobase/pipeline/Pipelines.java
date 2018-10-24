@@ -221,7 +221,7 @@ public class Pipelines {
     }
 
     public static void generateTimeColumn(DataFrame dataFrame, String column, long start) {
-        double[] time = LongStream.rangeClosed(start, dataFrame.getNumRows() + start).mapToDouble(n -> (double) n).toArray();
+        double[] time = LongStream.rangeClosed(start, dataFrame.getNumRows() + start - 1).mapToDouble(n -> (double) n).toArray();
         dataFrame.addColumn(column, time);
     }
 
