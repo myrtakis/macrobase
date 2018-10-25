@@ -30,6 +30,11 @@ public class ConfigUtils {
         return values == null ? null : new PipelineConfig(values);
     }
 
+    public static PipelineConfig getObjOrEmpty(PipelineConfig conf, String key) {
+        Map<String, Object> values = conf.get(key);
+        return new PipelineConfig(values == null ? new HashMap<>() : values);
+    }
+
     public static OptionalDouble getOptionalDouble(PipelineConfig conf, String key) {
         Double value = conf.get(key);
         return value == null ? OptionalDouble.empty() : OptionalDouble.of(value);

@@ -224,7 +224,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         List<ResultPoint> points = new ArrayList<>();
         List<RunResult> results = new ArrayList<>();
 
-        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(classifierConf,"threshold");
+        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
 
         List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
@@ -384,7 +385,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
 
-        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(classifierConf,"threshold");
+        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
 
         gs.run(params -> {
             PipelineConfig conf = ConfigUtils.merge(classifierConf, params);

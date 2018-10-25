@@ -6,6 +6,12 @@ metricColumns:
 nabLabelFile: "alexp/data/outlier/nab/labels/combined_windows.json"
 
 classifiers:
+  - classifier: "mad"
+    trainSize: 600
+    normalizers:
+      - normalizer: "minmax"
+    benchmark:
+      threshold: 0.5
   - classifier: "mcod"
     classifierWindowSize: 100000
     classifierSlide: 100000
