@@ -8,10 +8,10 @@ nabLabelFile: "alexp/data/outlier/nab/labels/combined_windows.json"
 classifiers:
   - classifier: "mad"
     trainSize: 10000
+    normalizer:
+      normalizer: "minmax"
     benchmark:
-      threshold: 0.85
-      normalizers:
-        - normalizer: "minmax"
+      threshold: 0.5
   - classifier: "mcod"
     classifierWindowSize: 100000
     classifierSlide: 100000
@@ -85,3 +85,25 @@ gridsearch:
           - 50
           - 80
           - 100
+    - classifier: "mad"
+      trainSize: 10000
+      normalizer:
+        normalizer: "minmax"
+      benchmark:
+        threshold: 0.5
+      searchParams:
+        - threshold:
+          - 0.05
+          - 0.1
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+          - 0.9
+          - 0.95
+          - 0.98
+          - 0.99
+          - 1.0

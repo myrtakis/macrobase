@@ -10,6 +10,7 @@ import alexp.macrobase.outlier.RandomClassifier;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
+import alexp.macrobase.utils.ConfigUtils;
 import alexp.macrobase.utils.TimeUtils;
 import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -112,6 +113,11 @@ public class Pipelines {
             case "mad": {
                 MAD classifier = new MAD(metricColumns[0]);
                 classifier.setTrainSize(conf.get("trainSize", 10000));
+                classifier.setThreshold(conf.get("threshold", 1.0));
+                PipelineConfig normalizerConf = ConfigUtils.getObj(conf, "normalizer");
+                if (normalizerConf != null) {
+                    classifier.setNormalizer(getNormalizer(normalizerConf));
+                }
                 return classifier;
             }
             case "mcd": {

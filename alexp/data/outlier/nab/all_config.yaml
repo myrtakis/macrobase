@@ -15,10 +15,11 @@ classifiers:
     threshold: 0.5
   - classifier: "mad"
     trainSize: 600
+    threshold: 0.99
+    normalizer:
+      normalizer: "minmax"
     benchmark:
       threshold: 0.5
-      normalizers:
-        - normalizer: "minmax"
   - classifier: "random"
     binary: false
   - classifier: "mcod"
