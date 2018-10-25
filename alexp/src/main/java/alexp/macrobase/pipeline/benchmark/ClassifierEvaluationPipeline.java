@@ -225,9 +225,10 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         List<RunResult> results = new ArrayList<>();
 
         PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+
         OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
 
-        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
+        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(benchmarkConf, "normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
 
         if (isStreaming) {
@@ -382,10 +383,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         GridSearch gs = new GridSearch();
         searchParams.forEach(gs::addParam);
 
-        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(classifierConf, "normalizers");
+        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+
+        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(benchmarkConf, "normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
 
-        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
         OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
 
         gs.run(params -> {
