@@ -283,4 +283,15 @@ public class Pipelines {
         }
         throw new MacroBaseException("Unknown explanation type " + explanation.getClass().getName());
     }
+
+    public static String getClassifierName(PipelineConfig conf) {
+        return conf.get("classifier");
+    }
+
+    public static String classifierConfToString(PipelineConfig conf) {
+        return conf.getValues().entrySet().stream().
+                filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column"))
+                .collect(Collectors.toSet())
+                .toString();
+    }
 }

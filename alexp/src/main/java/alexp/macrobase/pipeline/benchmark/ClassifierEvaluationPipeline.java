@@ -105,7 +105,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             List<PipelineConfig> configs = ConfigUtils.getObjectsList(gsConf, "classifiers");
             ConfigUtils.addToAllConfigs(configs, "timeColumn", timeColumn);
 
-            gridSearchClassifierConfigs = configs.stream().collect(Collectors.toMap(it -> it.get("classifier"), it -> it));
+            gridSearchClassifierConfigs = configs.stream().collect(Collectors.toMap(Pipelines::getClassifierName, it -> it));
 
             searchMeasure = gsConf.get("searchMeasure", "");
         }
@@ -138,7 +138,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         aucCurves = CollectionUtils.transpose(aucCurves);
 
-        List<String> classifierNames = classifierConfigs.stream().map(c -> c.<String>get("classifier").toUpperCase()).collect(Collectors.toList());
+        List<String> classifierNames = classifierConfigs.stream().map(c -> Pipelines.getClassifierName(c).toUpperCase()).collect(Collectors.toList());
         List<AucChart.Measure> measures = Arrays.asList(AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy);
 
         for (int i = 0; i < aucCurves.size(); i++) {
@@ -193,7 +193,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     private List<Curve> run(PipelineConfig classifierConf) throws Exception {
-        String classifierType = classifierConf.get("classifier");
+        String classifierType = Pipelines.getClassifierName(classifierConf);
 
         if (gridSearchClassifierConfigs != null && gridSearchClassifierConfigs.containsKey(classifierType)) {
             SortedMap<Double, Map<String, Object>> gsResults = runGridSearch(gridSearchClassifierConfigs.get(classifierType));
@@ -218,7 +218,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         System.out.println();
         printInfo(classifier.getClass().getName());
-        printInfo(classifierConf.getValues().entrySet().stream().filter(it -> !it.getKey().equals("classifier") && !it.getKey().endsWith("Column")).collect(Collectors.toSet()));
+        printInfo(Pipelines.classifierConfToString(classifierConf));
 
         List<Curve> curves = new ArrayList<>();
         List<ResultPoint> points = new ArrayList<>();
