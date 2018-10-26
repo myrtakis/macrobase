@@ -119,30 +119,30 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         isStreaming = streaming;
     }
 
-    public void run() throws Exception {
+    public Map<PipelineConfig, List<Curve>> run() throws Exception {
         if (inputURI.isDir()) {
             runDir();
-            return;
+            return new HashMap<>();
         }
 
         System.out.println(inputURI.getOriginalString());
 
         loadDara();
 
-        List<List<Curve>> aucCurves = new ArrayList<>();
+        Map<PipelineConfig, List<Curve>> aucCurves = new HashMap<>();
 
         for (PipelineConfig classifierConf : classifierConfigs) {
             List<Curve> classifierCurves = run(classifierConf);
-            aucCurves.add(classifierCurves);
+            aucCurves.put(classifierConf, classifierCurves);
         }
 
-        aucCurves = CollectionUtils.transpose(aucCurves);
+        List<List<Curve>> aucCurvesList = CollectionUtils.transpose(new ArrayList<>(aucCurves.values()));
 
         List<String> classifierNames = classifierConfigs.stream().map(c -> Pipelines.getClassifierName(c).toUpperCase()).collect(Collectors.toList());
         List<AucChart.Measure> measures = Arrays.asList(AucChart.Measures.RocAuc, AucChart.Measures.PrAuc, AucChart.Measures.F1, AucChart.Measures.Accuracy);
 
-        for (int i = 0; i < aucCurves.size(); i++) {
-            List<Curve> classifierCurves = aucCurves.get(i);
+        for (int i = 0; i < aucCurvesList.size(); i++) {
+            List<Curve> classifierCurves = aucCurvesList.get(i);
 
             String fileNameSuffix = isStreaming ? Integer.toString(i + 1) : "";
 
@@ -155,9 +155,13 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                         .saveToPng(Paths.get(chartOutputDir(), fileNamePrefix() + "all_" + measureFileName + fileNameSuffix + ".png").toString());
             }
         }
+
+        return aucCurves;
     }
 
     private void runDir() throws Exception {
+        Map<String, List<Curve>> results = new HashMap<>();
+
         for (String path : inputURI.getDirFiles(true)) {
             conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
 
@@ -169,11 +173,31 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             pipeline.setNabOutputDir(nabOutputDir);
             pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
 
-            pipeline.run();
+            Map<PipelineConfig, List<Curve>> result = pipeline.run();
+
+            result.forEach((key, value) -> {
+                String name = Pipelines.getClassifierName(key);
+                List<Curve> values = results.getOrDefault(name, new ArrayList<>());
+                values.addAll(value);
+                results.put(name, values);
+            });
 
             System.out.println();
             System.out.println();
         }
+
+        System.out.println("Summary:");
+        results.forEach((key, value) -> {
+            System.out.println(key);
+
+            double avgRoc = value.stream().mapToDouble(Curve::rocArea).filter(v -> !Double.isNaN(v)).average().getAsDouble();
+            double avgPr = value.stream().mapToDouble(Curve::prArea).filter(v -> !Double.isNaN(v)).average().getAsDouble();
+
+            System.out.println(String.format("Average ROC Area: %.4f", avgRoc));
+            System.out.println(String.format("Average PR Area: %.4f", avgPr));
+            System.out.println();
+        });
+
     }
 
     public void runGridSearch() throws Exception {
