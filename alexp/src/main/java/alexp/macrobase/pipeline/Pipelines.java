@@ -113,7 +113,10 @@ public class Pipelines {
             case "mad": {
                 MAD classifier = new MAD(metricColumns[0]);
                 classifier.setTrainSize(conf.get("trainSize", 10000));
-                classifier.setThreshold(conf.get("threshold", 1.0));
+                Object threshold = conf.get("threshold");
+                if (threshold != null) {
+                    classifier.setThreshold((Double) threshold);
+                }
                 PipelineConfig normalizerConf = ConfigUtils.getObj(conf, "normalizer");
                 if (normalizerConf != null) {
                     classifier.setNormalizer(getNormalizer(normalizerConf));
