@@ -81,8 +81,6 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         inputURI = new Uri(conf.get("inputURI"));
 
-        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
-
         //noinspection unchecked
         metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
 
@@ -94,6 +92,11 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         originalTimeColumn = timeColumn;
         if (timeFormat != null) {
             timeColumn = "!parsed_" + timeColumn;
+        }
+
+        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+        if (classifierConfigs.isEmpty()) {
+            return;
         }
 
         ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
@@ -121,7 +124,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
     public Map<PipelineConfig, List<Curve>> run() throws Exception {
         if (inputURI.isDir()) {
-            runDir();
+            runDirClassification();
             return new HashMap<>();
         }
 
@@ -159,14 +162,48 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         return aucCurves;
     }
 
-    private void runDir() throws Exception {
+    public void drawPlots() throws Exception {
+        if (inputURI.isDir()) {
+            runDir(subdirPath -> {
+                ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, subdirPath);
+                pipeline.setStreaming(isStreaming);
+                pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
+
+                pipeline.drawPlots();
+            });
+            return;
+        }
+
+        System.out.println(inputURI.getOriginalString());
+
+        loadDara();
+
+        if (metricColumns.length != 1) {
+            throw new Exception("Only univariate datasets are supported for plots");
+        }
+
+        for (int i = 0; i < dataFrames.size(); i++) {
+            int num = i + 1;
+
+            DataFrame dataFrame = dataFrames.get(i);
+            double[] scores = dataFrame.getDoubleColumnByName(metricColumns[0]);
+            double[] time = dataFrame.getDoubleColumnByName(timeColumn);
+            int[] labels = labelsLists.get(i);
+
+            List<ResultPoint> points = Streams.mapWithIndex(Arrays.stream(time), (t, ind) -> new ResultPoint(t, "", scores[(int) ind], 0, 1, labels[(int) ind] == 1))
+                    .collect(Collectors.toList());
+
+            new AnomalyDataChart()
+                    .setName(inputURI.shortDisplayPath())
+                    .createAnomaliesChart(points)
+                    .saveToPng(Paths.get(chartOutputDir(), inputURI.baseName() + (dataFrames.size() > 1 ? Integer.toString(num) : "") + ".png").toString());
+        }
+    }
+
+    private void runDirClassification() throws Exception {
         Map<String, List<Curve>> results = new HashMap<>();
 
-        for (String path : inputURI.getDirFiles(true)) {
-            conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
-
-            String subdirPath = FilenameUtils.getPath(path);
-
+        runDir(subdirPath -> {
             ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, subdirPath);
             pipeline.setStreaming(isStreaming);
             pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
@@ -184,7 +221,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
             System.out.println();
             System.out.println();
-        }
+        });
 
         System.out.println("Summary:");
         results.forEach((key, value) -> {
@@ -197,7 +234,16 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             System.out.println(String.format("Average PR Area: %.4f", avgPr));
             System.out.println();
         });
+    }
 
+    private void runDir(ThrowingConsumer<String> runCallback) throws Exception {
+        for (String path : inputURI.getDirFiles(true)) {
+            conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
+
+            String subdirPath = FilenameUtils.getPath(path);
+
+            runCallback.accept(subdirPath);
+        }
     }
 
     public void runGridSearch() throws Exception {

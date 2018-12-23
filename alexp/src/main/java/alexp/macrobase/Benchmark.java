@@ -25,6 +25,8 @@ public class Benchmark {
     private final OptionSpec streamOption;
     private final OptionSpec<String> nabOption;
 
+    private final OptionSpec<String> drawDataPlotsOption;
+
     private String outputDir;
     private String nabOutputDir;
     private boolean includeInliers = false;
@@ -42,6 +44,9 @@ public class Benchmark {
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)");
         nabOption = optionParser.accepts("nab", "Save output in Numenta Anomaly Benchmark format (detection phase) in the specified dir (by default NAB subdir in the output dir)")
                 .availableIf(aucOption).withOptionalArg().describedAs("dir_path");
+
+        drawDataPlotsOption = optionParser.accepts("draw-plots", "Draw plots (normal and anomalous points) for 1D datasets")
+                .withRequiredArg().describedAs("config_file_path");
     }
 
     private void runAuc(String confFilePath) throws Exception {
@@ -67,6 +72,16 @@ public class Benchmark {
         pipeline.runGridSearch();
     }
 
+    private void drawPlots(String confFilePath) throws Exception {
+        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+
+        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        pipeline.setStreaming(streaming);
+        pipeline.setOutputDir(outputDir);
+
+        pipeline.drawPlots();
+    }
+
     private void showUsage() throws IOException {
         optionParser.printHelpOn(System.out);
         System.out.println("Examples:");
@@ -76,6 +91,7 @@ public class Benchmark {
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
+        System.out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output  --co");
     }
 
     private int run(String[] args) throws Exception {
@@ -143,6 +159,16 @@ public class Benchmark {
             }
 
             runGridSearch(confFilePath);
+        }
+
+        if (options.has(drawDataPlotsOption)) {
+            String confFilePath = drawDataPlotsOption.value(options);
+            if (!Files.exists(Paths.get(confFilePath))) {
+                System.out.println("Config file not found");
+                return 4;
+            }
+
+            drawPlots(confFilePath);
         }
 
         return 0;
