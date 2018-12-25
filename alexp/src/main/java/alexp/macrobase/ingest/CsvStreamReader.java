@@ -60,20 +60,30 @@ public class CsvStreamReader implements StreamingDataFrameLoader {
         }
     }
 
+    public static String[] loadColumnNames(String filePath) {
+        CsvParser csvParser = createCsvParser();
+        csvParser.beginParsing(new File(filePath));
+        return csvParser.parseNext();
+    }
+
     private void resetLineBuffer(LineBuffer lineBuffer, String header) {
         lineBuffer.clear();
         lineBuffer.appendLine(header);
     }
 
     private DataFrame parseCsv(String csvData) throws Exception {
-        CsvParserSettings settings = new CsvParserSettings();
-        settings.getFormat().setLineSeparator("\n");
-        CsvParser csvParser = new CsvParser(settings);
+        CsvParser csvParser = createCsvParser();
         csvParser.beginParsing(new ByteArrayInputStream(csvData.getBytes("UTF-8")));
 
         DataFrameLoader loader = new CSVDataFrameParser(csvParser, requiredColumns);
         loader.setColumnTypes(columnTypes);
 
         return loader.load();
+    }
+
+    private static CsvParser createCsvParser() {
+        CsvParserSettings settings = new CsvParserSettings();
+        settings.getFormat().setLineSeparator("\n");
+        return new CsvParser(settings);
     }
 }

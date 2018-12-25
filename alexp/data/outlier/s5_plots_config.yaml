@@ -1,5 +1,5 @@
-inputURI: "csv://alexp/data/outlier/yahoo_s5/A1Benchmark/"
-timeColumn: "timestamp"
+inputURI: "csv://alexp/data/outlier/yahoo_s5/"
+timeColumn: "_regex:timestamp.*"
 metricColumns:
   - "value"
-labelColumn: "is_anomaly"
+labelColumn: "_regex:.*anomaly"
