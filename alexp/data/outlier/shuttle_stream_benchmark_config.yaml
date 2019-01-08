@@ -14,16 +14,18 @@ labelColumn: "is_anomaly"
 maxReadBatchSize: 10000
 
 classifiers:
-  - classifier: "mcd"
-    alpha: 0.9
-    stoppingDelta: 0.00001
-    trainSize: 4000
+#  - classifier: "mcd"
+#    alpha: 0.9
+#    stoppingDelta: 0.00001
+#    trainSize: 500
   - classifier: "mcod"
-    maxDistance: 17.0
-    minNeighborCount: 180
-    classifierWindowSize: 30000
+    maxDistance: 30.0
+    minNeighborCount: 200
+    classifierWindowSize: 20000
     classifierSlide: 10000
     allowDuplicates: false
-  - classifier: "lof-bkaluza"
-    knn: 5
-    trainSize: 100
+#  - classifier: "random"
+#    binary: false
+#  - classifier: "lof-bkaluza"
+#    knn: 60
+#    trainSize: 150
