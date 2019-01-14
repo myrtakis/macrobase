@@ -329,6 +329,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             final long totalMs = sw.elapsed(TimeUnit.MILLISECONDS);
             System.out.println();
             System.out.println(String.format("Total time elapsed: %d ms (%.2f sec)", totalMs, totalMs / 1000.0));
+
+            double avgRoc = results.stream().mapToDouble(r -> r.curve.rocArea()).filter(v -> !Double.isNaN(v)).average().getAsDouble();
+            double avgPr = results.stream().mapToDouble(r -> r.curve.prArea()).filter(v -> !Double.isNaN(v)).average().getAsDouble();
+
+            System.out.println(String.format("Average ROC Area: %.4f", avgRoc));
+            System.out.println(String.format("Average PR Area: %.4f", avgPr));
         } else {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);
