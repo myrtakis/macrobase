@@ -15,7 +15,7 @@ classifiers:
     threshold: 0.5
   - classifier: "mad"
     trainSize: 600
-    threshold: 0.99
+    #threshold: 0.99
     normalizer:
       normalizer: "minmax"
     benchmark:

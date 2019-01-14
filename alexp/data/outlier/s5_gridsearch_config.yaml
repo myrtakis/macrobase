@@ -1,0 +1,30 @@
+inputURI: "csv://alexp/data/outlier/yahoos5_a1_all.csv"
+timeColumn: "time"
+metricColumns:
+  - "value"
+labelColumn: "is_anomaly"
+
+searchMeasure: "f1"
+
+classifiers:
+  - classifier: "mcod"
+    classifierWindowSize: 10000
+    classifierSlide: 5000
+    searchParams:
+      - maxDistance:
+        - 1.0
+        - 6.0
+        - 14.0
+        - 15.0
+        - 16.0
+        - 17.0
+        - 30.0
+        - 40.0
+        - 80.0
+      - minNeighborCount:
+        - 1
+        - 10
+        - 50
+        - 150
+        - 180
+        - 250
