@@ -13,6 +13,10 @@ classifiers:
     includeHi: true
     includeLo: true
     threshold: 0.5
+  - classifier: "iforest"
+    treesCount: 100
+    subsampleSize: 256
+    trainSize: 4000
   - classifier: "mad"
     trainSize: 600
     #threshold: 0.99

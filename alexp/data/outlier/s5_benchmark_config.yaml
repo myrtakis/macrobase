@@ -5,13 +5,13 @@ metricColumns:
 labelColumn: "is_anomaly"
 
 classifiers:
-#  - classifier: "mad"
-#    trainSize: 500
-#    threshold: 0.99
-#    benchmark:
-#      threshold: 0.5
-#    normalizer:
-#      normalizer: "minmax"
+  - classifier: "mad"
+    trainSize: 500
+    threshold: 0.99
+    benchmark:
+      threshold: 0.5
+    normalizer:
+      normalizer: "minmax"
   - classifier: "mcod"
     maxDistance: 60.0
     minNeighborCount: 20
@@ -21,15 +21,19 @@ classifiers:
       threshold: 0.5
     autoTune: true
     tuneSetSize: 500
-#  - classifier: "percentile"
-#    cutoff: 0.5
-#    includeHi: true
-#    includeLo: true
-#  - classifier: "random"
-#    binary: false
-#  - classifier: "lof-bkaluza"
-#    knn: 15
-#    trainSize: 200
+  - classifier: "iforest"
+    treesCount: 100
+    subsampleSize: 256
+    trainSize: 4000
+  - classifier: "percentile"
+    cutoff: 0.5
+    includeHi: true
+    includeLo: true
+  - classifier: "random"
+    binary: false
+  - classifier: "lof-bkaluza"
+    knn: 15
+    trainSize: 200
 
 
 gridsearch:
