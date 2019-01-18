@@ -22,11 +22,11 @@ classifiers:
     subsampleSize: 256
     trainSize: 4000
   - classifier: "mcod"
-    maxDistance: 30.0
-    minNeighborCount: 200
+    maxDistance: 13.0
+    minNeighborCount: 150
     classifierWindowSize: 50000
     classifierSlide: 50000
     allowDuplicates: false
   - classifier: "lof-bkaluza"
     knn: 15
-    trainSize: 100
+    trainSize: 150
