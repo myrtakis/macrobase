@@ -178,7 +178,7 @@ public class Benchmark {
             String confFilePath = gsOption.value(options);
             if (!Files.exists(Paths.get(confFilePath))) {
                 System.out.println("Config file not found");
-                return 4;
+                return 3;
             }
 
             runGridSearch(confFilePath);
@@ -188,7 +188,7 @@ public class Benchmark {
             String confFilePath = drawDataPlotsOption.value(options);
             if (!Files.exists(Paths.get(confFilePath))) {
                 System.out.println("Config file not found");
-                return 4;
+                return 3;
             }
 
             drawPlots(confFilePath);
