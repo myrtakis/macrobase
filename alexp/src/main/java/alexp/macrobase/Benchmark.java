@@ -11,11 +11,15 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class Benchmark {
+    PrintStream out = System.out;
+    PrintStream err = System.err;
+
     private final OptionParser optionParser = new OptionParser();
     private final OptionSpec<String> benchmarkOption;
     private final OptionSpec<String> aucOption;
@@ -95,20 +99,21 @@ public class Benchmark {
     }
 
     private void showUsage() throws IOException {
-        optionParser.printHelpOn(System.out);
-        System.out.println("Examples:");
-        System.out.println("  -b alexp/data/outlier/config.yaml");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
-        System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
-        System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
-        System.out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
+        optionParser.printHelpOn(out);
+        out.println("Examples:");
+        out.println("  -b alexp/data/outlier/config.yaml");
+        out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
+        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
+        out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
+        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
+        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
+        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
+        out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
     }
 
     private int run(String[] args) throws Exception {
         if (args.length == 0) {
+            err.println("Not enough parameters");
             showUsage();
             return 1;
         }
@@ -117,12 +122,13 @@ public class Benchmark {
         try {
             options = optionParser.parse(args);
         } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+            err.println(ex.getMessage());
             showUsage();
             return 2;
         }
 
         if (!options.has(benchmarkOption) && !options.has(aucOption) && !options.has(gsOption) && !options.has(drawDataPlotsOption)) {
+            err.println("Not enough parameters");
             showUsage();
             return 1;
         }
@@ -140,7 +146,7 @@ public class Benchmark {
                 try {
                     FileUtils.cleanDirectory(new File(dirToClear));
                 } catch (IOException ex) {
-                    System.out.println(ex.getMessage());
+                    err.println(ex.getMessage());
                 }
             }
         }
@@ -148,7 +154,7 @@ public class Benchmark {
         if (options.has(aucOption)) {
             String confFilePath = aucOption.value(options);
             if (!Files.exists(Paths.get(confFilePath))) {
-                System.out.println("Config file not found");
+                err.println("Config file not found");
                 return 3;
             }
 
@@ -161,7 +167,7 @@ public class Benchmark {
                     try {
                         FileUtils.cleanDirectory(new File(nabOutputDir));
                     } catch (IOException ex) {
-                        System.out.println(ex.getMessage());
+                        err.println(ex.getMessage());
                     }
                 }
             }
@@ -170,14 +176,14 @@ public class Benchmark {
         }
 
         if (options.has(benchmarkOption)) {
-            System.out.println("NOT IMPLEMENTED");
+            out.println("NOT IMPLEMENTED");
             return 42;
         }
 
         if (options.has(gsOption)) {
             String confFilePath = gsOption.value(options);
             if (!Files.exists(Paths.get(confFilePath))) {
-                System.out.println("Config file not found");
+                err.println("Config file not found");
                 return 3;
             }
 
@@ -187,7 +193,7 @@ public class Benchmark {
         if (options.has(drawDataPlotsOption)) {
             String confFilePath = drawDataPlotsOption.value(options);
             if (!Files.exists(Paths.get(confFilePath))) {
-                System.out.println("Config file not found");
+                err.println("Config file not found");
                 return 3;
             }
 
