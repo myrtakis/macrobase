@@ -17,6 +17,7 @@ import java.util.Arrays;
 
 public class Benchmark {
     private final OptionParser optionParser = new OptionParser();
+    private final OptionSpec<String> benchmarkOption;
     private final OptionSpec<String> aucOption;
     private final OptionSpec<String> gsOption;
     private final OptionSpec<String> outputOption;
@@ -33,15 +34,26 @@ public class Benchmark {
     private boolean streaming = false;
 
     private Benchmark() {
-        aucOption = optionParser.accepts("auc", "Run evaluation (AUC, F1, etc.) of outlier detection algorithms")
+        benchmarkOption = optionParser.acceptsAll(Arrays.asList("benchmark", "b"), "Run benchmark for outlier detection algorithms. Outputs time and raw scores.")
                 .withRequiredArg().describedAs("config_file_path");
+
+        aucOption = optionParser.accepts("auc", "Run simple quality evaluation of outlier detection algorithms." +
+                "Original version of the benchmark, has more features (NAB, streaming, ...) and produces more output (AUC, F1, plots, etc.) but less structured output format than -b.")
+                .availableUnless(benchmarkOption).withRequiredArg().describedAs("config_file_path");
+
         gsOption = optionParser.accepts("gs", "Run Grid Search for parameters of outlier detection algorithms")
-                .withRequiredArg().describedAs("config_file_path");
+                .availableUnless(benchmarkOption, aucOption).withRequiredArg().describedAs("config_file_path");
+
         outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
-        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output").availableIf(outputOption);
-        streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)");
+
+        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output (only for --auc)")
+                .availableIf(outputOption).availableUnless(benchmarkOption);
+
+        streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
+                .availableUnless(benchmarkOption);
+
         nabOption = optionParser.accepts("nab", "Save output in Numenta Anomaly Benchmark format (detection phase) in the specified dir (by default NAB subdir in the output dir)")
                 .availableIf(aucOption).withOptionalArg().describedAs("dir_path");
 
@@ -85,13 +97,14 @@ public class Benchmark {
     private void showUsage() throws IOException {
         optionParser.printHelpOn(System.out);
         System.out.println("Examples:");
+        System.out.println("  -b alexp/data/outlier/config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
         System.out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
         System.out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
-        System.out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output  --co");
+        System.out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
     }
 
     private int run(String[] args) throws Exception {
@@ -149,6 +162,11 @@ public class Benchmark {
             }
 
             runAuc(confFilePath);
+        }
+
+        if (options.has(benchmarkOption)) {
+            System.out.println("NOT IMPLEMENTED");
+            return 42;
         }
 
         if (options.has(gsOption)) {
