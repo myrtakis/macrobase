@@ -122,6 +122,11 @@ public class Benchmark {
             return 2;
         }
 
+        if (!options.has(benchmarkOption) && !options.has(aucOption) && !options.has(gsOption) && !options.has(drawDataPlotsOption)) {
+            showUsage();
+            return 1;
+        }
+
         streaming = options.has(streamOption);
 
         if (options.has(outputOption)) {
