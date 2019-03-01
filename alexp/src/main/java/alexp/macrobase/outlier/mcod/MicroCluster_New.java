@@ -83,9 +83,9 @@ public class MicroCluster_New {
     }
 
     private void printStatistic() {
-        System.out.println("#points in clusters = " + micro_clusters.values().stream().mapToInt(ArrayList::size).sum());
-        System.out.println("#points in event queue = " + eventQueue.size());
-        System.out.println("avg neighborList length = " + PD.stream().mapToInt(p -> p.exps.size()).average().getAsDouble());
+//        System.out.println("#points in clusters = " + micro_clusters.values().stream().mapToInt(ArrayList::size).sum());
+//        System.out.println("#points in event queue = " + eventQueue.size());
+//        System.out.println("avg neighborList length = " + PD.stream().mapToInt(p -> p.exps.size()).average().getAsDouble());
     }
 
     private void removeFromCluster(MCO d) {
