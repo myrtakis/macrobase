@@ -94,7 +94,7 @@ public class StreamingPipeline extends Pipeline {
             final long explanationMs = sw.elapsed(TimeUnit.MILLISECONDS);
             totalExplanationMs.addAndGet(explanationMs);
 
-            System.out.printf("Classification time: %d ms (total %d ms)\nSummarization time: %d ms (total %d ms)\n\n",
+            out.printf("Classification time: %d ms (total %d ms)\nSummarization time: %d ms (total %d ms)\n\n",
                     classifierMs, totalClassifierMs.get(), explanationMs, totalExplanationMs.get());
 
             resultCallback.accept(summarizer.getResults());

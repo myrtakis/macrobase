@@ -135,7 +135,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             return new HashMap<>();
         }
 
-        System.out.println(inputURI.getOriginalString());
+        out.println(inputURI.getOriginalString());
 
         loadDara();
 
@@ -181,7 +181,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             return;
         }
 
-        System.out.println(inputURI.getOriginalString());
+        out.println(inputURI.getOriginalString());
 
         loadDara();
 
@@ -226,20 +226,20 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 results.put(name, values);
             });
 
-            System.out.println();
-            System.out.println();
+            out.println();
+            out.println();
         });
 
-        System.out.println("Summary:");
+        out.println("Summary:");
         results.forEach((key, value) -> {
-            System.out.println(key);
+            out.println(key);
 
             double avgRoc = value.stream().mapToDouble(Curve::rocArea).filter(v -> !Double.isNaN(v)).average().getAsDouble();
             double avgPr = value.stream().mapToDouble(Curve::prArea).filter(v -> !Double.isNaN(v)).average().getAsDouble();
 
-            System.out.println(String.format("Average ROC Area: %.4f", avgRoc));
-            System.out.println(String.format("Average PR Area: %.4f", avgPr));
-            System.out.println();
+            out.println(String.format("Average ROC Area: %.4f", avgRoc));
+            out.println(String.format("Average PR Area: %.4f", avgPr));
+            out.println();
         });
     }
 
@@ -254,18 +254,18 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     public void runGridSearch() throws Exception {
-        System.out.println(inputURI.getOriginalString());
+        out.println(inputURI.getOriginalString());
 
         loadDara();
 
         for (PipelineConfig classifierConf : gridSearchClassifierConfigs != null ? gridSearchClassifierConfigs.values(): classifierConfigs) {
-            System.out.println();
-            System.out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
+            out.println();
+            out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
 
             SortedMap<Double, Map<String, Object>> results  = runGridSearch(classifierConf);
 
-            System.out.println(searchMeasure.toUpperCase());
-            results.forEach((score, params) -> System.out.println(String.format("%.4f: %s", score, params)));
+            out.println(searchMeasure.toUpperCase());
+            results.forEach((score, params) -> out.println(String.format("%.4f: %s", score, params)));
         }
     }
 
@@ -275,7 +275,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
         if (gridSearchClassifierConfigs != null && gridSearchClassifierConfigs.containsKey(classifierType)) {
             SortedMap<Double, Map<String, Object>> gsResults = runGridSearch(gridSearchClassifierConfigs.get(classifierType));
 
-            System.out.println();
+            out.println();
             gsResults.forEach((score, params) -> printInfo(String.format("%.4f: %s", score, params)));
 
             classifierConf = ConfigUtils.merge(classifierConf, Iterables.getLast(gsResults.values()));
@@ -293,7 +293,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                     tuner.tuneParameters(dataFrames.get(0).limit(classifierConf.get("tuneSetSize", 500))));
         }
 
-        System.out.println();
+        out.println();
         printInfo(classifier.getClass().getName());
         printInfo(Pipelines.classifierConfToString(classifierConf));
 
@@ -314,8 +314,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             for (int i = 0; i < dataFrames.size(); i++) {
                 int num = i + 1;
 
-                System.out.println();
-                System.out.println("Part #" + num);
+                out.println();
+                out.println("Part #" + num);
 
                 DataFrame dataFrame = dataFrames.get(i);
                 int[] labels = labelsLists.get(i);
@@ -327,14 +327,14 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             }
 
             final long totalMs = sw.elapsed(TimeUnit.MILLISECONDS);
-            System.out.println();
-            System.out.println(String.format("Total time elapsed: %d ms (%.2f sec)", totalMs, totalMs / 1000.0));
+            out.println();
+            out.println(String.format("Total time elapsed: %d ms (%.2f sec)", totalMs, totalMs / 1000.0));
 
             double avgRoc = results.stream().mapToDouble(r -> r.curve.rocArea()).filter(v -> !Double.isNaN(v)).average().getAsDouble();
             double avgPr = results.stream().mapToDouble(r -> r.curve.prArea()).filter(v -> !Double.isNaN(v)).average().getAsDouble();
 
-            System.out.println(String.format("Average ROC Area: %.4f", avgRoc));
-            System.out.println(String.format("Average PR Area: %.4f", avgPr));
+            out.println(String.format("Average ROC Area: %.4f", avgRoc));
+            out.println(String.format("Average PR Area: %.4f", avgPr));
         } else {
             DataFrame dataFrame = dataFrames.get(0);
             int[] labels = labelsLists.get(0);

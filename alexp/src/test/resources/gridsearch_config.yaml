@@ -1,0 +1,15 @@
+inputURI: "csv://src/test/resources/data.csv"
+metricColumns:
+  - "usage"
+labelColumn: "is_anomaly"
+
+classifiers:
+  - classifier: "percentile"
+    includeHi: true
+    includeLo: true
+    searchParams:
+      - cutoff:
+          - 0.5
+          - 1.0
+
+searchMeasure: "f1"

@@ -37,7 +37,7 @@ public class Benchmark {
     private boolean includeInliers = false;
     private boolean streaming = false;
 
-    private Benchmark() {
+    Benchmark() {
         benchmarkOption = optionParser.acceptsAll(Arrays.asList("benchmark", "b"), "Run benchmark for outlier detection algorithms. Outputs time and raw scores.")
                 .withRequiredArg().describedAs("config_file_path");
 
@@ -73,6 +73,7 @@ public class Benchmark {
         pipeline.setOutputDir(outputDir);
         pipeline.setNabOutputDir(nabOutputDir);
         pipeline.setOutputIncludesInliers(includeInliers);
+        pipeline.setOutputStream(out);
 
         pipeline.run();
     }
@@ -84,6 +85,7 @@ public class Benchmark {
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputIncludesInliers(includeInliers);
+        pipeline.setOutputStream(out);
 
         pipeline.runGridSearch();
     }
@@ -94,6 +96,7 @@ public class Benchmark {
         ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
+        pipeline.setOutputStream(out);
 
         pipeline.drawPlots();
     }
@@ -111,7 +114,7 @@ public class Benchmark {
         out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
     }
 
-    private int run(String[] args) throws Exception {
+    int run(String[] args) throws Exception {
         if (args.length == 0) {
             err.println("Not enough parameters");
             showUsage();
