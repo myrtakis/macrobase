@@ -1,6 +1,6 @@
 package alexp.macrobase;
 
-import alexp.macrobase.pipeline.benchmark.ClassifierEvaluationPipeline;
+import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
 import alexp.macrobase.utils.ConfigUtils;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import joptsimple.OptionParser;
@@ -68,7 +68,7 @@ public class Benchmark {
     private void runAuc(String confFilePath) throws Exception {
         PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
         pipeline.setNabOutputDir(nabOutputDir);
@@ -81,7 +81,7 @@ public class Benchmark {
     private void runGridSearch(String confFilePath) throws Exception {
         PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputIncludesInliers(includeInliers);
@@ -93,7 +93,7 @@ public class Benchmark {
     private void drawPlots(String confFilePath) throws Exception {
         PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
 
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputStream(out);
@@ -144,7 +144,7 @@ public class Benchmark {
         }
 
         if (options.has(clearOutputOption)) {
-            String dirToClear = StringUtils.isEmpty(outputDir) ? ClassifierEvaluationPipeline.defaultOutputDir() : outputDir;
+            String dirToClear = StringUtils.isEmpty(outputDir) ? LegacyClassifierEvaluationPipeline.defaultOutputDir() : outputDir;
             if (!StringUtils.isEmpty(dirToClear) && Files.exists(Paths.get(dirToClear))) {
                 try {
                     FileUtils.cleanDirectory(new File(dirToClear));
@@ -164,7 +164,7 @@ public class Benchmark {
             if (options.has(nabOption)) {
                 nabOutputDir = nabOption.value(options);
                 if (nabOutputDir == null) {
-                    nabOutputDir = (StringUtils.isEmpty(outputDir) ? ClassifierEvaluationPipeline.defaultOutputDir() : outputDir) + "/NAB";
+                    nabOutputDir = (StringUtils.isEmpty(outputDir) ? LegacyClassifierEvaluationPipeline.defaultOutputDir() : outputDir) + "/NAB";
                 }
                 if (options.has(clearOutputOption) && Files.exists(Paths.get(nabOutputDir))) {
                     try {
