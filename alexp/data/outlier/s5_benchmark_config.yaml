@@ -36,9 +36,9 @@ classifiers:
     trainSize: 200
 
 
-gridsearch:
-  searchMeasure: "pr"
-  classifiers:
+#gridsearch:
+#  searchMeasure: "pr"
+#  classifiers:
 #    - classifier: "mcod"
 #      classifierWindowSize: 100000
 #      classifierSlide: 100000

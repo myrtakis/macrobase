@@ -2,6 +2,7 @@ package alexp.macrobase.pipeline.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -12,10 +13,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class StringObjectMap {
-    private Map<String, Object> values;
+    private ImmutableMap<String, Object> values;
 
     public StringObjectMap(Map<String, Object> values) {
-        this.values = values;
+        this.values = ImmutableMap.copyOf(values);
     }
 
     public static StringObjectMap fromYaml(String yamlString) {

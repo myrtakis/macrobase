@@ -12,6 +12,7 @@ import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import alexp.macrobase.utils.*;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
@@ -171,11 +172,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
 
     public void drawPlots() throws Exception {
         if (inputURI.isDir()) {
-            runDir(subdirPath -> {
-                LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf, subdirPath);
-                pipeline.setStreaming(isStreaming);
-                pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
-
+            runDir(pipeline -> {
                 pipeline.drawPlots();
             });
             return;
@@ -210,13 +207,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
     private void runDirClassification() throws Exception {
         Map<String, List<Curve>> results = new HashMap<>();
 
-        runDir(subdirPath -> {
-            LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf, subdirPath);
-            pipeline.setStreaming(isStreaming);
-            pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
-            pipeline.setNabOutputDir(nabOutputDir);
-            pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
-
+        runDir(pipeline -> {
             Map<StringObjectMap, List<Curve>> result = pipeline.run();
 
             result.forEach((key, value) -> {
@@ -243,13 +234,19 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         });
     }
 
-    private void runDir(ThrowingConsumer<String> runCallback) throws Exception {
+    private void runDir(ThrowingConsumer<LegacyClassifierEvaluationPipeline> runCallback) throws Exception {
         for (String path : inputURI.getDirFiles(true)) {
-            conf.getValues().put("inputURI", inputURI.getOriginalString() + path);
+            StringObjectMap newConf = conf.merge(ImmutableMap.of("inputURI", inputURI.getOriginalString() + path));
 
             String subdirPath = FilenameUtils.getPath(path);
 
-            runCallback.accept(subdirPath);
+            LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(newConf, subdirPath);
+            pipeline.setStreaming(isStreaming);
+            pipeline.setOutputDir(getOutputDir() + "/" + subdirPath);
+            pipeline.setNabOutputDir(nabOutputDir);
+            pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
+
+            runCallback.accept(pipeline);
         }
     }
 
