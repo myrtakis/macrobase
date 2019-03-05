@@ -1,8 +1,7 @@
 package alexp.macrobase;
 
 import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
-import alexp.macrobase.utils.ConfigUtils;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
+import alexp.macrobase.pipeline.config.StringObjectMap;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -66,7 +65,7 @@ public class Benchmark {
     }
 
     private void runAuc(String confFilePath) throws Exception {
-        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
@@ -79,7 +78,7 @@ public class Benchmark {
     }
 
     private void runGridSearch(String confFilePath) throws Exception {
-        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);
@@ -91,7 +90,7 @@ public class Benchmark {
     }
 
     private void drawPlots(String confFilePath) throws Exception {
-        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
         pipeline.setStreaming(streaming);

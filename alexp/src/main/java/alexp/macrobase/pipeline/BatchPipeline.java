@@ -2,16 +2,15 @@ package alexp.macrobase.pipeline;
 
 import alexp.macrobase.ingest.Uri;
 import alexp.macrobase.utils.ConfigUtils;
+import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import edu.stanford.futuredata.macrobase.operator.Operator;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BatchPipeline extends Pipeline {
-    private final PipelineConfig conf;
+    private final StringObjectMap conf;
 
     private final Uri inputURI;
 
@@ -32,17 +31,17 @@ public class BatchPipeline extends Pipeline {
 
     private List<String> attributes;
 
-    public BatchPipeline(PipelineConfig conf) throws MacroBaseException {
+    public BatchPipeline(StringObjectMap conf) throws MacroBaseException {
         this.conf = conf;
 
         inputURI = new Uri(conf.get("inputURI"));
 
-        List<PipelineConfig> classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+        List<StringObjectMap> classifierConfigs = conf.getMapList("classifiers");
 
         metricColumns = ConfigUtils.getAllValues(classifierConfigs, "metricColumns").toArray(new String[0]);
 
         timeColumn = conf.get("timeColumn");
-        ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
+        classifierConfigs = ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
 //        if (classifierType.equals("predicate")) {
 //            Object rawCutoff = conf.get("cutoff");

@@ -2,9 +2,8 @@ package alexp.macrobase;
 
 import alexp.macrobase.pipeline.BatchPipeline;
 import alexp.macrobase.pipeline.StreamingPipeline;
-import alexp.macrobase.utils.ConfigUtils;
+import alexp.macrobase.pipeline.config.StringObjectMap;
 import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -14,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,7 +39,7 @@ public class ConsoleApp {
     }
 
     private void runBatchPipeline(String confFilePath) throws Exception {
-        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         BatchPipeline pipeline = new BatchPipeline(conf);
         pipeline.setOutputDir(outputDir);
@@ -53,7 +51,7 @@ public class ConsoleApp {
     }
 
     private void runStreamingPipeline(String confFilePath) throws Exception {
-        PipelineConfig conf = ConfigUtils.loadFromFile(confFilePath);
+        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         StreamingPipeline pipeline = new StreamingPipeline(conf);
         pipeline.setOutputDir(outputDir);

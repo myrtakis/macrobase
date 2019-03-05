@@ -9,6 +9,7 @@ import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.outlier.ParametersAutoTuner;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
+import alexp.macrobase.pipeline.config.StringObjectMap;
 import alexp.macrobase.utils.*;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
@@ -20,7 +21,6 @@ import com.google.gson.JsonParser;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
-import edu.stanford.futuredata.macrobase.pipeline.PipelineConfig;
 import one.util.streamex.MoreCollectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -49,7 +49,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         }
     }
 
-    private final PipelineConfig conf;
+    private final StringObjectMap conf;
 
     private final Uri inputURI;
 
@@ -66,16 +66,16 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
     private List<DataFrame> dataFrames = new ArrayList<>();
     private List<int[]> labelsLists = new ArrayList<>();
 
-    private List<PipelineConfig> classifierConfigs;
+    private List<StringObjectMap> classifierConfigs;
 
-    private Map<String, PipelineConfig> gridSearchClassifierConfigs;
+    private Map<String, StringObjectMap> gridSearchClassifierConfigs;
     private String searchMeasure;
 
     private boolean isStreaming = false;
 
     private String nabOutputDir;
 
-    private LegacyClassifierEvaluationPipeline(PipelineConfig conf, String inputDirRelativePath) throws Exception {
+    private LegacyClassifierEvaluationPipeline(StringObjectMap conf, String inputDirRelativePath) throws Exception {
         this.conf = conf;
         this.inputDirRelativePath = inputDirRelativePath;
 
@@ -101,19 +101,19 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
             timeColumn = "!parsed_" + timeColumn;
         }
 
-        classifierConfigs = ConfigUtils.getObjectsList(conf, "classifiers");
+        classifierConfigs = conf.getMapList("classifiers");
         if (classifierConfigs.isEmpty()) {
             return;
         }
 
-        ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
+        classifierConfigs = ConfigUtils.addToAllConfigs(classifierConfigs, "timeColumn", timeColumn);
 
         searchMeasure = conf.get("searchMeasure", "");
 
-        PipelineConfig gsConf = ConfigUtils.getObj(conf, "gridsearch");
+        StringObjectMap gsConf = conf.getMap("gridsearch");
         if (gsConf != null) {
-            List<PipelineConfig> configs = ConfigUtils.getObjectsList(gsConf, "classifiers");
-            ConfigUtils.addToAllConfigs(configs, "timeColumn", timeColumn);
+            List<StringObjectMap> configs = gsConf.getMapList("classifiers");
+            configs = ConfigUtils.addToAllConfigs(configs, "timeColumn", timeColumn);
 
             gridSearchClassifierConfigs = configs.stream().collect(Collectors.toMap(Pipelines::getClassifierName, it -> it));
 
@@ -121,7 +121,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         }
     }
 
-    public LegacyClassifierEvaluationPipeline(PipelineConfig conf) throws Exception {
+    public LegacyClassifierEvaluationPipeline(StringObjectMap conf) throws Exception {
         this(conf, null);
     }
 
@@ -129,7 +129,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         isStreaming = streaming;
     }
 
-    public Map<PipelineConfig, List<Curve>> run() throws Exception {
+    public Map<StringObjectMap, List<Curve>> run() throws Exception {
         if (inputURI.isDir()) {
             runDirClassification();
             return new HashMap<>();
@@ -139,9 +139,9 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
 
         loadDara();
 
-        Map<PipelineConfig, List<Curve>> aucCurves = new HashMap<>();
+        Map<StringObjectMap, List<Curve>> aucCurves = new HashMap<>();
 
-        for (PipelineConfig classifierConf : classifierConfigs) {
+        for (StringObjectMap classifierConf : classifierConfigs) {
             List<Curve> classifierCurves = run(classifierConf);
             aucCurves.put(classifierConf, classifierCurves);
         }
@@ -217,7 +217,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
             pipeline.setNabOutputDir(nabOutputDir);
             pipeline.setOutputIncludesInliers(isOutputIncludesInliers());
 
-            Map<PipelineConfig, List<Curve>> result = pipeline.run();
+            Map<StringObjectMap, List<Curve>> result = pipeline.run();
 
             result.forEach((key, value) -> {
                 String name = Pipelines.getClassifierName(key);
@@ -258,7 +258,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
 
         loadDara();
 
-        for (PipelineConfig classifierConf : gridSearchClassifierConfigs != null ? gridSearchClassifierConfigs.values(): classifierConfigs) {
+        for (StringObjectMap classifierConf : gridSearchClassifierConfigs != null ? gridSearchClassifierConfigs.values(): classifierConfigs) {
             out.println();
             out.println(Pipelines.getClassifier(classifierConf, metricColumns).getClass().getSimpleName());
 
@@ -269,7 +269,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         }
     }
 
-    private List<Curve> run(PipelineConfig classifierConf) throws Exception {
+    private List<Curve> run(StringObjectMap classifierConf) throws Exception {
         String classifierType = Pipelines.getClassifierName(classifierConf);
 
         if (gridSearchClassifierConfigs != null && gridSearchClassifierConfigs.containsKey(classifierType)) {
@@ -278,7 +278,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
             out.println();
             gsResults.forEach((score, params) -> printInfo(String.format("%.4f: %s", score, params)));
 
-            classifierConf = ConfigUtils.merge(classifierConf, Iterables.getLast(gsResults.values()));
+            classifierConf = classifierConf.merge(Iterables.getLast(gsResults.values()));
         }
 
         Classifier classifier = Pipelines.getClassifier(classifierConf, metricColumns);
@@ -289,8 +289,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
                 throw new Exception("Not ParametersAutoTuner");
             }
 
-            classifierConf = ConfigUtils.merge(classifierConf,
-                    tuner.tuneParameters(dataFrames.get(0).limit(classifierConf.get("tuneSetSize", 500))));
+            classifierConf = classifierConf.merge(tuner.tuneParameters(dataFrames.get(0).limit(classifierConf.get("tuneSetSize", 500))));
         }
 
         out.println();
@@ -301,11 +300,11 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         List<ResultPoint> points = new ArrayList<>();
         List<RunResult> results = new ArrayList<>();
 
-        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+        StringObjectMap benchmarkConf = classifierConf.getMapOrEmpty("benchmark");
 
-        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
+        OptionalDouble fixedThreshold = benchmarkConf.getOptionalDouble("threshold");
 
-        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(benchmarkConf, "normalizers");
+        List<StringObjectMap> normalizersConfigs = benchmarkConf.getMapList("normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
 
         if (isStreaming) {
@@ -456,7 +455,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         return new RunResult(aucAnalysis, points, rank);
     }
 
-    private SortedMap<Double, Map<String, Object>> runGridSearch(PipelineConfig classifierConf) throws Exception {
+    private SortedMap<Double, Map<String, Object>> runGridSearch(StringObjectMap classifierConf) throws Exception {
         DataFrame dataFrame = dataFrames.get(0);
         int[] labels = labelsLists.get(0);
 
@@ -466,15 +465,15 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         GridSearch gs = new GridSearch();
         searchParams.forEach(gs::addParam);
 
-        PipelineConfig benchmarkConf = ConfigUtils.getObjOrEmpty(classifierConf, "benchmark");
+        StringObjectMap benchmarkConf = classifierConf.getMapOrEmpty("benchmark");
 
-        List<PipelineConfig> normalizersConfigs = ConfigUtils.getObjectsList(benchmarkConf, "normalizers");
+        List<StringObjectMap> normalizersConfigs = benchmarkConf.getMapList("normalizers");
         Normalizer normalizer = normalizersConfigs.isEmpty() ? null : Pipelines.getNormalizer(normalizersConfigs.get(0));
 
-        OptionalDouble fixedThreshold = ConfigUtils.getOptionalDouble(benchmarkConf,"threshold");
+        OptionalDouble fixedThreshold = benchmarkConf.getOptionalDouble("threshold");
 
         gs.run(params -> {
-            PipelineConfig conf = ConfigUtils.merge(classifierConf, params);
+            StringObjectMap conf = classifierConf.merge(params);
 
             Classifier classifier = Pipelines.getClassifier(conf, metricColumns);
 
