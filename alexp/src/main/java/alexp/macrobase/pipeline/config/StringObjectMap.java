@@ -43,6 +43,24 @@ public class StringObjectMap {
         return fromJson(FileUtils.readFileToString(new File(jsonFilePath), StandardCharsets.UTF_8));
     }
 
+    public String toYaml() {
+        Yaml yaml = new Yaml();
+        return yaml.dump(values);
+    }
+
+    public void toYamlFile(String filePath) throws IOException {
+        FileUtils.writeStringToFile(new File(filePath), toYaml(), StandardCharsets.UTF_8);
+    }
+
+    public String toJson() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(values);
+    }
+
+    public void toJsonFile(String filePath) throws IOException {
+        FileUtils.writeStringToFile(new File(filePath), toJson(), StandardCharsets.UTF_8);
+    }
+
     public Map<String, Object> getValues() {
         return values;
     }

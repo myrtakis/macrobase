@@ -47,6 +47,18 @@ public class StringObjectMapTest {
     }
 
     @Test
+    public void savesJson() throws IOException {
+        StringObjectMap config = new StringObjectMap(configValues);
+        assertEquals(configValues, StringObjectMap.fromJson(config.toJson()).getValues());
+    }
+
+    @Test
+    public void savesYaml() throws IOException {
+        StringObjectMap config = new StringObjectMap(configValues);
+        assertEquals(configValues, StringObjectMap.fromYaml(config.toYaml()).getValues());
+    }
+
+    @Test
     public void testGet() {
         StringObjectMap config = new StringObjectMap(configValues);
 
