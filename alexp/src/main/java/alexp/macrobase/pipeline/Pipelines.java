@@ -103,9 +103,11 @@ public class Pipelines {
     }
 
     public static Classifier getClassifier(StringObjectMap conf, String[] metricColumns) throws MacroBaseException {
-        String classifierType = conf.get("classifier");
+        return getClassifier(conf.get("classifier"), conf, metricColumns);
+    }
 
-        switch (classifierType.toLowerCase()) {
+    public static Classifier getClassifier(String id, StringObjectMap conf, String[] metricColumns) throws MacroBaseException {
+        switch (id.toLowerCase()) {
             case "mcod": {
                 McodClassifier classifier = new McodClassifier(metricColumns);
                 classifier.setMaxDistance(conf.get("maxDistance", 1.0));
@@ -186,7 +188,7 @@ public class Pipelines {
                 return classifier;
             }
             default: {
-                throw new RuntimeException("Bad Classifier Type " + classifierType);
+                throw new RuntimeException("Bad Classifier ID " + id);
             }
         }
     }

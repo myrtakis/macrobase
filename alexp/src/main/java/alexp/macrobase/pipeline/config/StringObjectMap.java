@@ -2,6 +2,7 @@ package alexp.macrobase.pipeline.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -53,12 +54,17 @@ public class StringObjectMap {
     }
 
     public String toJson() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.writeValueAsString(values);
     }
 
     public void toJsonFile(String filePath) throws IOException {
         FileUtils.writeStringToFile(new File(filePath), toJson(), StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public String toString() {
+        return values.toString();
     }
 
     public Map<String, Object> getValues() {

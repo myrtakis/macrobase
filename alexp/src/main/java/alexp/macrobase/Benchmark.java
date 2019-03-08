@@ -1,6 +1,8 @@
 package alexp.macrobase;
 
+import alexp.macrobase.pipeline.benchmark.ClassifierEvaluationPipeline;
 import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
+import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -64,7 +66,17 @@ public class Benchmark {
                 .withRequiredArg().describedAs("config_file_path");
     }
 
-    private void runAuc(String confFilePath) throws Exception {
+    private void runBenchmark(String confFilePath) throws Exception {
+        BenchmarkConfig conf = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
+
+        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        pipeline.setOutputDir(outputDir);
+        pipeline.setOutputStream(out);
+
+        pipeline.run();
+    }
+
+    private void runLegacyBenchmark(String confFilePath) throws Exception {
         StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
 
         LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
@@ -174,12 +186,17 @@ public class Benchmark {
                 }
             }
 
-            runAuc(confFilePath);
+            runLegacyBenchmark(confFilePath);
         }
 
         if (options.has(benchmarkOption)) {
-            out.println("NOT IMPLEMENTED");
-            return 42;
+            String confFilePath = benchmarkOption.value(options);
+            if (!Files.exists(Paths.get(confFilePath))) {
+                err.println("Config file not found");
+                return 3;
+            }
+
+            runBenchmark(confFilePath);
         }
 
         if (options.has(gsOption)) {

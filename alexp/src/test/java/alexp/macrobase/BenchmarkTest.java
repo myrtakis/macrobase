@@ -76,8 +76,9 @@ public class BenchmarkTest {
     }
 
     @Test
-    public void failsWhenHasBadArgs() throws Exception {
-        run(new String[]{ "--auc", "f", "--qwerty" });
+    @Parameters({"-b", "--auc", "--gs"})
+    public void failsWhenHasBadArgs(String param) throws Exception {
+        run(new String[]{ param, "f", "--qwerty" });
 
         assertReturnCodeFail();
         assertShowsHelp();
@@ -86,8 +87,9 @@ public class BenchmarkTest {
     }
 
     @Test
-    public void failsWhenIncompatibleArgs() throws Exception {
-        run(new String[]{ "--auc", "f", "--gs", "f" });
+    @Parameters({"-b", "--auc"})
+    public void failsWhenIncompatibleArgs(String param) throws Exception {
+        run(new String[]{ param, "f", "--gs", "f" });
 
         assertReturnCodeFail();
         assertShowsHelp();
@@ -95,7 +97,7 @@ public class BenchmarkTest {
     }
 
     @Test
-    @Parameters({"--auc", "--gs"})
+    @Parameters({"-b", "--auc", "--gs"})
     public void failsWhenConfigNotFound(String param) throws Exception {
         run(new String[]{ param, "not_existing.yaml" });
 
@@ -108,7 +110,7 @@ public class BenchmarkTest {
         File outputDir = tmpFolder.getRoot();
         String outputDirPath = outputDir.getAbsolutePath();
 
-        run(new String[]{ "--auc", resourcesFilePath("benchmark_config.yaml"), "--so", outputDirPath });
+        run(new String[]{ "--auc", resourcesFilePath("legacy_benchmark_config.yaml"), "--so", outputDirPath });
 
         assertReturnCodeOk();
         assertEquals("", errorOutput);
@@ -124,7 +126,7 @@ public class BenchmarkTest {
         File outputDir = tmpFolder.getRoot();
         String outputDirPath = outputDir.getAbsolutePath();
 
-        run(new String[]{ "--auc", resourcesFilePath("benchmark_config.yaml"), "--so", outputDirPath, "--ii" });
+        run(new String[]{ "--auc", resourcesFilePath("legacy_benchmark_config.yaml"), "--so", outputDirPath, "--ii" });
 
         assertReturnCodeOk();
         assertEquals("", errorOutput);
@@ -136,7 +138,8 @@ public class BenchmarkTest {
     }
 
     @Test
-    public void clearsDir() throws Exception {
+    @Parameters({"-b,benchmark_config.yaml", "--auc,legacy_benchmark_config.yaml"})
+    public void clearsDir(String param, String configName) throws Exception {
         File outputDir = tmpFolder.getRoot();
         String outputDirPath = outputDir.getAbsolutePath();
 
@@ -147,7 +150,7 @@ public class BenchmarkTest {
         new File(oldFilePath).createNewFile();
         assertTrue(new File(oldFilePath).exists());
 
-        run(new String[]{ "--auc", resourcesFilePath("benchmark_config.yaml"), "--so", outputDirPath, "--co" });
+        run(new String[]{ param, resourcesFilePath(configName), "--so", outputDirPath, "--co" });
 
         assertReturnCodeOk();
         assertEquals("", errorOutput);
