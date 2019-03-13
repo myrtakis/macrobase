@@ -25,7 +25,7 @@ public class DatasetConfig {
         String id = conf.get("id", uri.getPath());
         //noinspection unchecked
         String[] metricColumns = ((List<String>) conf.get("metricColumns")).toArray(new String[0]);
-        String labelColumn = conf.get("labelColumn", "is_anomaly");
+        String labelColumn = conf.get("labelColumn");
 
         return new DatasetConfig(id, uri, metricColumns, labelColumn);
     }
