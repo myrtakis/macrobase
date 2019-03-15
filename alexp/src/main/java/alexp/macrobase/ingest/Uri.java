@@ -143,4 +143,23 @@ public class Uri {
                 return getDirFiles(recursive, new ArrayList<>());
         }
     }
+
+    public Uri addRootPath(String rootPath) {
+        if (rootPath == null)
+            return this;
+
+        if (!rootPath.endsWith("/"))
+            rootPath = rootPath + "/";
+        
+        switch (type) {
+            case CSV:
+                return new Uri("csv://" + rootPath + path);
+            case XLSX:
+                return new Uri("xls://" + rootPath + path);
+            case UNKNOWN:
+                return new Uri(rootPath + path);
+            default:
+                return this;
+        }
+    }
 }

@@ -90,4 +90,31 @@ public class UriTest {
 
         assertEquals(PathUtils.toNativeSeparators(Lists.newArrayList("1.csv", "2.csv", "3.csv", "subdir/4.csv", "subdir/subdir2/4.csv")), new Uri(url).getDirFiles(true));
     }
+
+    @Test
+    public void addsRootPath() {
+        assertEquals("csv://~/data/documents/data.csv", new Uri("csv://documents/data.csv").addRootPath("~/data/").getOriginalString());
+        assertEquals("csv://C:/data/documents/data.csv", new Uri("csv://documents/data.csv").addRootPath("C:/data").getOriginalString());
+        assertEquals("csv://../data/documents/data.csv", new Uri("csv://documents/data.csv").addRootPath("../data/").getOriginalString());
+
+        assertEquals("xls://~/data/documents/data.csv", new Uri("xls://documents/data.csv").addRootPath("~/data").getOriginalString());
+
+        assertEquals("~/data/documents/data.csv", new Uri("documents/data.csv").addRootPath("~/data").getOriginalString());
+
+        assertEquals("csv://documents/data.csv", new Uri("csv://documents/data.csv").addRootPath(null).getOriginalString());
+
+        // no changes
+        assertEquals("http://site.com/data", new Uri("http://site.com/data").addRootPath("~/data").getOriginalString());
+        assertEquals("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword", new Uri("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=pgpassword").addRootPath("~/data").getOriginalString());
+    }
+
+    @Test
+    public void isImmutable() {
+        Uri uri = new Uri("csv://documents/data.csv");
+        Uri newUri = uri.addRootPath("~/data");
+
+        assertNotEquals(newUri.getOriginalString(), uri.getOriginalString());
+        assertEquals("csv://documents/data.csv", uri.getOriginalString());
+        assertEquals("documents/data.csv", uri.getPath());
+    }
 }

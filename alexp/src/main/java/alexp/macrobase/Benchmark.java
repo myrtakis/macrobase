@@ -29,11 +29,13 @@ public class Benchmark {
     private final OptionSpec clearOutputOption;
     private final OptionSpec includeInliersOutputOption;
     private final OptionSpec streamOption;
+    private final OptionSpec<String> dataDirOption;
     private final OptionSpec<String> nabOption;
 
     private final OptionSpec<String> drawDataPlotsOption;
 
     private String outputDir;
+    private String rootDataDir;
     private String nabOutputDir;
     private boolean includeInliers = false;
     private boolean streaming = false;
@@ -59,6 +61,9 @@ public class Benchmark {
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
                 .availableUnless(benchmarkOption);
 
+        dataDirOption = optionParser.accepts("data-dir", "Path of the root data dir that will be prepended for paths from the config file")
+                .availableIf(benchmarkOption).withRequiredArg().describedAs("root_dir_path");
+
         nabOption = optionParser.accepts("nab", "Save output in Numenta Anomaly Benchmark format (detection phase) in the specified dir (by default NAB subdir in the output dir)")
                 .availableIf(aucOption).withOptionalArg().describedAs("dir_path");
 
@@ -69,7 +74,7 @@ public class Benchmark {
     private void runBenchmark(String confFilePath) throws Exception {
         BenchmarkConfig conf = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf);
+        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, rootDataDir);
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputStream(out);
 
@@ -163,6 +168,10 @@ public class Benchmark {
                     err.println(ex.getMessage());
                 }
             }
+        }
+
+        if (options.has(dataDirOption)) {
+            rootDataDir = dataDirOption.value(options);
         }
 
         if (options.has(aucOption)) {
