@@ -23,7 +23,7 @@ public class ExecutionResult {
 
     public StringObjectMap toMap() {
         return new StringObjectMap(ImmutableMap.of(
-                "config", benchmarkConfig.toMap(),
+                "config", benchmarkConfig.toMap().getValues(),
                 "result", ImmutableMap.of(
                         "timeElapsed", timeElapsed
                 )

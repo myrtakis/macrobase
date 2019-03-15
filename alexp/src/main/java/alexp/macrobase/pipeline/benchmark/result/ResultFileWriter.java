@@ -3,6 +3,7 @@ package alexp.macrobase.pipeline.benchmark.result;
 import alexp.macrobase.utils.DataFrameUtils;
 import com.google.common.collect.ImmutableMap;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import org.apache.commons.io.FilenameUtils;
 
 import java.nio.file.Paths;
 
@@ -18,8 +19,8 @@ public class ResultFileWriter implements ResultWriter {
 
         result.toMap().merge(ImmutableMap.of(
                 "result", result.toMap().getMap("result").merge(ImmutableMap.of(
-                        "algorithmOutputFilePath", csvPath
-                ))
+                        "algorithmOutputFilePath", FilenameUtils.getName(csvPath)
+                )).getValues()
         )).toJsonFile(Paths.get(outputDir, baseFileName + ".json").toString());
     }
 
