@@ -10,6 +10,7 @@ import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
+import org.apache.commons.io.FilenameUtils;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +62,9 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     private void setupResultWriter() {
-        resultWriter = new ResultFileWriter().setOutputDir(getOutputDir());
+        resultWriter = new ResultFileWriter()
+                .setOutputDir(getOutputDir())
+                .setBaseFileName(FilenameUtils.removeExtension(conf.getDatasetConfig().getDatasetId()));
     }
 
     private DataFrame loadDara() throws Exception {

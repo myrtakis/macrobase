@@ -3,16 +3,16 @@ package alexp.macrobase.pipeline.benchmark.result;
 import alexp.macrobase.utils.DataFrameUtils;
 import com.google.common.collect.ImmutableMap;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import org.apache.commons.io.FilenameUtils;
 
 import java.nio.file.Paths;
 
 public class ResultFileWriter implements ResultWriter {
     private String outputDir;
+    private String baseFileName;
 
     @Override
     public void write(DataFrame outputData, ExecutionResult result) throws Exception {
-        String csvPath = Paths.get(outputDir, result.getBenchmarkConfig().getDatasetConfig().getDatasetId().split("/")).toString();
+        String csvPath = Paths.get(outputDir, baseFileName + ".csv").toString();
 
         DataFrameUtils.saveToCsv(csvPath, outputData);
 
@@ -20,7 +20,7 @@ public class ResultFileWriter implements ResultWriter {
                 "result", result.toMap().getMap("result").merge(ImmutableMap.of(
                         "algorithmOutputFilePath", csvPath
                 ))
-        )).toJsonFile(FilenameUtils.removeExtension(csvPath) + ".json");
+        )).toJsonFile(Paths.get(outputDir, baseFileName + ".json").toString());
     }
 
     public String getOutputDir() {
@@ -29,6 +29,15 @@ public class ResultFileWriter implements ResultWriter {
 
     public ResultFileWriter setOutputDir(String outputDir) {
         this.outputDir = outputDir;
+        return this;
+    }
+
+    public String getBaseFileName() {
+        return baseFileName;
+    }
+
+    public ResultFileWriter setBaseFileName(String baseFileName) {
+        this.baseFileName = baseFileName;
         return this;
     }
 }
