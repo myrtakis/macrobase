@@ -8,7 +8,7 @@ import org.apache.commons.math3.linear.*;
 
 import java.util.*;
 
-public class MinCovDet extends MultiMetricClassifier {
+public class MinCovDet extends MultiMetricClassifier implements Trainable {
     // H = alpha*(n+p+1), p == dataset dimension
     private double alpha = 0.5;
     private double stoppingDelta = 0.001;
@@ -31,11 +31,14 @@ public class MinCovDet extends MultiMetricClassifier {
         assert (columns.length > 1);
     }
 
+    @Override
     public void train(DataFrame input) {
         train(DataFrameUtils.toRowsRealVector(input, columns));
     }
 
     private void train(List<RealVector> inputRows) {
+        inputRows = inputRows.subList(0, Math.min(trainSize, inputRows.size()));
+
         int h = (int) Math.floor((inputRows.size() + columns.length + 1) * alpha);
 
         List<RealVector> initialSubset = chooseKRandom(inputRows, h);
@@ -71,7 +74,9 @@ public class MinCovDet extends MultiMetricClassifier {
     public void process(DataFrame input) throws Exception {
         ArrayList<RealVector> inputRows = DataFrameUtils.toRowsRealVector(input, columns);
 
-        train(inputRows.subList(0, Math.min(trainSize, input.getNumRows())));
+        if (cov == null) {
+            train(inputRows);
+        }
 
         output = input.copy();
 

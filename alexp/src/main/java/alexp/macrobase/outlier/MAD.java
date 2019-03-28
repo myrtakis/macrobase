@@ -1,6 +1,5 @@
 package alexp.macrobase.outlier;
 
-import alexp.macrobase.normalization.MinMaxNormalizer;
 import alexp.macrobase.normalization.Normalizer;
 import alexp.macrobase.utils.MathUtils;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
@@ -8,9 +7,11 @@ import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import java.util.Arrays;
 import java.util.OptionalDouble;
 
-public class MAD extends Classifier {
+public class MAD extends Classifier implements Trainable {
     private double median;
     private double MAD;
+
+    private boolean isTrained = false;
 
     private DataFrame output;
 
@@ -23,7 +24,10 @@ public class MAD extends Classifier {
         super(columnName);
     }
 
-    private void train(DataFrame input) {
+    @Override
+    public void train(DataFrame input) {
+        input = input.limit(Math.min(trainSize, input.getNumRows() - 1)); // must be deep copy
+
         double[] metricColumn = input.getDoubleColumnByName(columnName);
 
         Arrays.sort(metricColumn);
@@ -50,11 +54,15 @@ public class MAD extends Classifier {
             MAD = sum / (upperTrimmedMeanIndex - lowerTrimmedMeanIndex);
             assert (MAD != 0);
         }
+
+        isTrained = true;
     }
 
     @Override
     public void process(DataFrame input) throws Exception {
-        train(input.limit(Math.min(trainSize, input.getNumRows() - 1))); // must be deep copy
+        if (!isTrained) {
+            train(input);
+        }
 
         double[] metricColumn = input.getDoubleColumnByName(columnName);
 

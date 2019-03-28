@@ -1,11 +1,13 @@
 package alexp.macrobase.pipeline.benchmark;
 
+import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.benchmark.result.ExecutionResult;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.benchmark.result.ResultWriter;
+import alexp.macrobase.utils.BenchmarkUtils;
 import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
@@ -49,16 +51,20 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmConfig().getAlgorithmId(), conf.getAlgorithmConfig().getParameters(), conf.getDatasetConfig().getMetricColumns());
 
-        Stopwatch sw = Stopwatch.createStarted();
+        final long trainingTime = classifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
+            ((Trainable) classifier).train(dataFrame);
+        }) : 0;
 
-        classifier.process(dataFrame);
+        final long classificationTime = BenchmarkUtils.measureTime(() -> {
+            classifier.process(dataFrame);
+        });
 
-        final long classifierMs = sw.elapsed(TimeUnit.MILLISECONDS);
-        printInfo(String.format("Time elapsed: %d ms (%.2f sec)", classifierMs, classifierMs / 1000.0));
+        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec)",
+                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0));
 
         DataFrame resultsDf = classifier.getResults();
 
-        resultWriter.write(resultsDf, new ExecutionResult(classifierMs, conf));
+        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, conf));
     }
 
     private void setupResultWriter() {

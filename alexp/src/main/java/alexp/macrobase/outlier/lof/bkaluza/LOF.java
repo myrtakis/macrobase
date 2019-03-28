@@ -1,6 +1,7 @@
 package alexp.macrobase.outlier.lof.bkaluza;
 
 import alexp.macrobase.outlier.MultiMetricClassifier;
+import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.utils.DataFrameUtils;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 
@@ -16,9 +17,9 @@ import java.util.stream.IntStream;
  * @author Bostjan Kaluza
  * @date June 10, 2016
  */
-public class LOF extends MultiMetricClassifier {
+public class LOF extends MultiMetricClassifier implements Trainable {
 
-    public static enum Distance {
+    public enum Distance {
         ABS_RELATIVE, EUCLIDIAN;
     }
 
@@ -68,7 +69,7 @@ public class LOF extends MultiMetricClassifier {
         List<double[]> inputRows = DataFrameUtils.toRowArray(input, columns);
 
         if (distTable == null || retrainOnEachInput) {
-            train(inputRows.subList(0, Math.min(trainSize, input.getNumRows())));
+            train(inputRows);
         }
 
         output = input.copy();
@@ -86,7 +87,14 @@ public class LOF extends MultiMetricClassifier {
         return output;
     }
 
-    public void train(Collection<double[]> trainInstances) {
+    @Override
+    public void train(DataFrame input) {
+        train(DataFrameUtils.toRowArray(input, columns));
+    }
+
+    public void train(List<double[]> trainInstances) {
+        trainInstances = trainInstances.subList(0, Math.min(trainSize, trainInstances.size()));
+
         this.trainInstances = trainInstances;
 
         numInstances = trainInstances.size();

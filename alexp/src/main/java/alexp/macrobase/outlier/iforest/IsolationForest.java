@@ -23,6 +23,7 @@
 package alexp.macrobase.outlier.iforest;
 
 import alexp.macrobase.outlier.MultiMetricClassifier;
+import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.utils.DataFrameUtils;
 import alexp.macrobase.utils.MathUtils;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
@@ -48,7 +49,7 @@ import java.util.Random;
  *
  * @author Eibe Frank (eibe@cs.waikato.ac.nz)
  */
-public class IsolationForest extends MultiMetricClassifier {
+public class IsolationForest extends MultiMetricClassifier implements Trainable {
 
     // The set of trees
     private Tree[] trees = null;
@@ -76,6 +77,8 @@ public class IsolationForest extends MultiMetricClassifier {
      * Builds the forest.
      */
     public void buildClassifier(List<double[]> instances) throws Exception {
+        instances = instances.subList(0, Math.min(trainSize, instances.size()));
+
         // Reduce subsample size if data is too small
         if (instances.size() < subsampleSize) {
             subsampleSize = instances.size();
@@ -91,6 +94,11 @@ public class IsolationForest extends MultiMetricClassifier {
             trees[i] = new Tree(instances.subList(0, subsampleSize), rand, 0,
                     (int) Math.ceil(MathUtils.log2(instances.size())));
         }
+    }
+
+    @Override
+    public void train(DataFrame input) throws Exception {
+        buildClassifier(DataFrameUtils.toRowArray(input, columns));
     }
 
     /**
@@ -122,7 +130,7 @@ public class IsolationForest extends MultiMetricClassifier {
         List<double[]> inputRows = DataFrameUtils.toRowArray(input, columns);
 
         if (trees == null || retrainOnEachInput) {
-            buildClassifier(inputRows.subList(0, Math.min(trainSize, input.getNumRows())));
+            buildClassifier(inputRows);
         }
 
         output = input.copy();
