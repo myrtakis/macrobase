@@ -31,12 +31,16 @@ public class DatasetConfig {
     }
 
     public StringObjectMap toMap() {
-        return new StringObjectMap(ImmutableMap.of(
+        ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.builder();
+        mapBuilder.putAll(ImmutableMap.of(
                 "uri", uri.getOriginalString(),
                 "id", datasetId,
-                "metricColumns", Lists.newArrayList(metricColumns),
-                "labelColumn", labelColumn
-        ));
+                "metricColumns", Lists.newArrayList(metricColumns)
+                ));
+        if (labelColumn != null) {
+            mapBuilder.put("labelColumn", labelColumn);
+        }
+        return new StringObjectMap(mapBuilder.build());
     }
 
     public String getDatasetId() {
