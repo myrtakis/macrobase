@@ -9,6 +9,6 @@ mvn package
 ```
 2. Run `java -jar target/benchmark.jar <parameters>`
 
-Example:
-
-`java -jar target/benchmark.jar -b data\outlier\iforest_shuttle_config.yaml --data-dir .. --so output`
+   Example:
+  
+   `java -jar target/benchmark.jar -b data\outlier\iforest_shuttle_config.yaml --data-dir .. --so output`
