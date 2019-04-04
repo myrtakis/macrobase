@@ -3,11 +3,13 @@ package alexp.macrobase;
 import alexp.macrobase.pipeline.benchmark.ClassifierEvaluationPipeline;
 import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
+import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -74,7 +76,10 @@ public class Benchmark {
     private void runBenchmark(String confFilePath) throws Exception {
         BenchmarkConfig conf = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, rootDataDir);
+        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, rootDataDir,
+                new ResultFileWriter()
+                        .setOutputDir(outputDir)
+                        .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputStream(out);
 
