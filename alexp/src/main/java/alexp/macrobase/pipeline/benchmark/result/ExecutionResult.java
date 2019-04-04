@@ -7,11 +7,13 @@ import com.google.common.collect.ImmutableMap;
 public class ExecutionResult {
     private final long trainingTime;
     private final long classificationTime;
+    private final long maxMemory;
     private final BenchmarkConfig benchmarkConfig;
 
-    public ExecutionResult(long timeElapsed, long classificationTime, BenchmarkConfig benchmarkConfig) {
-        this.trainingTime = timeElapsed;
+    public ExecutionResult(long trainingTime, long classificationTime, long maxMemory, BenchmarkConfig benchmarkConfig) {
+        this.trainingTime = trainingTime;
         this.classificationTime = classificationTime;
+        this.maxMemory = maxMemory;
         this.benchmarkConfig = benchmarkConfig;
     }
 
@@ -23,6 +25,10 @@ public class ExecutionResult {
         return classificationTime;
     }
 
+    public long getMaxMemory() {
+        return maxMemory;
+    }
+
     public BenchmarkConfig getBenchmarkConfig() {
         return benchmarkConfig;
     }
@@ -32,7 +38,8 @@ public class ExecutionResult {
                 "config", benchmarkConfig.toMap().getValues(),
                 "result", ImmutableMap.of(
                         "trainingTime", trainingTime,
-                        "classificationTime", classificationTime
+                        "classificationTime", classificationTime,
+                        "maxMemory", maxMemory
                 )
         ));
     }

@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline.benchmark;
 
+import alexp.macrobase.evaluation.memory.BasicMemoryProfiler;
 import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
@@ -8,14 +9,12 @@ import alexp.macrobase.pipeline.benchmark.result.ExecutionResult;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.benchmark.result.ResultWriter;
 import alexp.macrobase.utils.BenchmarkUtils;
-import com.google.common.base.Stopwatch;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import org.apache.commons.io.FilenameUtils;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,6 +48,8 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         DataFrame dataFrame = loadDara();
 
+        BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
+
         Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmConfig().getAlgorithmId(), conf.getAlgorithmConfig().getParameters(), conf.getDatasetConfig().getMetricColumns());
 
         final long trainingTime = classifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
@@ -59,12 +60,15 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             classifier.process(dataFrame);
         });
 
-        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec)",
-                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0));
+        long maxMemoryUsage = memoryProfiler.getPeakUsage();
+
+        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB",
+                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0,
+                maxMemoryUsage / 1024 / 1024));
 
         DataFrame resultsDf = classifier.getResults();
 
-        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, conf));
+        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, 0, conf));
     }
 
     private void setupResultWriter() {
