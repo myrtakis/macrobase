@@ -5,6 +5,7 @@ import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
+import com.google.common.collect.Lists;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -16,8 +17,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Benchmark {
     PrintStream out = System.out;
@@ -204,13 +208,27 @@ public class Benchmark {
         }
 
         if (options.has(benchmarkOption)) {
-            String confFilePath = benchmarkOption.value(options);
-            if (!Files.exists(Paths.get(confFilePath))) {
+            String confPath = benchmarkOption.value(options);
+            if (!Files.exists(Paths.get(confPath))) {
                 err.println("Config file not found");
                 return 3;
             }
 
-            runBenchmark(confFilePath);
+            List<String> confFilePaths = Lists.newArrayList(confPath);
+            if (Files.isDirectory(Paths.get(confPath))) {
+                out.println("Running for all configs in " + confPath);
+                out.println("This should not be used for time/memory measurements");
+                out.println();
+
+                confFilePaths = Files.list(Paths.get(confPath))
+                        .map(Path::toString)
+                        .filter(s -> s.endsWith("yaml"))
+                        .collect(Collectors.toList());
+            }
+
+            for (String confFilePath : confFilePaths) {
+                runBenchmark(confFilePath);
+            }
         }
 
         if (options.has(gsOption)) {
