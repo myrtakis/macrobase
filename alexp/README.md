@@ -2,7 +2,7 @@ Benchmark for anomaly detection algorithms and implementations of several anomal
 
 # Running benchmark
 
-1. Build the whole MacroBase project using Maven `package` phase from your IDE (IntelliJ Idea, ...) or with this command: 
+1. Build the whole MacroBase project using Maven `package` phase from your IDE (IntelliJ Idea, ...) or [install Maven](https://maven.apache.org/install.html) and use this command: 
 ```
 cd ..
 mvn package
