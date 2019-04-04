@@ -11,4 +11,4 @@ mvn package
 
    Example:
   
-   `java -jar target/benchmark.jar -b data\outlier\iforest_shuttle_config.yaml --data-dir .. --so output`
+   `java -jar target/benchmark.jar -b data/outlier/iforest_shuttle_config.yaml --data-dir .. --so output`
