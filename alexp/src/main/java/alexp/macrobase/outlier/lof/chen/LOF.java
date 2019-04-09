@@ -43,7 +43,7 @@ public class LOF extends MultiMetricClassifier {
 
     private edu.stanford.futuredata.macrobase.datamodel.DataFrame output;
 
-    private int trainSize = 10000;
+    private int trainSize = 100;
 
     public LOF(String columnName) {
         super(columnName);

@@ -162,9 +162,9 @@ public class Pipelines {
             }
             case "lof-chen": {
                 alexp.macrobase.outlier.lof.chen.LOF classifier = new alexp.macrobase.outlier.lof.chen.LOF(metricColumns);
-                classifier.setTrainSize(conf.get("trainSize", 10000));
-                classifier.setParallel(conf.get("parallel", true));
-                classifier.setSearchRange(conf.get("minPtsLB"), conf.get("minPtsUB"));
+                classifier.setTrainSize(conf.get("trainSize", 100));
+                classifier.setParallel(conf.get("parallel", false));
+                classifier.setSearchRange(conf.get("minPtsLB", 3), conf.get("minPtsUB", 10));
                 return classifier;
             }
             case "lof-bkaluza": {
