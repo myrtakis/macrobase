@@ -126,6 +126,11 @@ public class LOF extends MultiMetricClassifier implements Trainable {
         // fill the table with distances among training instances
         distTable = new double[numInstances + 1][numInstances + 1];
         distSorted = new int[numInstances + 1][numInstances + 1];
+        for (int i = 0; i < distSorted.length; i++) {
+            for (int j = 0; j < distSorted.length; j++) {
+                distSorted[i][j] = j;
+            }
+        }
 
         int i = 0, j = 0;
         for (double[] instance1 : trainInstances) {
@@ -197,7 +202,7 @@ public class LOF extends MultiMetricClassifier implements Trainable {
 
         // sort the distances
         for (i = 0; i < numInstances + 1; i++) {
-            distSorted[i] = sortedIndices(distTable[i]);
+            sortIndices(distTable[i], distSorted[i]);
         }
     }
 
@@ -266,15 +271,8 @@ public class LOF extends MultiMetricClassifier implements Trainable {
         return lrd;
     }
 
-    private int[] sortedIndices(double[] array) {
-        int[] indices = new int[array.length];
-        for (int i = 0; i < array.length; i++) {
-            indices[i] = i;
-        }
-
+    private void sortIndices(double[] array, int[] indices) {
         IntArrays.quickSort(indices, (i1, i2) -> Double.compare(array[i1], array[i2]));
-
-        return indices;
     }
 
 }
