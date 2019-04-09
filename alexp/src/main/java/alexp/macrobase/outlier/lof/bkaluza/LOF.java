@@ -4,6 +4,7 @@ import alexp.macrobase.outlier.MultiMetricClassifier;
 import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.utils.DataFrameUtils;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 
 import java.lang.Math;
 import java.util.*;
@@ -266,9 +267,14 @@ public class LOF extends MultiMetricClassifier implements Trainable {
     }
 
     private int[] sortedIndices(double[] array) {
-        return IntStream.range(0, array.length)
-                .boxed().sorted(Comparator.comparingDouble(i -> array[i]))
-                .mapToInt(ele -> ele).toArray();
+        int[] indices = new int[array.length];
+        for (int i = 0; i < array.length; i++) {
+            indices[i] = i;
+        }
+
+        IntArrays.quickSort(indices, (i1, i2) -> Double.compare(array[i1], array[i2]));
+
+        return indices;
     }
 
 }
