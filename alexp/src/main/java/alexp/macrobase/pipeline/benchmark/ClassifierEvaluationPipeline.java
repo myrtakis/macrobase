@@ -46,7 +46,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
             setupResultWriter();
         }
 
-        DataFrame dataFrame = loadDara();
+        DataFrame dataFrame = loadData();
 
         BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
 
@@ -77,7 +77,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
                 .setBaseFileName(FilenameUtils.removeExtension(conf.getDatasetConfig().getDatasetId()));
     }
 
-    private DataFrame loadDara() throws Exception {
+    private DataFrame loadData() throws Exception {
         Map<String, Schema.ColType> colTypes = getColTypes();
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());

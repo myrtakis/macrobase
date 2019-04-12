@@ -138,7 +138,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
 
         out.println(inputURI.getOriginalString());
 
-        loadDara();
+        loadData();
 
         Map<StringObjectMap, List<Curve>> aucCurves = new HashMap<>();
 
@@ -180,7 +180,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
 
         out.println(inputURI.getOriginalString());
 
-        loadDara();
+        loadData();
 
         if (metricColumns.length != 1) {
             throw new Exception("Only univariate datasets are supported for plots");
@@ -253,7 +253,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
     public void runGridSearch() throws Exception {
         out.println(inputURI.getOriginalString());
 
-        loadDara();
+        loadData();
 
         for (StringObjectMap classifierConf : gridSearchClassifierConfigs != null ? gridSearchClassifierConfigs.values(): classifierConfigs) {
             out.println();
@@ -573,7 +573,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
                 .build();
     }
 
-    private void loadDara() throws Exception {
+    private void loadData() throws Exception {
         dataFrames.clear();
 
         if (isStreaming) {
@@ -589,13 +589,13 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
                 }
             });
         } else {
-            dataFrames.add(loadBatchDara());
+            dataFrames.add(loadBatchData());
         }
 
         labelsLists = dataFrames.stream().map(this::getLabels).collect(Collectors.toList());
     }
 
-    private DataFrame loadBatchDara() throws Exception {
+    private DataFrame loadBatchData() throws Exception {
         Map<String, Schema.ColType> colTypes = getColTypes();
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
