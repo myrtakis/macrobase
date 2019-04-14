@@ -460,7 +460,7 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
                 .collect(Collectors.toMap(o -> o.keySet().iterator().next(), o -> ((ArrayList) o.values().iterator().next()).toArray()));
 
         GridSearch gs = new GridSearch();
-        searchParams.forEach(gs::addParam);
+        gs.addParams(searchParams);
 
         StringObjectMap benchmarkConf = classifierConf.getMapOrEmpty("benchmark");
 

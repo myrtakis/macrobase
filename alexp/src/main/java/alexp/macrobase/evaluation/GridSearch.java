@@ -30,6 +30,11 @@ public class GridSearch {
         return this;
     }
 
+    public GridSearch addParams(Map<String, Object[]> params) {
+        params.forEach(this::addParam);
+        return this;
+    }
+
     public void run(RunInstance runInstance) throws Exception {
         List<Object[]> permutations = new ArrayList<>();
         generatePermutations(searchParams.stream().map(p -> p.values).collect(Collectors.toList()), permutations, 0, new ArrayList<>());
