@@ -20,6 +20,10 @@ public class StringObjectMap {
         this.values = ImmutableMap.copyOf(values);
     }
 
+    public static StringObjectMap empty() {
+        return new StringObjectMap(ImmutableMap.of());
+    }
+
     public static StringObjectMap fromYaml(String yamlString) {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")

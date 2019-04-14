@@ -1,0 +1,41 @@
+dataset:
+  uri: "csv://alexp/data/outlier/shuttle-unsupervised-ad.csv"
+  metricColumns:
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+  labelColumn: "is_anomaly"
+
+algorithm:
+  id: "mcod"
+  parameters:
+    classifierWindowSize: 50000
+    classifierSlide: 50000
+    allowDuplicates: false
+  gridsearch:
+    measure: pr
+    parameters:
+      maxDistance:
+        - 3.0
+        - 6.0
+        - 8.0
+        - 10.0
+        - 15.0
+        - 30.0
+        - 50.0
+        - 80.0
+      minNeighborCount:
+        - 5
+        - 10
+        - 15
+        - 30
+        - 50
+        - 80
+        - 120
+        - 150
