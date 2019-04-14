@@ -1,5 +1,6 @@
 package alexp.macrobase.utils;
 
+import alexp.macrobase.evaluation.roc.Curve;
 import com.google.common.base.Stopwatch;
 
 import java.time.LocalDateTime;
@@ -14,5 +15,12 @@ public class BenchmarkUtils {
         f.run();
 
         return sw.elapsed(TimeUnit.MILLISECONDS);
+    }
+
+    public static Curve aucCurve(double[] classifierResult, int[] labels) {
+        return new Curve.PrimitivesBuilder()
+                .scores(classifierResult)
+                .labels(labels)
+                .build();
     }
 }

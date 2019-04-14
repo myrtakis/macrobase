@@ -37,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static alexp.macrobase.utils.BenchmarkUtils.aucCurve;
+
 public class LegacyClassifierEvaluationPipeline extends Pipeline {
     public static class RunResult {
         public final Curve curve;
@@ -564,13 +566,6 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         }
 
         return Arrays.stream(dataFrame.getDoubleColumnByName(labelColumn)).mapToInt(d -> (int) d).toArray();
-    }
-
-    private Curve aucCurve(double[] classifierResult, int[] labels) {
-        return new Curve.PrimitivesBuilder()
-                .scores(classifierResult)
-                .labels(labels)
-                .build();
     }
 
     private void loadData() throws Exception {
