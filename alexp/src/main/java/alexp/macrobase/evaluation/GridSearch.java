@@ -4,6 +4,12 @@ import com.google.common.collect.Streams;
 
 import java.io.PrintStream;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class GridSearch {
@@ -27,7 +33,9 @@ public class GridSearch {
 
     private SortedMap<Double, Map<String, Object>> results = new TreeMap<>();
 
-    protected PrintStream out = System.out;
+    private int threadsCount = Runtime.getRuntime().availableProcessors();
+
+    private PrintStream out = System.out;
 
     public GridSearch addParam(String name, Object[] values) {
         searchParams.add(new SearchParam(name, values));
@@ -45,22 +53,43 @@ public class GridSearch {
 
         results.clear();
 
-        int num = 0;
+        ExecutorService executor = Executors.newFixedThreadPool(threadsCount);
+        Lock lock = new ReentrantLock();
+
+        AtomicInteger num = new AtomicInteger();
         for (Object[] permutation : permutations) {
-            // {"p1": x, "p2": y, ...}
-            Map<String, Object> params = Streams.mapWithIndex(Arrays.stream(permutation), (o, i) -> new AbstractMap.SimpleEntry<>(searchParams.get((int) i).name, o))
-                    .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+            executor.submit(() -> {
+                // {"p1": x, "p2": y, ...}
+                Map<String, Object> params = Streams.mapWithIndex(Arrays.stream(permutation), (o, i) -> new AbstractMap.SimpleEntry<>(searchParams.get((int) i).name, o))
+                        .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
-            double score = runInstance.accept(params);
+                try {
+                    double score = runInstance.accept(params);
 
-            out.println(String.format("%d/%d %s -> %.4f", ++num, permutations.size(), params, score));
+                    lock.lock();
+                    try {
+                        out.println(String.format("%d/%d %s -> %.4f", num.incrementAndGet(), permutations.size(), params, score));
 
-            results.put(score, params);
+                        results.put(score, params);
+                    } finally {
+                        lock.unlock();
+                    }
+                } catch (Exception ex) {
+                    Thread.currentThread().getUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ex);
+                }
+            });
         }
+
+        executor.shutdown();
+        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     }
 
     public SortedMap<Double, Map<String, Object>> getResults() {
         return results;
+    }
+
+    public void setThreadsCount(int threadsCount) {
+        this.threadsCount = threadsCount;
     }
 
     public void setOutputStream(PrintStream out) {
