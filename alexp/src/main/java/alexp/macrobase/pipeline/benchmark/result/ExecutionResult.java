@@ -9,12 +9,15 @@ public class ExecutionResult {
     private final long classificationTime;
     private final long maxMemory;
     private final BenchmarkConfig benchmarkConfig;
+    private final StringObjectMap finalAlgorithmConfig;
 
-    public ExecutionResult(long trainingTime, long classificationTime, long maxMemory, BenchmarkConfig benchmarkConfig) {
+    public ExecutionResult(long trainingTime, long classificationTime, long maxMemory, BenchmarkConfig benchmarkConfig,
+                           StringObjectMap finalAlgorithmConfig) {
         this.trainingTime = trainingTime;
         this.classificationTime = classificationTime;
         this.maxMemory = maxMemory;
         this.benchmarkConfig = benchmarkConfig;
+        this.finalAlgorithmConfig = finalAlgorithmConfig;
     }
 
     public long getTrainingTime() {
@@ -33,13 +36,20 @@ public class ExecutionResult {
         return benchmarkConfig;
     }
 
+    public StringObjectMap getFinalAlgorithmConfig() {
+        return finalAlgorithmConfig;
+    }
+
     public StringObjectMap toMap() {
         return new StringObjectMap(ImmutableMap.of(
                 "config", benchmarkConfig.toMap().getValues(),
                 "result", ImmutableMap.of(
                         "trainingTime", trainingTime,
                         "classificationTime", classificationTime,
-                        "maxMemory", maxMemory
+                        "maxMemory", maxMemory,
+                        "finalAlgorithmConfig", ImmutableMap.of(
+                                "parameters", finalAlgorithmConfig.getValues()
+                        )
                 )
         ));
     }

@@ -86,7 +86,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         DataFrame resultsDf = classifier.getResults();
 
-        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, maxMemoryUsage, conf));
+        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, maxMemoryUsage, conf, algorithmParameters));
     }
 
     private StringObjectMap getAlgorithmParameters() throws Exception {
