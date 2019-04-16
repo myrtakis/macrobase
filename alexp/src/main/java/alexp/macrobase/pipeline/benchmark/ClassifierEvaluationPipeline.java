@@ -80,11 +80,12 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 
         long maxMemoryUsage = memoryProfiler.getPeakUsage();
 
-        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB",
-                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0,
-                maxMemoryUsage / 1024 / 1024));
-
         DataFrame resultsDf = classifier.getResults();
+
+        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, PR AUC: %s",
+                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0,
+                maxMemoryUsage / 1024 / 1024,
+                labels == null ? "n/a" : String.format("%.2f", aucCurve(resultsDf.getDoubleColumnByName(classifier.getOutputColumnName()), labels).prArea())));
 
         resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, maxMemoryUsage, conf, algorithmParameters));
     }
