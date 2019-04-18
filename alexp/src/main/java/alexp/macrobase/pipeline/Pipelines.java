@@ -147,6 +147,8 @@ public class Pipelines {
                 }
                 return classifier;
             }
+            case "fastmcd":
+            case "mincovdet":
             case "mcd": {
                 MinCovDet classifier = new MinCovDet(metricColumns);
                 classifier.setTrainSize(conf.get("trainSize", 10000));
