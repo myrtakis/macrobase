@@ -51,82 +51,82 @@ public class ClassifierEvaluationPipeline extends Pipeline {
     }
 
     public void run() throws Exception {
-        printInfo(String.format("Running %s %s on %s", conf.getAlgorithmConfig().getAlgorithmId(), conf.getAlgorithmConfig().getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-
-        if (resultWriter == null) {
-            setupResultWriter();
-        }
-
-        dataFrame = loadData();
-        labels = getLabels(dataFrame);
-
-        StringObjectMap algorithmParameters = getAlgorithmParameters();
-
-        if (!algorithmParameters.equals(conf.getAlgorithmConfig().getParameters())) {
-            out.println(algorithmParameters);
-        }
-
-        BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
-
-        Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmConfig().getAlgorithmId(), algorithmParameters, conf.getDatasetConfig().getMetricColumns());
-
-        final long trainingTime = classifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
-            ((Trainable) classifier).train(dataFrame);
-        }) : 0;
-
-        final long classificationTime = BenchmarkUtils.measureTime(() -> {
-            classifier.process(dataFrame);
-        });
-
-        long maxMemoryUsage = memoryProfiler.getPeakUsage();
-
-        DataFrame resultsDf = classifier.getResults();
-
-        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, PR AUC: %s",
-                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0,
-                maxMemoryUsage / 1024 / 1024,
-                labels == null ? "n/a" : String.format("%.2f", aucCurve(resultsDf.getDoubleColumnByName(classifier.getOutputColumnName()), labels).prArea())));
-
-        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, maxMemoryUsage, conf, algorithmParameters));
+//        printInfo(String.format("Running %s %s on %s", conf.getAlgorithmConfig().getAlgorithmId(), conf.getAlgorithmConfig().getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
+//
+//        if (resultWriter == null) {
+//            setupResultWriter();
+//        }
+//
+//        dataFrame = loadData();
+//        labels = getLabels(dataFrame);
+//
+//        StringObjectMap algorithmParameters = getAlgorithmParameters();
+//
+//        if (!algorithmParameters.equals(conf.getAlgorithmConfig().getParameters())) {
+//            out.println(algorithmParameters);
+//        }
+//
+//        BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
+//
+//        Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmConfig().getAlgorithmId(), algorithmParameters, conf.getDatasetConfig().getMetricColumns());
+//
+//        final long trainingTime = classifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
+//            ((Trainable) classifier).train(dataFrame);
+//        }) : 0;
+//
+//        final long classificationTime = BenchmarkUtils.measureTime(() -> {
+//            classifier.process(dataFrame);
+//        });
+//
+//        long maxMemoryUsage = memoryProfiler.getPeakUsage();
+//
+//        DataFrame resultsDf = classifier.getResults();
+//
+//        printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, PR AUC: %s",
+//                trainingTime, trainingTime / 1000.0, classificationTime, classificationTime / 1000.0,
+//                maxMemoryUsage / 1024 / 1024,
+//                labels == null ? "n/a" : String.format("%.2f", aucCurve(resultsDf.getDoubleColumnByName(classifier.getOutputColumnName()), labels).prArea())));
+//
+//        resultWriter.write(resultsDf, new ExecutionResult(trainingTime, classificationTime, maxMemoryUsage, conf, algorithmParameters));
     }
 
-    private StringObjectMap getAlgorithmParameters() throws Exception {
-        AlgorithmConfig algorithmConfig = conf.getAlgorithmConfig();
-
-        StringObjectMap baseParams = algorithmConfig.getParameters();
-
-        GridSearchConfig gridSearchConfig = algorithmConfig.getGridSearchConfig();
-        if (gridSearchConfig == null) {
-            return baseParams;
-        }
-
-        out.println(String.format("Running Grid Search, using %s measure", gridSearchConfig.getMeasure().toUpperCase()));
-
-        GridSearch gs = new GridSearch();
-        gs.addParams(gridSearchConfig.getParameters());
-        gs.setOutputStream(out);
-
-        gs.run(params -> {
-            StringObjectMap currentParams = baseParams.merge(params);
-
-            Classifier classifier = Pipelines.getClassifier(algorithmConfig.getAlgorithmId(), currentParams, conf.getDatasetConfig().getMetricColumns());
-
-            classifier.process(dataFrame);
-
-            DataFrame classifierResultDf = classifier.getResults();
-            double[] classifierResult = classifierResultDf.getDoubleColumnByName(classifier.getOutputColumnName());
-
-            switch (gridSearchConfig.getMeasure()) {
-                case "roc": return aucCurve(classifierResult, labels).rocArea();
-                case "pr": return aucCurve(classifierResult, labels).prArea();
-                default: throw new RuntimeException("Unknown search measure " + gridSearchConfig.getMeasure());
-            }
-        });
-
-        SortedMap<Double, Map<String, Object>> gsResults = gs.getResults();
-
-        return baseParams.merge(new StringObjectMap(Iterables.getLast(gsResults.values())));
-    }
+//    private StringObjectMap getAlgorithmParameters() throws Exception {
+//        AlgorithmConfig algorithmConfig = conf.getAlgorithmConfig();
+//
+//        StringObjectMap baseParams = algorithmConfig.getParameters();
+//
+//        GridSearchConfig gridSearchConfig = algorithmConfig.getGridSearchConfig();
+//        if (gridSearchConfig == null) {
+//            return baseParams;
+//        }
+//
+//        out.println(String.format("Running Grid Search, using %s measure", gridSearchConfig.getMeasure().toUpperCase()));
+//
+//        GridSearch gs = new GridSearch();
+//        gs.addParams(gridSearchConfig.getParameters());
+//        gs.setOutputStream(out);
+//
+//        gs.run(params -> {
+//            StringObjectMap currentParams = baseParams.merge(params);
+//
+//            Classifier classifier = Pipelines.getClassifier(algorithmConfig.getAlgorithmId(), currentParams, conf.getDatasetConfig().getMetricColumns());
+//
+//            classifier.process(dataFrame);
+//
+//            DataFrame classifierResultDf = classifier.getResults();
+//            double[] classifierResult = classifierResultDf.getDoubleColumnByName(classifier.getOutputColumnName());
+//
+//            switch (gridSearchConfig.getMeasure()) {
+//                case "roc": return aucCurve(classifierResult, labels).rocArea();
+//                case "pr": return aucCurve(classifierResult, labels).prArea();
+//                default: throw new RuntimeException("Unknown search measure " + gridSearchConfig.getMeasure());
+//            }
+//        });
+//
+//        SortedMap<Double, Map<String, Object>> gsResults = gs.getResults();
+//
+//        return baseParams.merge(new StringObjectMap(Iterables.getLast(gsResults.values())));
+//    }
 
     private void setupResultWriter() {
         resultWriter = new ResultFileWriter()

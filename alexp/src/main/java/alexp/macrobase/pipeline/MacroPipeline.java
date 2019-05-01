@@ -79,11 +79,9 @@ public class MacroPipeline extends Pipeline {
                     resultHolder.getMaxMemoryUsage() / 1024 / 1024,
                     labels == null ? "n/a" : String.format("%.2f", aucCurve(resultHolder.getResultsDf().getDoubleColumnByName(classifier.getOutputColumnName()), labels).prArea())));
 
-            alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig alexBC;
-            alexBC = new alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig(classifierConf, conf.getDatasetConfig());
             resultWriter.write(resultHolder.getResultsDf(),
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
-                            resultHolder.getMaxMemoryUsage(), alexBC, algorithmParameters));
+                            resultHolder.getMaxMemoryUsage(), conf, algorithmParameters));
 
         }
 
