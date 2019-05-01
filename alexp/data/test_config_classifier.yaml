@@ -1,0 +1,33 @@
+dataset:
+  uri: "csv://alexp/data/outlier/data.csv"
+  metricColumns:
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+  labelColumn: "is_anomaly"
+
+classifiers:
+  - id: "iforest"
+    parameters:
+      treesCount: 100
+      subSampleSize: 256
+      trainSize: 4000
+  - id: "lof-bkaluza"
+    parameters:
+      trainSize: 100
+    gridsearch:
+      measure: pr
+      parameters:
+        knn:
+          - 10.0
+          - 15.0
+          - 20.0
+          - 25.0
+
+

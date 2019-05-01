@@ -1,0 +1,36 @@
+dataset:
+  uri: "csv://alexp/data/outlier/data.csv"
+  metricColumns:
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+  labelColumn: "relevant_subspace"
+
+classifiers:
+  - id: "iforest"
+    parameters:
+      treesCount: 100
+      subSampleSize: 256
+      trainSize: 4000
+  - id: "lof-bkaluza"
+    parameters:
+      trainSize: 100
+      knn: 15
+
+explainers:
+  - id: "lookout"
+    gridsearch:
+      measure: pr
+      parameters:
+        budget:
+          - 3.0
+          - 4.0
+          - 5.0
+
+
