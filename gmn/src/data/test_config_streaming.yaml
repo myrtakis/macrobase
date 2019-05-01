@@ -1,0 +1,38 @@
+dataset:
+  uri: "csv://alexp/data/outlier/data.csv"
+  metricColumns:
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+  labelColumn: "is_anomaly"
+
+classifiers:
+  - id: "hst"
+    parameters:
+      windowType: "tumbling"
+      windowSize: 40
+      numberOfTrees: 100
+      subSampleSize: 256
+      maxHeight: 5
+  - id: "mcod"
+    parameters:
+      windowType: "sliding"
+      windowSize: 40
+      windowSlide: 2
+      allowDuplicates: false
+    gridsearch:
+      measure: pr
+      parameters:
+        maxDistance:
+          - 3.0
+          - 6.0
+        minNeighborCount:
+          - 5
+          - 10
+

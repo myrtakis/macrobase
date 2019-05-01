@@ -134,4 +134,8 @@
         </dependency>
     </dependencies>
 
+    <modules>
+        <module>../gmn</module>
+    </modules>
+
 </project>
