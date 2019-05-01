@@ -1,17 +1,15 @@
 package alexp.macrobase;
 
-import alexp.macrobase.pipeline.benchmark.ClassifierEvaluationPipeline;
-import alexp.macrobase.pipeline.benchmark.LegacyClassifierEvaluationPipeline;
-import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.Lists;
+import alexp.macrobase.pipeline.MacroPipeline;
+import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,239 +21,144 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Benchmark {
-    PrintStream out = System.out;
-    PrintStream err = System.err;
+    public class Benchmark {
+        PrintStream out = System.out;
+        PrintStream err = System.err;
 
-    private final OptionParser optionParser = new OptionParser();
-    private final OptionSpec<String> benchmarkOption;
-    private final OptionSpec<String> aucOption;
-    private final OptionSpec<String> gsOption;
-    private final OptionSpec<String> outputOption;
-    private final OptionSpec clearOutputOption;
-    private final OptionSpec includeInliersOutputOption;
-    private final OptionSpec streamOption;
-    private final OptionSpec<String> dataDirOption;
-    private final OptionSpec<String> nabOption;
+        private final OptionParser optionParser = new OptionParser();
+        private final OptionSpec<String> benchmarkOption;
+        private final OptionSpec<String> outputOption;
+        private final OptionSpec clearOutputOption;
+        private final OptionSpec includeInliersOutputOption;
+        private final OptionSpec streamOption;
+        private final OptionSpec explanationOption;
+        private final OptionSpec<String> dataDirOption;
+        private BenchmarkConfig configuration;
 
-    private final OptionSpec<String> drawDataPlotsOption;
+        private OptionSet options;
 
-    private String outputDir;
-    private String rootDataDir;
-    private String nabOutputDir;
-    private boolean includeInliers = false;
-    private boolean streaming = false;
-
-    Benchmark() {
-        benchmarkOption = optionParser.acceptsAll(Arrays.asList("benchmark", "b"), "Run benchmark for outlier detection algorithms. Outputs time and raw scores.")
-                .withRequiredArg().describedAs("config_file_path");
-
-        aucOption = optionParser.accepts("auc", "Run simple quality evaluation of outlier detection algorithms." +
-                "Original version of the benchmark, has more features (NAB, streaming, ...) and produces more output (AUC, F1, plots, etc.) but less structured output format than -b.")
-                .availableUnless(benchmarkOption).withRequiredArg().describedAs("config_file_path");
-
-        gsOption = optionParser.accepts("gs", "Run Grid Search for parameters of outlier detection algorithms")
-                .availableUnless(benchmarkOption, aucOption).withRequiredArg().describedAs("config_file_path");
-
-        outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
-                .withRequiredArg().describedAs("dir_path");
-        clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
-
-        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output (only for --auc)")
-                .availableIf(outputOption).availableUnless(benchmarkOption);
-
-        streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
-                .availableUnless(benchmarkOption);
-
-        dataDirOption = optionParser.accepts("data-dir", "Path of the root data dir that will be prepended for paths from the config file")
-                .availableIf(benchmarkOption).withRequiredArg().describedAs("root_dir_path");
-
-        nabOption = optionParser.accepts("nab", "Save output in Numenta Anomaly Benchmark format (detection phase) in the specified dir (by default NAB subdir in the output dir)")
-                .availableIf(aucOption).withOptionalArg().describedAs("dir_path");
-
-        drawDataPlotsOption = optionParser.accepts("draw-plots", "Draw plots (normal and anomalous points) for 1D datasets")
-                .withRequiredArg().describedAs("config_file_path");
-    }
-
-    private void runBenchmark(String confFilePath) throws Exception {
-        BenchmarkConfig conf = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
-
-        ClassifierEvaluationPipeline pipeline = new ClassifierEvaluationPipeline(conf, rootDataDir,
-                new ResultFileWriter()
-                        .setOutputDir(outputDir)
-                        .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
-        pipeline.setOutputDir(outputDir);
-        pipeline.setOutputStream(out);
-
-        pipeline.run();
-    }
-
-    private void runLegacyBenchmark(String confFilePath) throws Exception {
-        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
-
-        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
-        pipeline.setStreaming(streaming);
-        pipeline.setOutputDir(outputDir);
-        pipeline.setNabOutputDir(nabOutputDir);
-        pipeline.setOutputIncludesInliers(includeInliers);
-        pipeline.setOutputStream(out);
-
-        pipeline.run();
-    }
-
-    private void runGridSearch(String confFilePath) throws Exception {
-        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
-
-        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
-        pipeline.setStreaming(streaming);
-        pipeline.setOutputDir(outputDir);
-        pipeline.setOutputIncludesInliers(includeInliers);
-        pipeline.setOutputStream(out);
-
-        pipeline.runGridSearch();
-    }
-
-    private void drawPlots(String confFilePath) throws Exception {
-        StringObjectMap conf = StringObjectMap.fromYamlFile(confFilePath);
-
-        LegacyClassifierEvaluationPipeline pipeline = new LegacyClassifierEvaluationPipeline(conf);
-        pipeline.setStreaming(streaming);
-        pipeline.setOutputDir(outputDir);
-        pipeline.setOutputStream(out);
-
-        pipeline.drawPlots();
-    }
-
-    private void showUsage() throws IOException {
-        optionParser.printHelpOn(out);
-        out.println("Examples:");
-        out.println("  -b alexp/data/outlier/config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
-        out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
-        out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
-    }
-
-    int run(String[] args) throws Exception {
-        if (args.length == 0) {
-            err.println("Not enough parameters");
-            showUsage();
-            return 1;
+        Benchmark() {
+            benchmarkOption = optionParser.acceptsAll(Arrays.asList("benchmark", "b"), "Run benchmark for outlier detection algorithms. Outputs time and raw scores.")
+                    .withRequiredArg().describedAs("config_file_path");
+            outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
+                    .withRequiredArg().describedAs("dir_path");
+            clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
+            includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output (only for --auc)")
+                    .availableIf(outputOption).availableUnless(benchmarkOption);
+            streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
+                    .availableIf(benchmarkOption);
+            explanationOption = optionParser.accepts("e", "Run in explanation mode (default non explanation)")
+                    .availableIf(benchmarkOption);
+            dataDirOption = optionParser.accepts("data-dir", "Path of the root data dir that will be prepended for paths from the config file")
+                    .availableIf(benchmarkOption).withRequiredArg().describedAs("root_dir_path");
         }
 
-        OptionSet options;
-        try {
-            options = optionParser.parse(args);
-        } catch (Exception ex) {
-            err.println(ex.getMessage());
-            showUsage();
-            return 2;
+        private void runBenchmark(String confFilePath) throws Exception {
+
+            configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
+
+            MacroPipeline pipeline = new MacroPipeline(configuration, dataDirOption.value(options),
+                    new ResultFileWriter()
+                            .setOutputDir(outputOption.value(options))
+                            .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
+
+            if (options.has(streamOption)) {
+                pipeline.streamingMode();
+            } else if (options.has(explanationOption)) {
+                pipeline.explanationMode();
+            } else {
+                pipeline.classiciationMode();
+            }
+
         }
 
-        if (!options.has(benchmarkOption) && !options.has(aucOption) && !options.has(gsOption) && !options.has(drawDataPlotsOption)) {
-            err.println("Not enough parameters");
-            showUsage();
-            return 1;
+        private void showUsage() throws IOException {
+            optionParser.printHelpOn(out);
+            out.println("Examples:");
+            out.println("  -b alexp/data/outlier/config.yaml");
+            out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
+            out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
+            out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
+            out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
+            out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
+            out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
+            out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
         }
 
-        streaming = options.has(streamOption);
+        int run(String[] args) throws Exception {
 
-        if (options.has(outputOption)) {
-            outputDir = outputOption.value(options);
-            includeInliers = options.has(includeInliersOutputOption);
-        }
+            // VALIDATE THE GIVEN OPTIONS
+            validateObtainOptions(args);
 
-        if (options.has(clearOutputOption)) {
-            String dirToClear = StringUtils.isEmpty(outputDir) ? LegacyClassifierEvaluationPipeline.defaultOutputDir() : outputDir;
-            if (!StringUtils.isEmpty(dirToClear) && Files.exists(Paths.get(dirToClear))) {
+            if (options.has(clearOutputOption)) {
                 try {
-                    FileUtils.cleanDirectory(new File(dirToClear));
+                    if (outputOption.value(options) == null) {
+                        FileUtils.cleanDirectory(new File("null"));
+                    } else {
+                        FileUtils.cleanDirectory(new File(outputOption.value(options)));
+                    }
                 } catch (IOException ex) {
                     err.println(ex.getMessage());
                 }
             }
-        }
 
-        if (options.has(dataDirOption)) {
-            rootDataDir = dataDirOption.value(options);
-        }
+            if (options.has(benchmarkOption)) {
 
-        if (options.has(aucOption)) {
-            String confFilePath = aucOption.value(options);
-            if (!Files.exists(Paths.get(confFilePath))) {
-                err.println("Config file not found");
-                return 3;
-            }
-
-            if (options.has(nabOption)) {
-                nabOutputDir = nabOption.value(options);
-                if (nabOutputDir == null) {
-                    nabOutputDir = (StringUtils.isEmpty(outputDir) ? LegacyClassifierEvaluationPipeline.defaultOutputDir() : outputDir) + "/NAB";
+                // THE YAML CONFIGURATION OF BENCHMARK OPTION (MUST BE INCLUDED)
+                String confPath = benchmarkOption.value(options);
+                if (!Files.exists(Paths.get(confPath))) {
+                    err.println("Config file not found");
+                    return 3;
                 }
-                if (options.has(clearOutputOption) && Files.exists(Paths.get(nabOutputDir))) {
-                    try {
-                        FileUtils.cleanDirectory(new File(nabOutputDir));
-                    } catch (IOException ex) {
-                        err.println(ex.getMessage());
-                    }
+
+                List<String> confFilePaths = Lists.newArrayList(confPath);
+
+                // A LIST OF THE YAML CONFIGURATION PATHS OF A GIVEN DIRECTORY
+                if (Files.isDirectory(Paths.get(confPath))) {
+                    out.println("Running for all configs in " + confPath);
+                    out.println("This should not be used for time/memory measurements");
+                    out.println();
+                    confFilePaths = Files.list(Paths.get(confPath))
+                            .map(Path::toString)
+                            .filter(s -> s.endsWith("yaml"))
+                            .collect(Collectors.toList());
+                }
+
+                // ITERATE OVER ALL CONFIGURATION PATHS
+                for (String confFilePath : confFilePaths) {
+                    runBenchmark(confFilePath);
                 }
             }
 
-            runLegacyBenchmark(confFilePath);
+            return 0;
         }
 
-        if (options.has(benchmarkOption)) {
-            String confPath = benchmarkOption.value(options);
-            if (!Files.exists(Paths.get(confPath))) {
-                err.println("Config file not found");
-                return 3;
+
+        private void validateObtainOptions(String[] args) throws IOException {
+            // ERROR: NOT ENOUGH PARAMETERS
+            if (args.length == 0) {
+                err.println("Not enough parameters");
+                showUsage();
+                throw new IllegalStateException("args.length == 0");
             }
-
-            List<String> confFilePaths = Lists.newArrayList(confPath);
-            if (Files.isDirectory(Paths.get(confPath))) {
-                out.println("Running for all configs in " + confPath);
-                out.println("This should not be used for time/memory measurements");
-                out.println();
-
-                confFilePaths = Files.list(Paths.get(confPath))
-                        .map(Path::toString)
-                        .filter(s -> s.endsWith("yaml"))
-                        .collect(Collectors.toList());
+            // FETCH ALL USER DEFINED OPTIONS
+            try {
+                options = optionParser.parse(args);
+            } catch (Exception ex) {
+                err.println(ex.getMessage());
+                showUsage();
+                throw new IllegalStateException("parse error");
             }
-
-            for (String confFilePath : confFilePaths) {
-                runBenchmark(confFilePath);
+            // ERROR: NOT ENOUGH PARAMETERS
+            if (!options.has(benchmarkOption)) {
+                err.println("Not enough parameters");
+                showUsage();
+                throw new IllegalStateException("!options.has(benchmarkOption) && !options.has(gsOption)");
             }
         }
 
-        if (options.has(gsOption)) {
-            String confFilePath = gsOption.value(options);
-            if (!Files.exists(Paths.get(confFilePath))) {
-                err.println("Config file not found");
-                return 3;
-            }
-
-            runGridSearch(confFilePath);
+        public static void main(String[] args) throws Exception {
+            int exitCode = new Benchmark().run(args);
+            System.exit(exitCode);
         }
-
-        if (options.has(drawDataPlotsOption)) {
-            String confFilePath = drawDataPlotsOption.value(options);
-            if (!Files.exists(Paths.get(confFilePath))) {
-                err.println("Config file not found");
-                return 3;
-            }
-
-            drawPlots(confFilePath);
-        }
-
-        return 0;
     }
-
-    public static void main(String[] args) throws Exception {
-        int exitCode = new Benchmark().run(args);
-        System.exit(exitCode);
-    }
-}
