@@ -12,8 +12,8 @@ dataset:
     - "d9"
   labelColumn: "is_anomaly"
 
-algorithm:
-  id: "lof-bkaluza"
-  parameters:
-    knn: 15
-    trainSize: 100
+classifiers:
+  - id: "lof-bkaluza"
+    parameters:
+      knn: 15
+      trainSize: 100

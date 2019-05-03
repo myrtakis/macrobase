@@ -11,7 +11,7 @@ dataset:
     - "var_0007"
     - "var_0008"
     - "var_0009"
-  labelColumn: "relevant_subspace"
+  labelColumn: "is_anomaly"
 
 classifiers:
   - id: "lof-bkaluza"

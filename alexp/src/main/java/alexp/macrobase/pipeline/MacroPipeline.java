@@ -73,10 +73,11 @@ public class MacroPipeline extends Pipeline {
             Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), algorithmParameters, conf.getDatasetConfig().getMetricColumns());
             ResultHolder resultHolder = runClassifier(classifier);
 
-            printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, PR AUC: %s",
+            printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, ROC AUC: %s, PR AUC: %s",
                     resultHolder.getTrainingTime(), resultHolder.getTrainingTime() / 1000.0,
                     resultHolder.getClassificationTime(), resultHolder.getClassificationTime() / 1000.0,
                     resultHolder.getMaxMemoryUsage() / 1024 / 1024,
+                    labels == null ? "n/a" : String.format("%.2f", aucCurve(resultHolder.getResultsDf().getDoubleColumnByName(classifier.getOutputColumnName()), labels).rocArea()),
                     labels == null ? "n/a" : String.format("%.2f", aucCurve(resultHolder.getResultsDf().getDoubleColumnByName(classifier.getOutputColumnName()), labels).prArea())));
 
             resultWriter.write(resultHolder.getResultsDf(),
@@ -178,11 +179,14 @@ public class MacroPipeline extends Pipeline {
     }
 
     public void explanationMode() throws Exception {
+        if(resultWriter == null)
+            setupResultWriter();
         DataFrame dataFrame = loadData(Schema.ColType.STRING);
         for(AlgorithmConfig explainerConf : conf.getExplanationConfigs()){
             for(AlgorithmConfig classifierConf: conf.getClassifierConfigs()){
                 Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig().getMetricColumns(), conf.getSettingsConfig().getExplanationSettings());
                 explainer.process(dataFrame);
+                resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0, conf, explainerConf.toMap()));
             }
         }
     }

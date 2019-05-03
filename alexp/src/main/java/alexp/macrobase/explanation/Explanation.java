@@ -14,7 +14,7 @@ public abstract class Explanation implements Transformer {
 
     protected   String[]            columns;
     protected   AlgorithmConfig     classifierConf;
-    protected   String              outputColumnName = "_RELEVANT_SUBSPACES";
+    protected   String              outputColumnName = "_OUTLIER";
     private     List<Double>        outlierPoints; // The ids (row number) of the outlier points. Those points can be detected by an anomaly detection algorithm or detected by another external source or the dataset's ground truth
     private     ExplanationSettings explanationSettings;
 

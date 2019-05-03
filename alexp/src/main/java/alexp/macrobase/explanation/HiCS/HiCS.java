@@ -37,6 +37,7 @@ import com.google.common.primitives.Doubles;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
+import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import javafx.util.Pair;
 import org.apache.poi.ss.formula.functions.T;
 
@@ -46,6 +47,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 public class HiCS extends Explanation {
@@ -75,6 +77,7 @@ public class HiCS extends Explanation {
      */
     private RandomFactory rnd = new RandomFactory((long)0);
 
+    private DataFrame output;
 
     public HiCS(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
         super(columns, classifierConf, explanationSettings);
@@ -85,28 +88,58 @@ public class HiCS extends Explanation {
      */
 
     @Override
-    public void process(DataFrame input) {
+    public void process(DataFrame input) throws Exception {
+
         validateParameters();
+
+        output = input.copy();
 
         List<List<Integer>> subspaceIndex = buildOneDimensionalIndexes(input);
         Set<HiCSSubspace> subspaces = calculateSubspaces(input, subspaceIndex, rnd.getSingleThreadedRandom());
 
-        System.out.println("\n");
-        System.out.println("====================================");
-        System.out.println("===============RESULTS==============");
-        System.out.println("====================================\n");
+        List<Double> pointCumulativeScores = Doubles.asList(new double[input.getNumRows()]);
+
         for(HiCSSubspace hiCSSubspace : subspaces){
             System.out.println(hiCSSubspace.toString());
-            // Here we will call the classifier the result
-            //Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-            //classifier.process(dataFrame);
-            //classifier.getResult();
+
+            DataFrame tmpDataFrame = new DataFrame();
+            String[] subColumns = new String[hiCSSubspace.cardinality()];
+            int counter = 0;
+            for (int featureId : hiCSSubspace.getFeatures()) {
+                tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
+                subColumns[counter++] = columns[featureId];
+            }
+            Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
+            classifier.process(tmpDataFrame);
+            DataFrame results = classifier.getResults();
+            int lastColIndex = results.getRow(0).getVals().size() - 1;
+            addArrays(pointCumulativeScores, results.getDoubleColumn(lastColIndex));
         }
+        // Calculate the average score for each point
+        for(int i = 0; i < pointCumulativeScores.size(); i++){
+            pointCumulativeScores.set(i, pointCumulativeScores.get(i)/subspaces.size());
+        }
+        output.addColumn(outputColumnName, pointCumulativeScores.stream().mapToDouble(d -> d).toArray());
     }
 
     @Override
     public DataFrame getResults() {
-        return null;
+        return output;
+    }
+
+    /**
+     * Takes as input two double arrays of same size and add them to a new double array
+     * @param cumulArray
+     * @param currArr
+     * @return The arr1 + arr2
+     */
+    private void addArrays(List<Double> cumulArray, double[] currArr) {
+        if(cumulArray.size() != currArr.length)
+            throw new RuntimeException("The two arrays cannot be added due to different sizes. " + cumulArray.size() + " != "+ currArr.length);
+
+        for(int i = 0; i < currArr.length; i++){
+            cumulArray.set(i, cumulArray.get(i) + currArr[i]);
+        }
     }
 
     /**
@@ -151,22 +184,18 @@ public class HiCS extends Explanation {
         TopBoundedHeap<HiCSSubspace> dDimensionalList = new TopBoundedHeap<>(cutoff, HiCSSubspace.SORT_BY_CONTRAST_ASC);
 
         // compute two-element sets of subspaces
-        System.out.println("Compute two-element sets of subspaces");
         for(int i = 0; i < dim; i++) {
             for(int j = i + 1; j < dim; j++) {
-                System.out.print("\rSubspace {" + i + "," + j + "}");
                 HiCSSubspace ts = new HiCSSubspace();
                 ts.set(i);
                 ts.set(j);
                 calculateContrast(input, ts, subspaceIndex, rand);
                 dDimensionalList.add(ts);
+                System.out.print("\r" + ts);
             }
         }
 
         for(int d = 3; !dDimensionalList.isEmpty(); d++) {
-
-            System.out.println("\n" + "Heap size " + dDimensionalList.size() + " Subspace List size " + subspaceList.size());
-            if(d == 4) break;
 
             // result now contains all d-dimensional sets of subspaces
             ArrayList<HiCSSubspace> candidateList = new ArrayList<>(dDimensionalList.size());
@@ -174,6 +203,7 @@ public class HiCS extends Explanation {
                 subspaceList.add(it.get());
                 candidateList.add(it.get());
             }
+
             dDimensionalList.clear();
             // candidateList now contains the *m* best d-dimensional sets
             candidateList.sort(HiCSSubspace.SORT_BY_SUBSPACE);
@@ -328,7 +358,7 @@ public class HiCS extends Explanation {
     }
 
     /*
-        INVARIANTS
+        VARIANTS
      */
 
     private void validateParameters() {
@@ -410,7 +440,7 @@ public class HiCS extends Explanation {
             StringBuilder buf = new StringBuilder();
             buf.append("[contrast=").append(contrast);
             for(int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
-                buf.append(' ').append(i + 1);
+                buf.append(' ').append(i);
             }
             buf.append(']');
             return buf.toString();
@@ -422,7 +452,7 @@ public class HiCS extends Explanation {
         public List<Integer> getFeatures() {
             List<Integer> features = new ArrayList<>();
             for(int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)){
-                features.add(i + 1);
+                features.add(i);
             }
             return features;
         }
