@@ -1,5 +1,5 @@
 dataset:
-  uri: "csv://alexp/data/outlier/data.csv"
+  uri: "csv://alexp/data/outlier/shuttle-unsupervised-ad.csv"
   metricColumns:
     - "d1"
     - "d2"
@@ -25,9 +25,9 @@ classifiers:
       measure: pr
       parameters:
         knn:
-          - 10.0
-          - 15.0
-          - 20.0
-          - 25.0
+          - 10
+          - 15
+          - 20
+          - 25
 
 
