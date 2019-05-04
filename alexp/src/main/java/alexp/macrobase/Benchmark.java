@@ -86,8 +86,6 @@ public class Benchmark {
     }
 
     int run(String[] args) throws Exception {
-
-        // VALIDATE THE GIVEN OPTIONS
         validateObtainOptions(args);
 
         if (options.has(clearOutputOption)) {
@@ -103,7 +101,6 @@ public class Benchmark {
         }
 
         if (options.has(benchmarkOption)) {
-
             // THE YAML CONFIGURATION OF BENCHMARK OPTION (MUST BE INCLUDED)
             String confPath = benchmarkOption.value(options);
             if (!Files.exists(Paths.get(confPath))) {
@@ -113,7 +110,7 @@ public class Benchmark {
 
             List<String> confFilePaths = Lists.newArrayList(confPath);
 
-            // A LIST OF THE YAML CONFIGURATION PATHS OF A GIVEN DIRECTORY
+            // run for all config files if a directory is given
             if (Files.isDirectory(Paths.get(confPath))) {
                 out.println("Running for all configs in " + confPath);
                 out.println("This should not be used for time/memory measurements");
@@ -124,7 +121,6 @@ public class Benchmark {
                         .collect(Collectors.toList());
             }
 
-            // ITERATE OVER ALL CONFIGURATION PATHS
             for (String confFilePath : confFilePaths) {
                 runBenchmark(confFilePath);
             }
@@ -135,12 +131,12 @@ public class Benchmark {
 
 
     private void validateObtainOptions(String[] args) throws IOException {
-        // ERROR: NOT ENOUGH PARAMETERS
         if (args.length == 0) {
             err.println("Not enough parameters");
             showUsage();
             throw new IllegalStateException("args.length == 0");
         }
+
         // FETCH ALL USER DEFINED OPTIONS
         try {
             options = optionParser.parse(args);
@@ -149,7 +145,7 @@ public class Benchmark {
             showUsage();
             throw new IllegalStateException("parse error");
         }
-        // ERROR: NOT ENOUGH PARAMETERS
+
         if (!options.has(benchmarkOption)) {
             err.println("Not enough parameters");
             showUsage();
