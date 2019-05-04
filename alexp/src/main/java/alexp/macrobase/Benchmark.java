@@ -1,5 +1,6 @@
 package alexp.macrobase;
 
+import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.Lists;
@@ -10,6 +11,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,10 +38,12 @@ public class Benchmark {
 
     private OptionSet options;
 
+    private String outputDir = Pipeline.defaultOutputDir();
+
     Benchmark() {
         benchmarkOption = optionParser.acceptsAll(Arrays.asList("benchmark", "b"), "Run benchmark for outlier detection algorithms. Outputs time and raw scores.")
                 .withRequiredArg().describedAs("config_file_path");
-        outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
+        outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/output by default)")
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
@@ -51,13 +55,14 @@ public class Benchmark {
     }
 
     private void runBenchmark(String confFilePath) throws Exception {
-
         configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
         MacroPipeline pipeline = new MacroPipeline(configuration, dataDirOption.value(options),
                 new ResultFileWriter()
-                        .setOutputDir(outputOption.value(options))
+                        .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
+        pipeline.setOutputDir(outputDir);
+        pipeline.setOutputStream(out);
 
         if (options.has(streamOption)) {
             pipeline.streamingMode();
@@ -66,7 +71,6 @@ public class Benchmark {
         } else {
             pipeline.classiciationMode();
         }
-
     }
 
     private void showUsage() throws IOException {
@@ -78,15 +82,17 @@ public class Benchmark {
     int run(String[] args) throws Exception {
         validateObtainOptions(args);
 
+        if (options.has(outputOption)) {
+            outputDir = outputOption.value(options);
+        }
+
         if (options.has(clearOutputOption)) {
-            try {
-                if (outputOption.value(options) == null) {
-                    FileUtils.cleanDirectory(new File("null"));
-                } else {
-                    FileUtils.cleanDirectory(new File(outputOption.value(options)));
+            if (!StringUtils.isEmpty(outputDir) && Files.exists(Paths.get(outputDir))) {
+                try {
+                    FileUtils.cleanDirectory(new File(outputDir));
+                } catch (IOException ex) {
+                    err.println(ex.getMessage());
                 }
-            } catch (IOException ex) {
-                err.println(ex.getMessage());
             }
         }
 
