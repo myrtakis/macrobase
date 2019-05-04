@@ -34,7 +34,6 @@ public class Benchmark {
     private final OptionSpec streamOption;
     private final OptionSpec explanationOption;
     private final OptionSpec<String> dataDirOption;
-    private BenchmarkConfig configuration;
 
     private OptionSet options;
 
@@ -55,7 +54,7 @@ public class Benchmark {
     }
 
     private void runBenchmark(String confFilePath) throws Exception {
-        configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
+        BenchmarkConfig configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
         MacroPipeline pipeline = new MacroPipeline(configuration, dataDirOption.value(options),
                 new ResultFileWriter()
