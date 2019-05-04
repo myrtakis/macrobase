@@ -29,7 +29,6 @@ public class Benchmark {
     private final OptionSpec<String> benchmarkOption;
     private final OptionSpec<String> outputOption;
     private final OptionSpec clearOutputOption;
-    private final OptionSpec includeInliersOutputOption;
     private final OptionSpec streamOption;
     private final OptionSpec explanationOption;
     private final OptionSpec<String> dataDirOption;
@@ -43,8 +42,6 @@ public class Benchmark {
         outputOption = optionParser.acceptsAll(Arrays.asList("save-output", "so"), "Save output (outliers, charts, etc.) to files in the specified dir (alexp/bench_output by default)")
                 .withRequiredArg().describedAs("dir_path");
         clearOutputOption = optionParser.acceptsAll(Arrays.asList("clear-output", "co"), "Clear the output dir");
-        includeInliersOutputOption = optionParser.acceptsAll(Arrays.asList("include-inliers", "ii"), "Include inliers in the output (only for --auc)")
-                .availableIf(outputOption).availableUnless(benchmarkOption);
         streamOption = optionParser.accepts("s", "Run in streaming mode (default batch)")
                 .availableIf(benchmarkOption);
         explanationOption = optionParser.accepts("e", "Run in explanation mode (default non explanation)")
@@ -76,13 +73,6 @@ public class Benchmark {
         optionParser.printHelpOn(out);
         out.println("Examples:");
         out.println("  -b alexp/data/outlier/config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
-        out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
-        out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
     }
 
     int run(String[] args) throws Exception {
