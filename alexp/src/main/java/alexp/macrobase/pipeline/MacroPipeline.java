@@ -249,7 +249,6 @@ public class MacroPipeline extends Pipeline {
     }
 
     private void setupResultWriter(String baseFilePathStr) {
-        String finalBaseFilePathStr = getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(Pipeline.defaultOutputDir(), baseFilePathStr).toString();
         resultWriter = new ResultFileWriter()
                 .setOutputDir(getOutputDir())
                 .setBaseFileName(baseFilePathStr);
