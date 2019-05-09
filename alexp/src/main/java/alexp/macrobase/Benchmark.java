@@ -56,7 +56,7 @@ public class Benchmark {
     private void runBenchmark(String confFilePath) throws Exception {
         BenchmarkConfig configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
-        MacroPipeline pipeline = new MacroPipeline(configuration, dataDirOption.value(options),
+        MacroPipeline pipeline = new MacroPipeline(configuration, confFilePath, dataDirOption.value(options),
                 new ResultFileWriter()
                         .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));

@@ -20,11 +20,23 @@ public abstract class Pipeline {
 
     private String outputDir = defaultOutputDir();
 
+    private String explanationDir = "explanation";
+
+    private String classificationDir = "classification";
+
     private boolean outputIncludesInliers = false;
 
     private StringBuilder infoText = new StringBuilder();
 
     protected PrintStream out = System.out;
+
+    public String getExplanationDir() {
+        return explanationDir;
+    }
+
+    public String getClassificationDir() {
+        return classificationDir;
+    }
 
     public String getOutputDir() {
         return outputDir;
