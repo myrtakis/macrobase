@@ -63,9 +63,7 @@ public class MacroPipeline extends Pipeline {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
 
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-            if(resultWriter == null || getOutputDir().equals(Pipeline.defaultOutputDir())) {
-                setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
-            }
+            setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
             dataFrame = loadData();
             labels = getLabels(dataFrame);
@@ -107,9 +105,8 @@ public class MacroPipeline extends Pipeline {
 
             // Print the classifier information
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-            if(resultWriter == null || getOutputDir().equals(Pipeline.defaultOutputDir())) {
-                setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
-            }
+            setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
+
 
             ResultHolder resultHolder = null;
             StringObjectMap algorithmParameters = null;
@@ -192,9 +189,7 @@ public class MacroPipeline extends Pipeline {
             printInfo(String.format("Running Explainer %s %s on %s", explainerConf.getAlgorithmId(), explainerConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
             for(AlgorithmConfig classifierConf: conf.getClassifierConfigs()){
                 printInfo(String.format("Running Classifier %s %s\n", classifierConf.getAlgorithmId(), classifierConf.getParameters()));
-                if(resultWriter == null || getOutputDir().equals(Pipeline.defaultOutputDir())) {
-                    setupResultWriter(getExplanationBaseFilePath(explainerConf, classifierConf).toString());
-                }
+                setupResultWriter(getExplanationBaseFilePath(explainerConf, classifierConf).toString());
                 Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig().getMetricColumns(), conf.getSettingsConfig().getExplanationSettings());
                 final long explanationTime = BenchmarkUtils.measureTime(() -> {
                     explainer.process(dataFrame);
@@ -256,6 +251,7 @@ public class MacroPipeline extends Pipeline {
     }
 
     private void setupResultWriter(String baseFilePathStr) {
+        String finalBaseFilePathStr = getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(Pipeline.defaultOutputDir(), baseFilePathStr).toString();
         resultWriter = new ResultFileWriter()
                 .setOutputDir(getOutputDir())
                 .setBaseFileName(baseFilePathStr);
