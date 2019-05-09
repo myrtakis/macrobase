@@ -58,10 +58,8 @@ public class MacroPipeline extends Pipeline {
     }
 
 
-    public void classiciationMode() throws Exception {
-
+    public void classificationMode() throws Exception {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
-
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
             setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
