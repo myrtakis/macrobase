@@ -15,7 +15,6 @@ public abstract class Explanation implements Transformer {
     protected   String[]            columns;
     protected   AlgorithmConfig     classifierConf;
     protected   String              outputColumnName = "_OUTLIER";
-    private     List<Double>        outlierPoints; // The ids (row number) of the outlier points. Those points can be detected by an anomaly detection algorithm or detected by another external source or the dataset's ground truth
     private     ExplanationSettings explanationSettings;
 
 
@@ -25,11 +24,15 @@ public abstract class Explanation implements Transformer {
         this.explanationSettings = explanationSettings;
     }
 
-    public List<Double> getPointsToExplain() {
+    public List<Integer> getPointsToExplain() {
         if(explanationSettings.dictatedOutlierMethod())
             return explanationSettings.getDictatedOutliers();
         // TODO else do the detection and return the outlier points to explain
         return null;
+    }
+
+    public int getDatasetDimensionality() {
+        return columns.length;
     }
 
     public String[] getColumns() {
@@ -38,5 +41,9 @@ public abstract class Explanation implements Transformer {
 
     public AlgorithmConfig getClassifierConf() {
         return classifierConf;
+    }
+
+    public String getOutputColumnName() {
+        return outputColumnName;
     }
 }

@@ -1,5 +1,6 @@
 package alexp.macrobase.pipeline;
 
+import alexp.macrobase.explanation.beam.BeamSubspaceSearch;
 import alexp.macrobase.explanation.Itemset;
 import alexp.macrobase.ingest.*;
 import alexp.macrobase.normalization.MinMaxNormalizer;
@@ -31,9 +32,9 @@ import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.operator.WindowedOperator;
 import edu.stanford.futuredata.macrobase.pipeline.PipelineUtils;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
-import alexp.macrobase.explanation.HiCS.HiCS;
-import alexp.macrobase.explanation.HiCS.Statistics.Tests.TestNames;
-import alexp.macrobase.explanation.LookOut.LookOut;
+import alexp.macrobase.explanation.hics.HiCS;
+import alexp.macrobase.explanation.hics.statistics.tests.TestNames;
+import alexp.macrobase.explanation.lookOut.LookOut;
 import alexp.macrobase.outlier.hst.HSTClassifier;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 
@@ -230,7 +231,11 @@ public class Pipelines {
                 return hiCS;
             }
             case "beam": {
-
+                BeamSubspaceSearch beam = new BeamSubspaceSearch(metricColumns, classifierConf, explanationSettings);
+                beam.setDmax(explainerConf.getParameters().get("dmax", 3));
+                beam.setTopk(explainerConf.getParameters().get("topk", 10));
+                beam.setW(explainerConf.getParameters().get("beamWidth", 100));
+                return beam;
             }
             default: {
                 throw new RuntimeException("Bad Classifier ID " + explainerConf.getAlgorithmId());

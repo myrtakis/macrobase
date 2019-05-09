@@ -9,7 +9,7 @@ import java.util.List;
 public class ExplanationSettings {
 
     private final String                method;
-    private final List<Double>          dictatedOutliers;
+    private final List<Integer>         dictatedOutliers;
     private final AlgorithmConfig       classifierConf;
     private final double                threshold;
 
@@ -20,7 +20,7 @@ public class ExplanationSettings {
     private final static String         THRESHOLD_TAG           =   "threshold";
 
 
-    public ExplanationSettings(String method, List<Double> dictatedOutliers,
+    public ExplanationSettings(String method, List<Integer> dictatedOutliers,
                                AlgorithmConfig classifierConf, double threshold) {
         this.method             =   method;
         this.dictatedOutliers   =   dictatedOutliers;
@@ -43,7 +43,7 @@ public class ExplanationSettings {
         return method;
     }
 
-    public List<Double> getDictatedOutliers() {
+    public List<Integer> getDictatedOutliers() {
         return dictatedOutliers;
     }
 

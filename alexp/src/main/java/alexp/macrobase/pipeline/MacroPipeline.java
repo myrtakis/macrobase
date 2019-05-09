@@ -14,6 +14,8 @@ import alexp.macrobase.pipeline.config.StringObjectMap;
 import alexp.macrobase.utils.BenchmarkUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Ints;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
@@ -24,6 +26,7 @@ import alexp.macrobase.streaming.StreamGenerator;
 import alexp.macrobase.streaming.Windows.WindowManager;
 import org.apache.commons.io.FilenameUtils;
 
+import java.nio.file.Files;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -63,7 +66,7 @@ public class MacroPipeline extends Pipeline {
             if (resultWriter == null) {
                 setupResultWriter();
             }
-            dataFrame = loadData(Schema.ColType.DOUBLE);
+            dataFrame = loadData();
             labels = getLabels(dataFrame);
             StringObjectMap algorithmParameters = getAlgorithmParameters(classifierConf);
 
@@ -181,11 +184,28 @@ public class MacroPipeline extends Pipeline {
     public void explanationMode() throws Exception {
         if(resultWriter == null)
             setupResultWriter();
-        DataFrame dataFrame = loadData(Schema.ColType.STRING);
+        dataFrame = loadData();
+
+        labels = getLabels(dataFrame);
+
+        BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
+
         for(AlgorithmConfig explainerConf : conf.getExplanationConfigs()){
+            printInfo(String.format("Running Explainer %s %s on %s", explainerConf.getAlgorithmId(), explainerConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
             for(AlgorithmConfig classifierConf: conf.getClassifierConfigs()){
+                printInfo(String.format("Running Classifier %s %s\n", classifierConf.getAlgorithmId(), classifierConf.getParameters()));
                 Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig().getMetricColumns(), conf.getSettingsConfig().getExplanationSettings());
-                explainer.process(dataFrame);
+                final long explanationTime = BenchmarkUtils.measureTime(() -> {
+                    explainer.process(dataFrame);
+                });
+                DataFrame results = explainer.getResults();
+                long maxMemoryUsage = memoryProfiler.getPeakUsage();
+                System.out.println("Time " + explanationTime / 1000.0  + " sec");
+                printInfo(String.format("Explanation time: %d ms (%.2f sec), Max memory usage: %d MB, ROC AUC: %s, PR AUC: %s",
+                        explanationTime, explanationTime / 1000.0,
+                        maxMemoryUsage / 1024 / 1024,
+                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
+                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
                 resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0, conf, explainerConf.toMap()));
             }
         }
@@ -240,8 +260,21 @@ public class MacroPipeline extends Pipeline {
                 .setBaseFileName(FilenameUtils.removeExtension(conf.getDatasetConfig().getDatasetId()));
     }
 
-    private DataFrame loadData(Schema.ColType labelColumnType) throws Exception {
-        Map<String, Schema.ColType> colTypes = getColTypes(labelColumnType);
+
+    private void setUpClassificationFileDirs() {
+        setUpFileDirs();
+    }
+
+    private void setUpExplanationFileDirs() {
+        setUpFileDirs();
+    }
+
+    private void setUpFileDirs() {
+        //Files.createDirectory()
+    }
+
+    private DataFrame loadData() throws Exception {
+        Map<String, Schema.ColType> colTypes = getColTypes();
 
         List<String> requiredColumns = new ArrayList<>(colTypes.keySet());
 
@@ -263,12 +296,12 @@ public class MacroPipeline extends Pipeline {
                 .toArray();
     }
 
-    private Map<String, Schema.ColType> getColTypes(Schema.ColType labelColumnType) {
+    private Map<String, Schema.ColType> getColTypes() {
         Map<String, Schema.ColType> colTypes = Arrays.stream(conf.getDatasetConfig().getMetricColumns())
                 .collect(Collectors.toMap(Function.identity(), c -> Schema.ColType.DOUBLE));
 
         if (!Strings.isNullOrEmpty(conf.getDatasetConfig().getLabelColumn())) {
-            colTypes.put(conf.getDatasetConfig().getLabelColumn(), labelColumnType);
+            colTypes.put(conf.getDatasetConfig().getLabelColumn(), Schema.ColType.DOUBLE);
         }
 
         return colTypes;

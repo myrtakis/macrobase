@@ -76,13 +76,9 @@ public class Benchmark {
         optionParser.printHelpOn(out);
         out.println("Examples:");
         out.println("  -b alexp/data/outlier/config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --s");
-        out.println("  --gs alexp/data/outlier/gridsearch_config.yaml");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --save-output alexp/output --clear-output");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab alexp/output/nab");
-        out.println("  --auc alexp/data/outlier/benchmark_config.yaml --clear-output --nab");
-        out.println("  --draw-plots alexp/data/outlier/s5_plots_config.yaml --so alexp/output --co");
+        out.println("  -b alexp/data/outlier/config.yaml --so alexp/myoutput --co");
+        out.println("  -b alexp/data/outlier/stream_config.yaml --s");
+        out.println("  -b alexp/data/outlier/explanation_config.yaml --e");
     }
 
     int run(String[] args) throws Exception {
@@ -156,6 +152,7 @@ public class Benchmark {
             throw new IllegalStateException("!options.has(benchmarkOption) && !options.has(gsOption)");
         }
     }
+
 
     public static void main(String[] args) throws Exception {
         int exitCode = new Benchmark().run(args);
