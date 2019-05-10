@@ -40,13 +40,13 @@ public class BenchmarkConfig {
     public StringObjectMap toMap() {
         if(explanationConfigs.isEmpty())
             return new StringObjectMap(ImmutableMap.of(
-                    CLASSIFIERS_CONF_TAG, confToMap(CLASSIFIERS_CONF_TAG).getValues(),
+                    CLASSIFIERS_CONF_TAG, classifierConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
                     DATASET_CONF_TAG, datasetConfig.toMap().getValues()
             ));
         else
             return new StringObjectMap(ImmutableMap.of(
-                CLASSIFIERS_CONF_TAG, confToMap(CLASSIFIERS_CONF_TAG).getValues(),
-                EXPLAINERS_CONF_TAG, confToMap(EXPLAINERS_CONF_TAG),
+                CLASSIFIERS_CONF_TAG, classifierConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
+                EXPLAINERS_CONF_TAG, explanationConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
                 DATASET_CONF_TAG, datasetConfig.toMap().getValues()
         ));
     }
@@ -67,16 +67,6 @@ public class BenchmarkConfig {
             explainerConfs.add(AlgorithmConfig.load(o));
         }
         return explainerConfs;
-    }
-
-    private StringObjectMap confToMap(String option) {
-        ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.builder();
-        List<Object> values = new ArrayList<>();
-        for(AlgorithmConfig cconf : option.equals(CLASSIFIERS_CONF_TAG) ? classifierConfigs : explanationConfigs){
-            values.add(cconf.toMap());
-        }
-        mapBuilder.put(option,values);
-        return new StringObjectMap(mapBuilder.build());
     }
 
     public List<AlgorithmConfig> getClassifierConfigs() {
