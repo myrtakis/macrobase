@@ -22,7 +22,6 @@ import alexp.macrobase.streaming.StreamGenerator;
 import alexp.macrobase.streaming.Windows.WindowManager;
 import org.apache.commons.io.FilenameUtils;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -59,10 +58,9 @@ public class MacroPipeline extends Pipeline {
 
 
     public void classificationMode() throws Exception {
-
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
-
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
+
             setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
             dataFrame = loadData();
@@ -93,7 +91,6 @@ public class MacroPipeline extends Pipeline {
 
     public void streamingMode() throws Exception {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
-
             // Initialize window manager
             WindowManager wm = new WindowManager(classifierConf, conf.getDatasetConfig());
 
@@ -107,15 +104,12 @@ public class MacroPipeline extends Pipeline {
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
             setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
-
             ResultHolder resultHolder = null;
-            StringObjectMap algorithmParameters = null;
-            Classifier streamingClassifier = null;
+            StringObjectMap algorithmParameters;
+            Classifier streamingClassifier;
             String rawDataPoint = "";
 
-
             while (true) {
-
                 if (!wm.windowIsConstructed()) {
 
                     // Read a raw data point from the Stream Generator
@@ -130,7 +124,6 @@ public class MacroPipeline extends Pipeline {
                     }
 
                 } else {
-
                     // Convert the raw dara into (Macrobase) DataFrame
                     dataFrame = wm.getWindowDF();
                     labels = getLabels(dataFrame);
@@ -152,12 +145,9 @@ public class MacroPipeline extends Pipeline {
                     wm.clearWindowData();
 
                     // Stop iterating when the generator is empty
-
-
                     if (wm.isEndStream()) {
                         break;
                     }
-
                 }
             }
 
@@ -173,9 +163,7 @@ public class MacroPipeline extends Pipeline {
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
                             resultHolder.getMaxMemoryUsage(), conf, algorithmParameters));
              */
-
         }
-
     }
 
     public void explanationMode() throws Exception {
@@ -313,6 +301,3 @@ public class MacroPipeline extends Pipeline {
     }
 
 }
-
-
-
