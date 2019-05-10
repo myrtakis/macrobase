@@ -85,7 +85,11 @@ public class Benchmark {
     }
 
     int run(String[] args) throws Exception {
-        validateObtainOptions(args);
+        try {
+            validateObtainOptions(args);
+        } catch (Exception ex) {
+            return 1;
+        }
 
         if (options.has(outputOption)) {
             outputDir = outputOption.value(options);
@@ -129,7 +133,6 @@ public class Benchmark {
 
         return 0;
     }
-
 
     private void validateObtainOptions(String[] args) throws IOException {
         if (args.length == 0) {
