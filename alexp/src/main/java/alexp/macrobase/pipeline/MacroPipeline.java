@@ -251,14 +251,16 @@ public class MacroPipeline extends Pipeline {
     }
 
     private void setupResultWriter(String baseFilePathStr) {
-        String finalBaseFilePathStr = getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(Pipeline.defaultOutputDir(), baseFilePathStr).toString();
+        String finalBaseFilePathStr =
+                getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(FilenameUtils.getBaseName(Pipeline.defaultOutputDir()), baseFilePathStr).toString();
+
         resultWriter = new ResultFileWriter()
                 .setOutputDir(getOutputDir())
-                .setBaseFileName(baseFilePathStr);
+                .setBaseFileName(finalBaseFilePathStr);
     }
 
 
-    private Path getClassificationBaseFilePath(AlgorithmConfig classifierConfig) throws IOException {
+    private Path getClassificationBaseFilePath(AlgorithmConfig classifierConfig) {
         return Paths.get(
                 FilenameUtils.getBaseName(conf.getDatasetConfig().getDatasetId()),
                 getClassificationDir(),
@@ -267,7 +269,7 @@ public class MacroPipeline extends Pipeline {
         );
     }
 
-    private Path getExplanationBaseFilePath(AlgorithmConfig explainerConfig, AlgorithmConfig classifierConfig) throws IOException {
+    private Path getExplanationBaseFilePath(AlgorithmConfig explainerConfig, AlgorithmConfig classifierConfig) {
         return Paths.get(
                 FilenameUtils.getBaseName(conf.getDatasetConfig().getDatasetId()),
                 getExplanationDir(),
