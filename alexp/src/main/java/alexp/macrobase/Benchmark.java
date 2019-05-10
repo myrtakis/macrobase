@@ -64,7 +64,7 @@ public class Benchmark {
             type = ExecutionType.EXPLANATION;
         }
 
-        BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config, confFilePath, dataDirOption.value(options),
+        BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config, dataDirOption.value(options),
                 new ResultFileWriter(type)
                         .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
