@@ -65,7 +65,7 @@ public class Benchmark {
         }
 
         MacroPipeline pipeline = new MacroPipeline(type, config, confFilePath, dataDirOption.value(options),
-                new ResultFileWriter()
+                new ResultFileWriter(type)
                         .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
         pipeline.setOutputDir(outputDir);

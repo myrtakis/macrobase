@@ -1,21 +1,12 @@
 package alexp.macrobase.pipeline.benchmark;
 
-import alexp.macrobase.evaluation.GridSearch;
-import alexp.macrobase.evaluation.memory.BasicMemoryProfiler;
-import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.pipeline.Pipeline;
 import alexp.macrobase.pipeline.Pipelines;
-import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
-import alexp.macrobase.pipeline.benchmark.config.GridSearchConfig;
-import alexp.macrobase.pipeline.benchmark.result.ExecutionResult;
+import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.benchmark.result.ResultWriter;
-import alexp.macrobase.pipeline.config.StringObjectMap;
-import alexp.macrobase.utils.BenchmarkUtils;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
 import org.apache.commons.io.FilenameUtils;
@@ -23,8 +14,6 @@ import org.apache.commons.io.FilenameUtils;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static alexp.macrobase.utils.BenchmarkUtils.aucCurve;
 
 public class ClassifierEvaluationPipeline extends Pipeline {
     private final BenchmarkConfig conf;
@@ -129,7 +118,7 @@ public class ClassifierEvaluationPipeline extends Pipeline {
 //    }
 
     private void setupResultWriter() {
-        resultWriter = new ResultFileWriter()
+        resultWriter = new ResultFileWriter(ExecutionType.BATCH_CLASSIFICATION)
                 .setOutputDir(getOutputDir())
                 .setBaseFileName(FilenameUtils.removeExtension(conf.getDatasetConfig().getDatasetId()));
     }

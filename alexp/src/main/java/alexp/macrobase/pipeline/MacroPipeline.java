@@ -60,6 +60,10 @@ public class MacroPipeline extends Pipeline {
     }
 
     public void run() throws Exception {
+        if (resultWriter == null) {
+            setupResultWriter();
+        }
+
         switch (executionType) {
             case BATCH_CLASSIFICATION:
                 classificationMode();
@@ -76,8 +80,6 @@ public class MacroPipeline extends Pipeline {
     private void classificationMode() throws Exception {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-
-            setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
             dataFrame = loadData();
             labels = getLabels(dataFrame);
@@ -98,7 +100,9 @@ public class MacroPipeline extends Pipeline {
 
             resultWriter.write(resultHolder.getResultsDf(),
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
-                            resultHolder.getMaxMemoryUsage(), conf.getBenchConfForClassifier(classifierConf.getAlgorithmId()), algorithmParameters));
+                            resultHolder.getMaxMemoryUsage(), conf.getBenchConfForClassifier(classifierConf.getAlgorithmId()), algorithmParameters)
+                            .setClassifierId(classifierConf.getAlgorithmId())
+            );
 
         }
 
@@ -117,7 +121,6 @@ public class MacroPipeline extends Pipeline {
 
             // Print the classifier information
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-            setupResultWriter(getClassificationBaseFilePath(classifierConf).toString());
 
             ResultHolder resultHolder = null;
             StringObjectMap algorithmParameters;
@@ -176,7 +179,8 @@ public class MacroPipeline extends Pipeline {
 
             resultWriter.write(resultHolder.getResultsDf(),
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
-                            resultHolder.getMaxMemoryUsage(), conf, algorithmParameters));
+                            resultHolder.getMaxMemoryUsage(), conf, algorithmParameters)
+                            .setClassifierId(classifierConf.getAlgorithmId()));
              */
         }
     }
@@ -192,7 +196,7 @@ public class MacroPipeline extends Pipeline {
             printInfo(String.format("Running Explainer %s %s on %s", explainerConf.getAlgorithmId(), explainerConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
             for(AlgorithmConfig classifierConf: conf.getClassifierConfigs()){
                 printInfo(String.format("Running Classifier %s %s\n", classifierConf.getAlgorithmId(), classifierConf.getParameters()));
-                setupResultWriter(getExplanationBaseFilePath(explainerConf, classifierConf).toString());
+
                 Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig().getMetricColumns(), conf.getSettingsConfig().getExplanationSettings());
                 final long explanationTime = BenchmarkUtils.measureTime(() -> {
                     explainer.process(dataFrame);
@@ -206,7 +210,9 @@ public class MacroPipeline extends Pipeline {
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
                 resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0,
-                        conf.getBenchConfForExplainer(explainerConf.getAlgorithmId()), explainerConf.getParameters()));
+                        conf.getBenchConfForExplainer(explainerConf.getAlgorithmId()), explainerConf.getParameters())
+                        .setClassifierId(classifierConf.getAlgorithmId())
+                        .setExplainerId(explainerConf.getAlgorithmId()));
             }
         }
     }
@@ -254,31 +260,10 @@ public class MacroPipeline extends Pipeline {
         return baseParams.merge(new StringObjectMap(Iterables.getLast(gsResults.values())));
     }
 
-    private void setupResultWriter(String baseFilePathStr) {
-        String finalBaseFilePathStr = getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(FilenameUtils.getBaseName(Pipeline.defaultOutputDir()), baseFilePathStr).toString();
-        resultWriter = new ResultFileWriter()
+    private void setupResultWriter() {
+        resultWriter = new ResultFileWriter(executionType)
                 .setOutputDir(getOutputDir())
-                .setBaseFileName(finalBaseFilePathStr);
-    }
-
-
-    private Path getClassificationBaseFilePath(AlgorithmConfig classifierConfig) {
-        return Paths.get(
-                FilenameUtils.getBaseName(conf.getDatasetConfig().getDatasetId()),
-                getClassificationDir(),
-                classifierConfig.getAlgorithmId(),
-                confFileName
-        );
-    }
-
-    private Path getExplanationBaseFilePath(AlgorithmConfig explainerConfig, AlgorithmConfig classifierConfig) {
-        return Paths.get(
-                FilenameUtils.getBaseName(conf.getDatasetConfig().getDatasetId()),
-                getExplanationDir(),
-                explainerConfig.getAlgorithmId(),
-                classifierConfig.getAlgorithmId(),
-                confFileName
-        );
+                .setBaseFileName(FilenameUtils.removeExtension(conf.getDatasetConfig().getDatasetId())); // doesn't matter, currently always initialized in constructor
     }
 
     private DataFrame loadData() throws Exception {

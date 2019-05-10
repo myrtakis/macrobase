@@ -1,27 +1,49 @@
 package alexp.macrobase.pipeline.benchmark.result;
 
+import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.utils.DataFrameUtils;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import org.apache.commons.io.FilenameUtils;
-
 import java.nio.file.Paths;
+import java.util.Objects;
 
 public class ResultFileWriter implements ResultWriter {
     private String outputDir;
     private String baseFileName;
+    private ExecutionType executionType;
+
+    public ResultFileWriter(ExecutionType executionType) {
+        this.executionType = executionType;
+    }
 
     @Override
     public void write(DataFrame outputData, ExecutionResult result) throws Exception {
-        String csvPath = Paths.get(outputDir, baseFileName + ".csv").toString();
+        String[] pathParts = Strings.isNullOrEmpty(result.getClassifierId()) ?
+                new String[]{baseFileName} :
+                Lists.newArrayList(
+                        FilenameUtils.getBaseName(result.getBenchmarkConfig().getDatasetConfig().getDatasetId()),
+                        typeToDirName(executionType),
+                        result.getExplainerId(),
+                        result.getClassifierId(),
+                        baseFileName)
+                        .stream()
+                        .filter(Objects::nonNull)
+                        .toArray(String[]::new);
 
-        DataFrameUtils.saveToCsv(csvPath, outputData);
+        String basePaFilePath = Paths.get(outputDir, pathParts).toString();
+
+        String csvPath = Paths.get(outputDir, baseFileName).toString();
+
+        DataFrameUtils.saveToCsv(basePaFilePath + ".csv", outputData);
 
         result.toMap().merge(ImmutableMap.of(
                 "result", result.toMap().getMap("result").merge(ImmutableMap.of(
                         "algorithmOutputFilePath", FilenameUtils.getName(csvPath)
                 )).getValues()
-        )).toJsonFile(Paths.get(outputDir, baseFileName + ".json").toString());
+        )).toJsonFile(basePaFilePath + ".json");
     }
 
     public String getOutputDir() {
@@ -40,5 +62,16 @@ public class ResultFileWriter implements ResultWriter {
     public ResultFileWriter setBaseFileName(String baseFileName) {
         this.baseFileName = baseFileName;
         return this;
+    }
+
+    private static String typeToDirName(ExecutionType type) {
+        switch (type) {
+            case BATCH_CLASSIFICATION:
+            case STREAMING_CLASSIFICATION:
+                return "classification";
+            case EXPLANATION:
+                return "explanation";
+        }
+        throw new IllegalArgumentException();
     }
 }

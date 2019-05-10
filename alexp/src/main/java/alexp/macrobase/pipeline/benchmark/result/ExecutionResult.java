@@ -11,6 +11,10 @@ public class ExecutionResult {
     private final BenchmarkConfig benchmarkConfig;
     private final StringObjectMap finalAlgorithmConfig;
 
+    // maybe add to the output?
+    private String classifierId;
+    private String explainerId;
+
     public ExecutionResult(long trainingTime, long classificationTime, long maxMemory, BenchmarkConfig benchmarkConfig,
                            StringObjectMap finalAlgorithmConfig) {
         this.trainingTime = trainingTime;
@@ -52,5 +56,23 @@ public class ExecutionResult {
                         )
                 )
         ));
+    }
+
+    public String getClassifierId() {
+        return classifierId;
+    }
+
+    public ExecutionResult setClassifierId(String classifierId) {
+        this.classifierId = classifierId;
+        return this;
+    }
+
+    public String getExplainerId() {
+        return explainerId;
+    }
+
+    public ExecutionResult setExplainerId(String explainerId) {
+        this.explainerId = explainerId;
+        return this;
     }
 }
