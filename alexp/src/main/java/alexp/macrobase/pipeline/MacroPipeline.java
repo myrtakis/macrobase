@@ -4,6 +4,7 @@ import alexp.macrobase.evaluation.GridSearch;
 import alexp.macrobase.evaluation.memory.BasicMemoryProfiler;
 import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
+import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.config.GridSearchConfig;
 import alexp.macrobase.pipeline.benchmark.result.ExecutionResult;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
@@ -32,6 +33,8 @@ import static alexp.macrobase.utils.BenchmarkUtils.aucCurve;
 
 public class MacroPipeline extends Pipeline {
 
+    private final ExecutionType executionType;
+
     private final BenchmarkConfig conf;
     private final String confFileName;
     private final String rootDataDir;
@@ -40,24 +43,37 @@ public class MacroPipeline extends Pipeline {
     private DataFrame dataFrame;
     private int[] labels;
 
-
-    public MacroPipeline(BenchmarkConfig conf, String confFilePath) {
-        this(conf, confFilePath, null, null);
+    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath) {
+        this(executionType, conf, confFilePath, null, null);
     }
 
-    public MacroPipeline(BenchmarkConfig conf, String confFilePath, String rootDataDir) {
-        this(conf, confFilePath, rootDataDir, null);
+    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir) {
+        this(executionType, conf, confFilePath, rootDataDir, null);
     }
 
-    public MacroPipeline(BenchmarkConfig conf, String confFilePath, String rootDataDir, ResultWriter resultWriter) {
+    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir, ResultWriter resultWriter) {
+        this.executionType = executionType;
         this.conf = conf;
         this.confFileName = FilenameUtils.getBaseName(confFilePath);
         this.rootDataDir = rootDataDir;
         this.resultWriter = resultWriter;
     }
 
+    public void run() throws Exception {
+        switch (executionType) {
+            case BATCH_CLASSIFICATION:
+                classificationMode();
+                break;
+            case STREAMING_CLASSIFICATION:
+                streamingMode();
+                break;
+            case EXPLANATION:
+                explanationMode();
+                break;
+        }
+    }
 
-    public void classificationMode() throws Exception {
+    private void classificationMode() throws Exception {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
             printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
 
@@ -88,8 +104,7 @@ public class MacroPipeline extends Pipeline {
 
     }
 
-
-    public void streamingMode() throws Exception {
+    private void streamingMode() throws Exception {
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
             // Initialize window manager
             WindowManager wm = new WindowManager(classifierConf, conf.getDatasetConfig());
@@ -166,7 +181,7 @@ public class MacroPipeline extends Pipeline {
         }
     }
 
-    public void explanationMode() throws Exception {
+    private void explanationMode() throws Exception {
         dataFrame = loadData();
 
         labels = getLabels(dataFrame);

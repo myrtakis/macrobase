@@ -1,6 +1,7 @@
 package alexp.macrobase;
 
 import alexp.macrobase.pipeline.Pipeline;
+import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.Lists;
@@ -54,22 +55,23 @@ public class Benchmark {
     }
 
     private void runBenchmark(String confFilePath) throws Exception {
-        BenchmarkConfig configuration = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
+        BenchmarkConfig config = BenchmarkConfig.load(StringObjectMap.fromYamlFile(confFilePath));
 
-        MacroPipeline pipeline = new MacroPipeline(configuration, confFilePath, dataDirOption.value(options),
+        ExecutionType type = ExecutionType.BATCH_CLASSIFICATION;
+        if (options.has(streamOption)) {
+            type = ExecutionType.STREAMING_CLASSIFICATION;
+        } else if (options.has(explanationOption)) {
+            type = ExecutionType.EXPLANATION;
+        }
+
+        MacroPipeline pipeline = new MacroPipeline(type, config, confFilePath, dataDirOption.value(options),
                 new ResultFileWriter()
                         .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
         pipeline.setOutputDir(outputDir);
         pipeline.setOutputStream(out);
 
-        if (options.has(streamOption)) {
-            pipeline.streamingMode();
-        } else if (options.has(explanationOption)) {
-            pipeline.explanationMode();
-        } else {
-            pipeline.classificationMode();
-        }
+        pipeline.run();
     }
 
     private void showUsage() throws IOException {
