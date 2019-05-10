@@ -18,7 +18,7 @@ import java.util.List;
 public abstract class Pipeline {
     protected long lastGeneratedTime = -1;
 
-    private String outputDir;
+    private String outputDir = defaultOutputDir();
 
     private boolean outputIncludesInliers = false;
 
@@ -32,6 +32,11 @@ public abstract class Pipeline {
 
     public void setOutputDir(String outputDir) {
         this.outputDir = outputDir;
+    }
+
+    public static String defaultOutputDir() {
+        String currentDirName = Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
+        return currentDirName.equals("alexp") ? "output" : "alexp/output";
     }
 
     public boolean isOutputIncludesInliers() {
@@ -66,18 +71,10 @@ public abstract class Pipeline {
     }
 
     protected void saveData(String baseFileName, DataFrame data) throws IOException {
-        if (StringUtils.isEmpty(getOutputDir())) {
-            return;
-        }
-
         saveData(getOutputDir(), baseFileName, data);
     }
 
     protected void saveOutliers(String baseFileName, DataFrame data, String outlierOutputColumn) throws IOException {
-        if (StringUtils.isEmpty(getOutputDir())) {
-            return;
-        }
-
         if (!outputIncludesInliers) {
             data = data.filter(outlierOutputColumn, this::isOutlier);
         }
@@ -86,10 +83,6 @@ public abstract class Pipeline {
     }
 
     protected void saveExplanation(String baseFileName, DataFrame data, String outlierOutputColumn, Explanation explanation) throws IOException, MacroBaseException {
-        if (StringUtils.isEmpty(getOutputDir())) {
-            return;
-        }
-
         List<Itemset> itemsets = Pipelines.getItemsets(explanation);
 
         if (!outputIncludesInliers) {

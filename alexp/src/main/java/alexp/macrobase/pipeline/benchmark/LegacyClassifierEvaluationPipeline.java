@@ -647,15 +647,6 @@ public class LegacyClassifierEvaluationPipeline extends Pipeline {
         saveData(dir, name, df);
     }
 
-    public static String defaultOutputDir() {
-        return "alexp/bench_output";
-    }
-
-    @Override
-    public String getOutputDir() {
-        return StringUtils.isEmpty(super.getOutputDir()) ? defaultOutputDir() :super. getOutputDir();
-    }
-
     public String getNabOutputDir() {
         return nabOutputDir;
     }
