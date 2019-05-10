@@ -58,7 +58,7 @@ public class MacroPipeline extends Pipeline {
     }
 
 
-    public void classiciationMode() throws Exception {
+    public void classificationMode() throws Exception {
 
         for (AlgorithmConfig classifierConf : conf.getClassifierConfigs()) {
 
@@ -84,7 +84,7 @@ public class MacroPipeline extends Pipeline {
 
             resultWriter.write(resultHolder.getResultsDf(),
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
-                            resultHolder.getMaxMemoryUsage(), conf, algorithmParameters));
+                            resultHolder.getMaxMemoryUsage(), conf.getBenchConfForClassifier(classifierConf.getAlgorithmId()), algorithmParameters));
 
         }
 
@@ -202,7 +202,8 @@ public class MacroPipeline extends Pipeline {
 //                        maxMemoryUsage / 1024 / 1024,
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
-                resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0, conf, explainerConf.toMap()));
+                resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0,
+                        conf.getBenchConfForExplainer(explainerConf.getAlgorithmId()), explainerConf.getParameters()));
             }
         }
     }
@@ -251,9 +252,7 @@ public class MacroPipeline extends Pipeline {
     }
 
     private void setupResultWriter(String baseFilePathStr) {
-        String finalBaseFilePathStr =
-                getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(FilenameUtils.getBaseName(Pipeline.defaultOutputDir()), baseFilePathStr).toString();
-
+        String finalBaseFilePathStr = getOutputDir().equals(Pipeline.defaultOutputDir()) ? baseFilePathStr : Paths.get(FilenameUtils.getBaseName(Pipeline.defaultOutputDir()), baseFilePathStr).toString();
         resultWriter = new ResultFileWriter()
                 .setOutputDir(getOutputDir())
                 .setBaseFileName(finalBaseFilePathStr);

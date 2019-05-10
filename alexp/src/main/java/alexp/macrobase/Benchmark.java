@@ -68,7 +68,7 @@ public class Benchmark {
         } else if (options.has(explanationOption)) {
             pipeline.explanationMode();
         } else {
-            pipeline.classiciationMode();
+            pipeline.classificationMode();
         }
     }
 

@@ -7,6 +7,7 @@ import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +38,13 @@ public class BenchmarkConfig {
     }
 
     public StringObjectMap toMap() {
-        return new StringObjectMap(ImmutableMap.of(
+        if(explanationConfigs.isEmpty())
+            return new StringObjectMap(ImmutableMap.of(
+                    CLASSIFIERS_CONF_TAG, confToMap(CLASSIFIERS_CONF_TAG).getValues(),
+                    DATASET_CONF_TAG, datasetConfig.toMap().getValues()
+            ));
+        else
+            return new StringObjectMap(ImmutableMap.of(
                 CLASSIFIERS_CONF_TAG, confToMap(CLASSIFIERS_CONF_TAG).getValues(),
                 EXPLAINERS_CONF_TAG, confToMap(EXPLAINERS_CONF_TAG),
                 DATASET_CONF_TAG, datasetConfig.toMap().getValues()
@@ -62,13 +69,13 @@ public class BenchmarkConfig {
         return explainerConfs;
     }
 
-    private StringObjectMap confToMap(String options) {
+    private StringObjectMap confToMap(String option) {
         ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.builder();
         List<Object> values = new ArrayList<>();
-        for(AlgorithmConfig cconf : options.equals(CLASSIFIERS_CONF_TAG) ? classifierConfigs : explanationConfigs){
+        for(AlgorithmConfig cconf : option.equals(CLASSIFIERS_CONF_TAG) ? classifierConfigs : explanationConfigs){
             values.add(cconf.toMap());
         }
-        mapBuilder.put(options,values);
+        mapBuilder.put(option,values);
         return new StringObjectMap(mapBuilder.build());
     }
 
@@ -92,6 +99,22 @@ public class BenchmarkConfig {
         if(configList.size() != 1)
             throw new RuntimeException("Error in getting explainer id " + id + " from explainers list " + classifierConfigs);
         return configList.get(0);
+    }
+
+    public BenchmarkConfig getBenchConfForClassifier(String id) {
+        List<AlgorithmConfig> classifiersConfList = classifierConfigs.stream().filter(x -> x.getAlgorithmId().equals(id)).collect(Collectors.toList());
+        if(classifiersConfList.size() != 1)
+            throw new RuntimeException("Error in getting classifier id " + id + " from classifiers list " + classifierConfigs);
+        List<AlgorithmConfig> cconf = Arrays.asList(classifiersConfList.get(0));
+        return new BenchmarkConfig(cconf, explanationConfigs, datasetConfig, settingsConfig);
+    }
+
+    public BenchmarkConfig getBenchConfForExplainer(String id) {
+        List<AlgorithmConfig> exlpainersConfList = explanationConfigs.stream().filter(x -> x.getAlgorithmId().equals(id)).collect(Collectors.toList());
+        if(exlpainersConfList.size() != 1)
+            throw new RuntimeException("Error in getting explainer id " + id + " from explainers list " + classifierConfigs);
+        List<AlgorithmConfig> econf = Arrays.asList(exlpainersConfList.get(0));
+        return new BenchmarkConfig(classifierConfigs, econf, datasetConfig, settingsConfig);
     }
 
     public SettingsConfig getSettingsConfig() {
