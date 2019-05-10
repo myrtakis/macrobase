@@ -1,3 +1,11 @@
+MacroBase fork with a benchmark for anomaly detection and explanation algorithms and implementations of several popular algorithms not provided with MacroBase (iforest, MCOD, LOF, ...).
+
+https://github.com/anomaly-detection-macrobase-benchmark/macrobase/tree/alexp-vmu/alexp
+
+
+
+====== ↓ Original Readme ↓ ======
+
 ## MacroBase 
 
 [![Build Status](https://travis-ci.org/stanford-futuredata/macrobase.svg)](https://travis-ci.org/stanford-futuredata/macrobase)
