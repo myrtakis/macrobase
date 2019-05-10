@@ -5,7 +5,7 @@ import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.Lists;
-import alexp.macrobase.pipeline.MacroPipeline;
+import alexp.macrobase.pipeline.BenchmarkPipeline;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -64,7 +64,7 @@ public class Benchmark {
             type = ExecutionType.EXPLANATION;
         }
 
-        MacroPipeline pipeline = new MacroPipeline(type, config, confFilePath, dataDirOption.value(options),
+        BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config, confFilePath, dataDirOption.value(options),
                 new ResultFileWriter(type)
                         .setOutputDir(outputDir)
                         .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));

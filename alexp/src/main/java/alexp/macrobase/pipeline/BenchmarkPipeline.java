@@ -2,36 +2,34 @@ package alexp.macrobase.pipeline;
 
 import alexp.macrobase.evaluation.GridSearch;
 import alexp.macrobase.evaluation.memory.BasicMemoryProfiler;
+import alexp.macrobase.explanation.Explanation;
 import alexp.macrobase.outlier.Trainable;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
+import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.config.GridSearchConfig;
 import alexp.macrobase.pipeline.benchmark.result.ExecutionResult;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
+import alexp.macrobase.pipeline.benchmark.result.ResultHolder;
 import alexp.macrobase.pipeline.benchmark.result.ResultWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
+import alexp.macrobase.streaming.StreamGenerator;
+import alexp.macrobase.streaming.Windows.WindowManager;
 import alexp.macrobase.utils.BenchmarkUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.datamodel.Schema;
-import alexp.macrobase.explanation.Explanation;
-import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
-import alexp.macrobase.pipeline.benchmark.result.ResultHolder;
-import alexp.macrobase.streaming.StreamGenerator;
-import alexp.macrobase.streaming.Windows.WindowManager;
 import org.apache.commons.io.FilenameUtils;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static alexp.macrobase.utils.BenchmarkUtils.aucCurve;
 
-public class MacroPipeline extends Pipeline {
+public class BenchmarkPipeline extends Pipeline {
 
     private final ExecutionType executionType;
 
@@ -43,15 +41,15 @@ public class MacroPipeline extends Pipeline {
     private DataFrame dataFrame;
     private int[] labels;
 
-    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath) {
+    public BenchmarkPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath) {
         this(executionType, conf, confFilePath, null, null);
     }
 
-    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir) {
+    public BenchmarkPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir) {
         this(executionType, conf, confFilePath, rootDataDir, null);
     }
 
-    public MacroPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir, ResultWriter resultWriter) {
+    public BenchmarkPipeline(ExecutionType executionType, BenchmarkConfig conf, String confFilePath, String rootDataDir, ResultWriter resultWriter) {
         this.executionType = executionType;
         this.conf = conf;
         this.confFileName = FilenameUtils.getBaseName(confFilePath);
