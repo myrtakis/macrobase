@@ -76,7 +76,7 @@ public class BenchmarkTest {
     }
 
     @Test
-    @Parameters({"-b", "--auc", "--gs"})
+    @Parameters({"-b"})
     public void failsWhenHasBadArgs(String param) throws Exception {
         run(new String[]{ param, "f", "--qwerty" });
 
@@ -87,17 +87,7 @@ public class BenchmarkTest {
     }
 
     @Test
-    @Parameters({"-b", "--auc"})
-    public void failsWhenIncompatibleArgs(String param) throws Exception {
-        run(new String[]{ param, "f", "--gs", "f" });
-
-        assertReturnCodeFail();
-        assertShowsHelp();
-        assertThat(errorOutput.toLowerCase(), containsString("options"));
-    }
-
-    @Test
-    @Parameters({"-b", "--auc", "--gs"})
+    @Parameters({"-b"})
     public void failsWhenConfigNotFound(String param) throws Exception {
         run(new String[]{ param, "not_existing.yaml" });
 
@@ -106,39 +96,7 @@ public class BenchmarkTest {
     }
 
     @Test
-    public void runsAucMode() throws Exception {
-        File outputDir = tmpFolder.getRoot();
-        String outputDirPath = outputDir.getAbsolutePath();
-
-        run(new String[]{ "--auc", resourcesFilePath("legacy_benchmark_config.yaml"), "--so", outputDirPath });
-
-        assertReturnCodeOk();
-        assertEquals("", errorOutput);
-        assertTrue(outputDir.length() > 0);
-
-        String outputFileName = Arrays.stream(outputDir.list()).filter(f -> f.endsWith(".csv")).findFirst().get();
-        List<String> lines = FileUtils.readLines(new File(outputDirPath + "/" + outputFileName), "utf-8");
-        assertTrue("got " + lines.size(), lines.size() > 1 && lines.size() < 100);
-    }
-
-    @Test
-    public void includesInliers() throws Exception {
-        File outputDir = tmpFolder.getRoot();
-        String outputDirPath = outputDir.getAbsolutePath();
-
-        run(new String[]{ "--auc", resourcesFilePath("legacy_benchmark_config.yaml"), "--so", outputDirPath, "--ii" });
-
-        assertReturnCodeOk();
-        assertEquals("", errorOutput);
-        assertTrue(outputDir.length() > 0);
-
-        String outputFileName = Arrays.stream(outputDir.list()).filter(f -> f.endsWith(".csv")).findFirst().get();
-        List<String> lines = FileUtils.readLines(new File(outputDirPath + "/" + outputFileName), "utf-8");
-        assertTrue("got " + lines.size(), lines.size() > 1000);
-    }
-
-    @Test
-    @Parameters({"-b,benchmark_config.yaml", "--auc,legacy_benchmark_config.yaml"})
+    @Parameters({"-b,benchmark_config.yaml"})
     public void clearsDir(String param, String configName) throws Exception {
         File outputDir = tmpFolder.getRoot();
         String outputDirPath = outputDir.getAbsolutePath();
@@ -157,16 +115,5 @@ public class BenchmarkTest {
 
         assertFalse(new File(oldFilePath).exists());
         assertFalse(new File(oldDirPath1).exists());
-    }
-
-    @Test
-    public void runsGsMode() throws Exception {
-        File outputDir = tmpFolder.getRoot();
-        String outputDirPath = outputDir.getAbsolutePath();
-
-        run(new String[]{ "--gs", resourcesFilePath("gridsearch_config.yaml"), "--so", outputDirPath });
-
-        assertReturnCodeOk();
-        assertEquals("", errorOutput);
     }
 }
