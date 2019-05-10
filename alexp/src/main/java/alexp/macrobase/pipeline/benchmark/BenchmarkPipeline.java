@@ -1,9 +1,11 @@
-package alexp.macrobase.pipeline;
+package alexp.macrobase.pipeline.benchmark;
 
 import alexp.macrobase.evaluation.GridSearch;
 import alexp.macrobase.evaluation.memory.BasicMemoryProfiler;
 import alexp.macrobase.explanation.Explanation;
 import alexp.macrobase.outlier.Trainable;
+import alexp.macrobase.pipeline.Pipeline;
+import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import alexp.macrobase.pipeline.benchmark.config.ExecutionType;

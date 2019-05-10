@@ -5,7 +5,7 @@ import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.Lists;
-import alexp.macrobase.pipeline.BenchmarkPipeline;
+import alexp.macrobase.pipeline.benchmark.BenchmarkPipeline;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
