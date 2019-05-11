@@ -3,6 +3,7 @@ package alexp.macrobase.explanation;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
+import com.google.common.base.Joiner;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.operator.Transformer;
@@ -15,7 +16,8 @@ public abstract class Explanation implements Transformer {
 
     protected   String[]            columns;
     protected   AlgorithmConfig     classifierConf;
-    protected   String              outputColumnName = "_OUTLIER";
+    protected   String              outputColumnName        = "_OUTLIER";
+    protected   String              relSubspaceColumnName   = "__REL_SUBSPACES";
     private     ExplanationSettings explanationSettings;
 
 
@@ -26,9 +28,9 @@ public abstract class Explanation implements Transformer {
     }
 
     /**
-     * This function must be implemented from each explanation algorithm. For
+     * This function must be implemented from each explanation algorithm.
      */
-    //public abstract void addRelSubspaceColumn();
+    public abstract <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces);
 
     public List<Integer> getPointsToExplain() {
         if(explanationSettings.dictatedOutlierMethod())
@@ -41,9 +43,9 @@ public abstract class Explanation implements Transformer {
         return columns.length;
     }
 
-//    public String relSubpaceToString(List<Integer> subspaceFeatures, double score) {
-//
-//    }
+    public String subspaceToString(List<Integer> subspaceFeatures, double score) {
+        return "[" + Joiner.on(" ").join(subspaceFeatures) + "] " + score + ";";
+    }
 
     public String[] getColumns() {
         return columns;

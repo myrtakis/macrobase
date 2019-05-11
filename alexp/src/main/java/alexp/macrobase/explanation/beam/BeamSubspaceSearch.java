@@ -39,39 +39,46 @@ public class BeamSubspaceSearch extends Explanation {
     }
 
     @Override
+    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
+
+    }
+
+    @Override
     public void process(DataFrame input) throws Exception {
-        TreeMap<Integer, TopBoundedHeap<Subspace>> pointsBestSubspaces = new TreeMap<>();
+        output = input.copy();
+        TreeMap<Integer, TopBoundedHeap<Subspace>> pointBestSubspaces = new TreeMap<>();
         int counter = 0;
         for(int pointId : getPointsToExplain()){
             System.out.println("Calculating subspaces for point " + pointId + " (" + (++counter) + "/" + getPointsToExplain().size() + ") :");
-            calculateSubspaces(input, pointId, pointsBestSubspaces);
-            System.out.println();
+            calculateSubspaces(input, pointId, pointBestSubspaces);
         }
-        System.out.println("=========== RESULTS ===========");
-        for(int point : pointsBestSubspaces.keySet()){
-            System.out.print("Point " + point + " \n" + pointTopScoredSubspacesOutput(pointsBestSubspaces.get(point)));
-            System.out.println("------");
+        double[] scores = new double[input.getNumRows()];
+        for(int point = 0; point < scores.length; point++){
+            scores[point] = pointBestSubspaces.containsKey(point) ? getAvgScore(pointBestSubspaces.get(point)) : 0.0;
         }
+        output.addColumn(outputColumnName, scores);
+    }
+
+    @Override
+    public DataFrame getResults() {
+        return output;
     }
 
     private void calculateSubspaces(DataFrame input, int pointId,
-                                    TreeMap<Integer, TopBoundedHeap<Subspace>> pointsBestSubspaces) throws Exception {
+                                    TreeMap<Integer, TopBoundedHeap<Subspace>> pointBestSubspaces) throws Exception {
         TopBoundedHeap<Subspace> topKsubspaces = new TopBoundedHeap<>(topk, Subspace.SORT_BY_SCORE_ASC);
         TopBoundedHeap<Subspace> topWsubspaces = new TopBoundedHeap<>(W, Subspace.SORT_BY_SCORE_ASC);
         HashSet<String> topScoredFeatures = new HashSet<>();
         int dim = getDatasetDimensionality();
         // compute two-element sets of subspaces
         score2Dsubspaces(input, dim, topKsubspaces, topWsubspaces, pointId);
-        //System.out.println("\n\nDMAX");
         for(int i = 2; i < dmax; i++){
-            if(topWsubspaces.isEmpty())
-                break;
             TopBoundedHeap<Subspace> candidates = new TopBoundedHeap<>(topWsubspaces);  // copy current topWsubspaces heap to candidates heap
             topWsubspaces.clear();
             topScoredFeatures.clear();
-           // System.out.println(candidates);
+            // System.out.println(candidates);
             for(Heap<Subspace>.UnorderedIter it =  candidates.unorderedIter(); it.valid(); it.advance()){
-               // System.out.println(it.get().getFeatures());
+                // System.out.println(it.get().getFeatures());
                 for(int featureId = 0; featureId < getDatasetDimensionality(); featureId++){
                     Subspace newSubspace = new Subspace(it.get());  // copy previous subspace to the new one
                     int oldSubspaceDim = newSubspace.dimenionality();
@@ -96,7 +103,7 @@ public class BeamSubspaceSearch extends Explanation {
                 }
             }
         } // end for
-        pointsBestSubspaces.put(pointId, topKsubspaces);
+        pointBestSubspaces.put(pointId, topKsubspaces);
     }
 
     private void score2Dsubspaces(DataFrame input, int dim, TopBoundedHeap<Subspace> topKsubspaces,
@@ -114,6 +121,7 @@ public class BeamSubspaceSearch extends Explanation {
                 subColumns[1] = columns[j];
                 Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
                 classifier.process(tmpDataFrame);
+                // TODO you can get directly all the points of interest there
                 subspace.score = classifier.getResults().getDoubleColumnByName(outputColumnName)[pointId];
                 System.out.print("\r\t" + subspace);
                 topKsubspaces.add(subspace);
@@ -142,13 +150,17 @@ public class BeamSubspaceSearch extends Explanation {
 
     private String pointTopScoredSubspacesOutput(TopBoundedHeap<Subspace> pointTopKsubspaces) {
         StringBuilder sb = new StringBuilder();
+        sb.append("Subspaces: ").append(pointTopKsubspaces).append("\n");
+        sb.append("AvgScore: ").append(getAvgScore(pointTopKsubspaces));
+        return sb.toString();
+    }
+
+    private double getAvgScore(TopBoundedHeap<Subspace> pointTopKsubspaces) {
         double sum = 0;
         for(Heap<Subspace>.UnorderedIter it = pointTopKsubspaces.unorderedIter(); it.valid(); it.advance()) {
             sum += it.get().score;
         }
-        sb.append("Subspaces: ").append(pointTopKsubspaces).append("\n");
-        sb.append("AvgScore: ").append(sum/pointTopKsubspaces.size());
-        return sb.toString();
+        return sum/pointTopKsubspaces.size();
     }
 
     /*
@@ -167,10 +179,9 @@ public class BeamSubspaceSearch extends Explanation {
         W = w;
     }
 
-    @Override
-    public DataFrame getResults() {
-        return output;
-    }
+    /*
+        Subspace Class
+     */
 
     private static class Subspace{
 

@@ -37,7 +37,9 @@ import com.google.common.primitives.Doubles;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
+import it.unimi.dsi.fastutil.ints.IntSortedSets;
 import javafx.util.Pair;
+import sun.reflect.generics.tree.Tree;
 
 
 import java.io.BufferedWriter;
@@ -99,6 +101,7 @@ public class HiCS extends Explanation {
         Set<HiCSSubspace> subspaces = calculateSubspaces(input, subspaceIndex, rnd.getSingleThreadedRandom());
 
         List<Double> pointCumulativeScores = Doubles.asList(new double[input.getNumRows()]);
+        List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces = new ArrayList<>(input.getNumRows());
 
         int subspaceCounter = 1;
         System.out.println("\n");
@@ -114,35 +117,40 @@ public class HiCS extends Explanation {
             Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
             classifier.process(tmpDataFrame);
             DataFrame results = classifier.getResults();
-            reportFunction(hiCSSubspace.getFeatures(), results);
+            updatePointsScoresInSubspace(hiCSSubspace, results.getDoubleColumnByName(outputColumnName), pointsScoresInSubspaces);
             addArrays(pointCumulativeScores, results.getDoubleColumnByName(outputColumnName));
         }
         // Calculate the average score for each point
         for(int i = 0; i < pointCumulativeScores.size(); i++){
             pointCumulativeScores.set(i, pointCumulativeScores.get(i)/subspaces.size());
         }
+
         output.addColumn(outputColumnName, pointCumulativeScores.stream().mapToDouble(d -> d).toArray());
+
+        addRelSubspaceColumnToDataframe(output, pointsScoresInSubspaces);
+
         System.out.println("\n");
     }
 
-    boolean createFile = true;
-    private void reportFunction(List<Integer> subspaceFeatures, DataFrame results) throws IOException {
-        File outputFile = new File("alexp/ExplanationOutput/synth050/synth050_001/HicsOutput/hicsInfo.txt");
-        if(createFile) {
-            outputFile.delete();
-            createFile = false;
+    @Override
+    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
+        String[] relSubspaces = new String[data.getNumRows()];
+        List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces = (List<List<Pair<HiCSSubspace, Double>>>) pointsSubspaces;
+        HashSet<Integer> pointsOfInterestSet = new HashSet<>(getPointsToExplain());
+        for(int pointId = 0; pointId < data.getNumRows(); pointId++){
+            if(pointsOfInterestSet.contains(pointId)){
+                StringBuilder sb = new StringBuilder();
+                List<Pair<HiCSSubspace,Double>> scoresInSubspaces = pointsScoresInSubspaces.get(pointId);
+                scoresInSubspaces.sort(Comparator.comparing(Pair::getValue));
+                for(Pair<HiCSSubspace,Double> pair : scoresInSubspaces){
+                    sb.append(subspaceToString(pair.getKey().getFeatures(), pair.getValue())).append(" ");
+                }
+                relSubspaces[pointId] = sb.toString().trim();
+            }else {
+                relSubspaces[pointId] = "-";
+            }
         }
-        BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile,true));
-        String features = subspaceFeatures.toString();
-        bw.write(features);
-        bw.newLine();
-        for(int pointID : getPointsToExplain()){
-            bw.write(pointID + ":\t" + results.getRow(pointID).getAs(outputColumnName));
-            bw.newLine();
-        }
-        bw.write("========================================\n");
-        bw.newLine();
-        bw.close();
+        data.addColumn(relSubspaceColumnName, relSubspaces);
     }
 
     @Override
@@ -354,6 +362,20 @@ public class HiCS extends Explanation {
         HashSet<T> hashSet2 = new HashSet<>(list2);
         hashSet1.retainAll(hashSet2); // Now hashSet1 contains only the objects appeared in both hash sets
         return new ArrayList<>(hashSet1);
+    }
+
+    private void updatePointsScoresInSubspace(HiCSSubspace subspace, double[] pointScores,
+                                              List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces){
+        for(int i = 0; i < pointScores.length; i++){
+            if(pointsScoresInSubspaces.size() <= i)
+                pointsScoresInSubspaces.add(null);
+            List<Pair<HiCSSubspace, Double>> subspacesScores = pointsScoresInSubspaces.get(i);
+            Pair<HiCSSubspace, Double> pair = new Pair<>(subspace, pointScores[i]);
+            if(subspacesScores == null)
+                subspacesScores = new ArrayList<>();
+            subspacesScores.add(pair);
+            pointsScoresInSubspaces.set(i, subspacesScores);
+        }
     }
 
     /*
