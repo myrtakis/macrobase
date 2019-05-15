@@ -20,6 +20,11 @@ public class LookOut extends Explanation {
         super(columns, classifierConf, explanationSettings);
     }
 
+    @Override
+    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
+
+    }
+
     /*
         OVERRIDE FUNCTIONS
      */
