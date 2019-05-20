@@ -7,6 +7,7 @@ import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 
@@ -39,25 +40,50 @@ public class BeamSubspaceSearch extends Explanation {
     }
 
     @Override
-    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
-
-    }
-
-    @Override
     public void process(DataFrame input) throws Exception {
         output = input.copy();
-        TreeMap<Integer, TopBoundedHeap<Subspace>> pointBestSubspaces = new TreeMap<>();
+        List<TopBoundedHeap<Subspace>> pointsBestSubspaces = new ArrayList<>();
         int counter = 0;
         for(int pointId : getPointsToExplain()){
             System.out.println("Calculating subspaces for point " + pointId + " (" + (++counter) + "/" + getPointsToExplain().size() + ") :");
-            calculateSubspaces(input, pointId, pointBestSubspaces);
+            calculateSubspaces(input, pointId, pointsBestSubspaces);
         }
+        HashSet<Integer> pointsToExplainSet = new HashSet<>(getPointsToExplain());
         double[] scores = new double[input.getNumRows()];
-        for(int point = 0; point < scores.length; point++){
-            scores[point] = pointBestSubspaces.containsKey(point) ? getAvgScore(pointBestSubspaces.get(point)) : 0.0;
+        int pointsOfInterestCounter = 0;
+        for(int i = 0; i < scores.length; i++){
+            double score = 0;
+            if(pointsToExplainSet.contains(i)){
+                score = getAvgScore(pointsBestSubspaces.get(pointsOfInterestCounter));
+                pointsOfInterestCounter++;
+            }
+            scores[i] = score;
         }
         output.addColumn(outputColumnName, scores);
+        addRelSubspaceColumnToDataframe(output, pointsBestSubspaces);
     }
+
+    @Override
+    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
+        List<TopBoundedHeap<Subspace>> pointsBestSubspaces = (List<TopBoundedHeap<Subspace>> ) pointsSubspaces;
+        HashSet<Integer> pointsToExplainSet = new HashSet<>(getPointsToExplain());
+        String[] relSubspaces = new String[data.getNumRows()];
+        int pointsOfInterestCounter = 0;
+        for(int i = 0; i < data.getNumRows(); i++){
+            String relSubspaceStr = "-";
+            if(pointsToExplainSet.contains(i)){
+                StringBuilder sb = new StringBuilder();
+                for(Heap<Subspace>.UnorderedIter it = pointsBestSubspaces.get(pointsOfInterestCounter).unorderedIter(); it.valid(); it.advance()){
+                    sb.append(subspaceToString(Lists.newArrayList(it.get().getFeatures()), it.get().score)).append(" ");
+                }
+                pointsOfInterestCounter++;
+                relSubspaceStr = sb.toString().trim();
+            }
+            relSubspaces[i] = relSubspaceStr;
+        }
+        data.addColumn(relSubspaceColumnName, relSubspaces);
+    }
+
 
     @Override
     public DataFrame getResults() {
@@ -65,7 +91,7 @@ public class BeamSubspaceSearch extends Explanation {
     }
 
     private void calculateSubspaces(DataFrame input, int pointId,
-                                    TreeMap<Integer, TopBoundedHeap<Subspace>> pointBestSubspaces) throws Exception {
+                                    List<TopBoundedHeap<Subspace>> pointsBestSubspaces) throws Exception {
         TopBoundedHeap<Subspace> topKsubspaces = new TopBoundedHeap<>(topk, Subspace.SORT_BY_SCORE_ASC);
         TopBoundedHeap<Subspace> topWsubspaces = new TopBoundedHeap<>(W, Subspace.SORT_BY_SCORE_ASC);
         HashSet<String> topScoredFeatures = new HashSet<>();
@@ -103,7 +129,7 @@ public class BeamSubspaceSearch extends Explanation {
                 }
             }
         } // end for
-        pointBestSubspaces.put(pointId, topKsubspaces);
+        pointsBestSubspaces.add(topKsubspaces);
     }
 
     private void score2Dsubspaces(DataFrame input, int dim, TopBoundedHeap<Subspace> topKsubspaces,
