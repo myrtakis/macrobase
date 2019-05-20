@@ -1,5 +1,5 @@
 dataset:
-  uri: "csv://alexp/data/explanation/HiCS_Datasets/synth_multidim_050_000.csv"
+  uri: "csv://alexp/data/explanation/hics_datasets/synth_multidim_050_000.csv"
   metricColumns:
     - "var_0000"
     - "var_0001"
@@ -66,4 +66,4 @@ explainers:
       topk: 5
       dmax: 3
 
-settingsConfigPath: "alexp/data/explanation/HiCS_Datasets_Settings/synth_multidim_050_000.yaml"
+settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_050_000.yaml"

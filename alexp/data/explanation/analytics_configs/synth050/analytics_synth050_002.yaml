@@ -1,0 +1,8 @@
+outputColumn: "_OUTLIER"
+relSubspaceColumn: "__REL_SUBSPACES"
+
+explainers:
+  - id: "hics"
+    outputFilePath: "csv://alexp/hics_exp/synth_multidim_050_002/explanation/hics/lof-bkaluza/synth050_002_config.csv"
+
+settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_050_002.yaml"

@@ -1,0 +1,8 @@
+outputColumn: "_OUTLIER"
+relSubspaceColumn: "__REL_SUBSPACES"
+
+explainers:
+  - id: "beam"
+    outputFilePath: "csv://alexp/output/synth_multidim_010_000/explanation/beam/lof-bkaluza/beam_synth010_000_config.csv"
+
+settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_010_000.yaml"

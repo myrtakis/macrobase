@@ -28,4 +28,4 @@ explanationSettings:
       parameters:
         knn: 15
         trainSize: 100
-    threshold: 0.75
+    threshold: 1.20

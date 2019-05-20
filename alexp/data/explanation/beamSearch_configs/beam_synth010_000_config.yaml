@@ -1,5 +1,5 @@
 dataset:
-  uri: "csv://alexp/data/explanation/HiCS_Datasets/synth_multidim_010_000.csv"
+  uri: "csv://alexp/data/explanation/hics_datasets/synth_multidim_010_000.csv"
   metricColumns:
     - "var_0000"
     - "var_0001"
@@ -22,8 +22,8 @@ classifiers:
 explainers:
   - id: "beam"
     parameters:
-      beamWidth: 100
+      beamWidth: 40
       topk: 5
       dmax: 3
 
-settingsConfigPath: "alexp/data/explanation/HiCS_Datasets_Settings/synth_multidim_010_000.yaml"
+settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_010_000.yaml"

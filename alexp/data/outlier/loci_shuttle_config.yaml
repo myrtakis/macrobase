@@ -13,8 +13,7 @@ dataset:
   labelColumn: "is_anomaly"
 
 classifiers:
-  - id: "iforest"
+  - id: "loci"
     parameters:
-      treesCount: 100
-      subsampleSize: 256
-      trainSize: 4000
+      kSigma: 4
+      alpha: 0.5
