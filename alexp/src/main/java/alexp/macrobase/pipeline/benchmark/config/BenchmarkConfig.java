@@ -100,7 +100,7 @@ public class BenchmarkConfig {
     }
 
     public ExecutionConfig getExecutionConfig(String classifierId) {
-        return getExecutionConfig(classifierId);
+        return getExecutionConfig(classifierId, null);
     }
 
     public ExecutionConfig getExecutionConfig(AlgorithmConfig classifierConf, AlgorithmConfig explainerConf) {
