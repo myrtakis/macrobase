@@ -98,7 +98,7 @@ public class BenchmarkPipeline extends Pipeline {
 
             resultWriter.write(resultHolder.getResultsDf(),
                     new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
-                            resultHolder.getMaxMemoryUsage(), conf.getBenchConfForClassifier(classifierConf.getAlgorithmId()), algorithmParameters)
+                            resultHolder.getMaxMemoryUsage(), conf.getExecutionConfig(classifierConf), algorithmParameters)
                             .setClassifierId(classifierConf.getAlgorithmId())
             );
 
@@ -208,7 +208,7 @@ public class BenchmarkPipeline extends Pipeline {
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
                 resultWriter.write(explainer.getResults(), new ExecutionResult(0,0,0,
-                        conf.getBenchConfForExplainer(explainerConf.getAlgorithmId()), explainerConf.getParameters())
+                        conf.getExecutionConfig(classifierConf, explainerConf), explainerConf.getParameters())
                         .setClassifierId(classifierConf.getAlgorithmId())
                         .setExplainerId(explainerConf.getAlgorithmId()));
             }

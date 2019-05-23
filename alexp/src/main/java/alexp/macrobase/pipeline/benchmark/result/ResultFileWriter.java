@@ -24,7 +24,7 @@ public class ResultFileWriter implements ResultWriter {
         String[] pathParts = Strings.isNullOrEmpty(result.getClassifierId()) ?
                 new String[]{baseFileName} :
                 Lists.newArrayList(
-                        FilenameUtils.getBaseName(result.getBenchmarkConfig().getDatasetConfig().getDatasetId()),
+                        FilenameUtils.getBaseName(result.getExecutionConfig().getDatasetConfig().getDatasetId()),
                         typeToDirName(executionType),
                         result.getExplainerId(),
                         result.getClassifierId(),

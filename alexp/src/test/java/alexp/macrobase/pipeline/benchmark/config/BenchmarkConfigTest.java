@@ -79,12 +79,12 @@ public class BenchmarkConfigTest {
 //        assertEquals("shuttle dataset", config.getDatasetConfig().getDatasetId());
 //        assertEquals("is_anomaly", config.getDatasetConfig().getLabelColumn());
 //        assertArrayEquals(new String[]{"d1", "d2"}, config.getDatasetConfig().getMetricColumns());
-//        assertEquals("iforest", config.getAlgorithmConfig().getAlgorithmId());
+//        assertEquals("iforest", config.getClassifierConfig().getAlgorithmId());
 //        assertEquals(ImmutableMap.of(
 //                "treesCount", 100,
 //                "param2", 3.14
-//        ), config.getAlgorithmConfig().getParameters().getValues());
-//        assertNull(config.getAlgorithmConfig().getGridSearchConfig());
+//        ), config.getClassifierConfig().getParameters().getValues());
+//        assertNull(config.getClassifierConfig().getGridSearchConfig());
 //    }
 
     @Test
@@ -106,7 +106,7 @@ public class BenchmarkConfigTest {
 //    public void loadsSavesGs() {
 //        BenchmarkConfig config = BenchmarkConfig.load(new StringObjectMap(configGsValues));
 //
-//        GridSearchConfig gsConfig = config.getAlgorithmConfig().getGridSearchConfig();
+//        GridSearchConfig gsConfig = config.getClassifierConfig().getGridSearchConfig();
 //        assertNotNull(gsConfig);
 //        assertEquals("pr", gsConfig.getMeasure());
 //        assertArrayEquals(Lists.newArrayList(50, 100, 150).toArray(), gsConfig.getParameters().get("treesCount"));
