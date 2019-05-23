@@ -16,12 +16,10 @@ public class SettingsConfig {
         this.explanationSettings = explanationSettings;
     }
 
-    public static SettingsConfig load(String settingsFilePath) {
+    public static SettingsConfig load(String settingsFilePath) throws IOException {
         if(Strings.isNullOrEmpty(settingsFilePath))
             return null;
-        StringObjectMap conf = null;
-        try { conf = StringObjectMap.fromYamlFile(settingsFilePath); }
-        catch (IOException e) { e.printStackTrace(); }
+        StringObjectMap conf = StringObjectMap.fromYamlFile(settingsFilePath);
         return new SettingsConfig(ExplanationSettings.load(conf.getMap(EXPLANATION_SETTINGS_TAG)));
     }
 

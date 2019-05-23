@@ -5,6 +5,7 @@ import alexp.macrobase.pipeline.benchmark.config.SettingsConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import javafx.util.Pair;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class AnalyticsConfig {
         this.settingsConfig = settingsConfig;
     }
 
-    public static AnalyticsConfig load(StringObjectMap conf) {
+    public static AnalyticsConfig load(StringObjectMap conf) throws IOException {
         return new AnalyticsConfig(
                 getOutputColumn(conf),
                 getRelSubspaceColumn(conf),
@@ -57,7 +58,7 @@ public class AnalyticsConfig {
         return explainersList;
     }
 
-    private static SettingsConfig getSettings(StringObjectMap conf) {
+    private static SettingsConfig getSettings(StringObjectMap conf) throws IOException {
         return SettingsConfig.load(conf.get(settingsConfigTag));
     }
 

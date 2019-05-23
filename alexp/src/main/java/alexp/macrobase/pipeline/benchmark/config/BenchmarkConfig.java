@@ -6,6 +6,7 @@ import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.ImmutableMap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,7 +32,7 @@ public class BenchmarkConfig {
         this.settingsConfig = settingsConfig;
     }
 
-    public static BenchmarkConfig load(StringObjectMap conf) {
+    public static BenchmarkConfig load(StringObjectMap conf) throws IOException {
         return new BenchmarkConfig(getClassifierConfigList(conf),
                 getExplanationConfigList(conf),
                 DatasetConfig.load(conf.getMap(DATASET_CONF_TAG)),
