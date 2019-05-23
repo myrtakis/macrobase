@@ -20,7 +20,7 @@ public class AlgorithmConfig {
 
     public static AlgorithmConfig load(StringObjectMap conf) {
         String id = conf.get("id");
-        StringObjectMap parameters = conf.getMap("parameters");
+        StringObjectMap parameters = conf.getMapOrEmpty("parameters");
         StringObjectMap gs = conf.getMap("gridsearch");
 
         return new AlgorithmConfig(id, parameters, gs == null ? null : GridSearchConfig.load(gs));
