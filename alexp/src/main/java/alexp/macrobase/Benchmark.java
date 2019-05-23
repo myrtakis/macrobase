@@ -1,9 +1,11 @@
 package alexp.macrobase;
 
 import alexp.macrobase.pipeline.Pipeline;
+import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.ExecutionType;
 import alexp.macrobase.pipeline.benchmark.result.ResultFileWriter;
 import alexp.macrobase.pipeline.config.StringObjectMap;
+import alexp.macrobase.utils.CollectionUtils;
 import com.google.common.collect.Lists;
 import alexp.macrobase.pipeline.benchmark.BenchmarkPipeline;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
@@ -64,14 +66,18 @@ public class Benchmark {
             type = ExecutionType.EXPLANATION;
         }
 
-        BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config, dataDirOption.value(options),
-                new ResultFileWriter(type)
-                        .setOutputDir(outputDir)
-                        .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
-        pipeline.setOutputDir(outputDir);
-        pipeline.setOutputStream(out);
+        for (AlgorithmConfig classifierConf : config.getClassifierConfigs()) {
+            for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(config.getExplanationConfigs())) {
+                BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config.getExecutionConfig(classifierConf, explainerConf), dataDirOption.value(options),
+                        new ResultFileWriter(type)
+                                .setOutputDir(outputDir)
+                                .setBaseFileName(FilenameUtils.getBaseName(confFilePath)));
+                pipeline.setOutputDir(outputDir);
+                pipeline.setOutputStream(out);
 
-        pipeline.run();
+                pipeline.run();
+            }
+        }
     }
 
     private void showUsage() throws IOException {

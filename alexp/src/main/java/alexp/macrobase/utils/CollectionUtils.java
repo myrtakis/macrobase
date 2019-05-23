@@ -1,5 +1,7 @@
 package alexp.macrobase.utils;
 
+import com.google.common.collect.Lists;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,5 +17,9 @@ public class CollectionUtils {
             ret.add(col);
         }
         return ret;
+    }
+
+    public static <T> List<T> listOrSingleNullElement(List<T> list) {
+        return (list == null || list.isEmpty()) ? Lists.newArrayList((T) null) : list;
     }
 }

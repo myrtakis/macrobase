@@ -44,6 +44,10 @@ public class ExecutionConfig {
         return classifierConfig;
     }
 
+    public AlgorithmConfig getExplainerConfig() {
+        return explainerConfig;
+    }
+
     public DatasetConfig getDatasetConfig() {
         return datasetConfig;
     }
