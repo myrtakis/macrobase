@@ -67,7 +67,7 @@ public class Benchmark {
         }
 
         for (AlgorithmConfig classifierConf : config.getClassifierConfigs()) {
-            for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(config.getExplanationConfigs())) {
+            for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(config.getExplainerConfigs())) {
                 BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config.getExecutionConfig(classifierConf, explainerConf), dataDirOption.value(options),
                         new ResultFileWriter(type)
                                 .setOutputDir(outputDir)

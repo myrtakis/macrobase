@@ -1,21 +1,17 @@
 package alexp.macrobase.pipeline.benchmark.config;
 
 
-import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
-import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BenchmarkConfig {
     private final List<AlgorithmConfig> classifierConfigs;
-    private final List<AlgorithmConfig> explanationConfigs;
+    private final List<AlgorithmConfig> explainerConfigs;
     private final DatasetConfig datasetConfig;
     private final SettingsConfig settingsConfig;
 
@@ -24,10 +20,10 @@ public class BenchmarkConfig {
     static final String DATASET_CONF_TAG        =   "dataset";
     static final String SETTINGS_CONF_TAG       =   "settingsConfigPath";
 
-    public BenchmarkConfig(List<AlgorithmConfig> classifierConfigs, List<AlgorithmConfig> explanationConfigs,
+    public BenchmarkConfig(List<AlgorithmConfig> classifierConfigs, List<AlgorithmConfig> explainerConfigs,
                            DatasetConfig datasetConfig, SettingsConfig settingsConfig) {
         this.classifierConfigs = classifierConfigs;
-        this.explanationConfigs = explanationConfigs;
+        this.explainerConfigs = explainerConfigs;
         this.datasetConfig = datasetConfig;
         this.settingsConfig = settingsConfig;
     }
@@ -40,7 +36,7 @@ public class BenchmarkConfig {
     }
 
     public StringObjectMap toMap() {
-        if(explanationConfigs.isEmpty())
+        if(explainerConfigs.isEmpty())
             return new StringObjectMap(ImmutableMap.of(
                     CLASSIFIERS_CONF_TAG, classifierConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
                     DATASET_CONF_TAG, datasetConfig.toMap().getValues()
@@ -48,7 +44,7 @@ public class BenchmarkConfig {
         else
             return new StringObjectMap(ImmutableMap.of(
                 CLASSIFIERS_CONF_TAG, classifierConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
-                EXPLAINERS_CONF_TAG, explanationConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
+                EXPLAINERS_CONF_TAG, explainerConfigs.stream().map(c -> c.toMap().getValues()).collect(Collectors.toList()),
                 DATASET_CONF_TAG, datasetConfig.toMap().getValues()
         ));
     }
@@ -75,8 +71,8 @@ public class BenchmarkConfig {
         return classifierConfigs;
     }
 
-    public List<AlgorithmConfig> getExplanationConfigs() {
-        return explanationConfigs;
+    public List<AlgorithmConfig> getExplainerConfigs() {
+        return explainerConfigs;
     }
 
     public AlgorithmConfig getClassifierConfig(String id) {
@@ -87,7 +83,7 @@ public class BenchmarkConfig {
     }
 
     public AlgorithmConfig getExplanationConfig(String id) {
-        List<AlgorithmConfig> configList = explanationConfigs.stream().filter(x -> x.getAlgorithmId().equals(id)).collect(Collectors.toList());
+        List<AlgorithmConfig> configList = explainerConfigs.stream().filter(x -> x.getAlgorithmId().equals(id)).collect(Collectors.toList());
         if(configList.size() != 1)
             throw new RuntimeException("Error in getting explainer id " + id + " from explainers list " + classifierConfigs);
         return configList.get(0);
@@ -95,7 +91,7 @@ public class BenchmarkConfig {
 
     public ExecutionConfig getExecutionConfig(String classifierId, String explainerId) {
         AlgorithmConfig classifierConf = classifierConfigs.stream().filter(it -> it.getAlgorithmId().equals(classifierId)).findFirst().orElse(null);
-        AlgorithmConfig explainerConf = explanationConfigs.stream().filter(it -> it.getAlgorithmId().equals(explainerId)).findFirst().orElse(null);
+        AlgorithmConfig explainerConf = explainerConfigs.stream().filter(it -> it.getAlgorithmId().equals(explainerId)).findFirst().orElse(null);
         return getExecutionConfig(classifierConf, explainerConf);
     }
 
