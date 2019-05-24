@@ -33,17 +33,17 @@ public class ResultFileWriter implements ResultWriter {
                         .filter(Objects::nonNull)
                         .toArray(String[]::new);
 
-        String basePaFilePath = Paths.get(outputDir, pathParts).toString();
+        String baseFilePath = Paths.get(outputDir, pathParts).toString();
 
         String csvPath = Paths.get(outputDir, baseFileName).toString();
 
-        DataFrameUtils.saveToCsv(basePaFilePath + ".csv", outputData);
+        DataFrameUtils.saveToCsv(baseFilePath + ".csv", outputData);
 
         result.toMap().merge(ImmutableMap.of(
                 "result", result.toMap().getMap("result").merge(ImmutableMap.of(
                         "algorithmOutputFilePath", FilenameUtils.getName(csvPath)
                 )).getValues()
-        )).toJsonFile(basePaFilePath + ".json");
+        )).toJsonFile(baseFilePath + ".json");
     }
 
     public String getOutputDir() {
