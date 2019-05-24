@@ -35,13 +35,11 @@ public class ResultFileWriter implements ResultWriter {
 
         String baseFilePath = Paths.get(outputDir, pathParts).toString();
 
-        String csvPath = Paths.get(outputDir, baseFileName).toString();
-
         DataFrameUtils.saveToCsv(baseFilePath + ".csv", outputData);
 
         result.toMap().merge(ImmutableMap.of(
                 "result", result.toMap().getMap("result").merge(ImmutableMap.of(
-                        "algorithmOutputFilePath", FilenameUtils.getName(csvPath)
+                        "algorithmOutputFilePath", FilenameUtils.getName(baseFileName) + ".csv"
                 )).getValues()
         )).toJsonFile(baseFilePath + ".json");
     }
