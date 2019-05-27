@@ -136,7 +136,7 @@ public class HiCS extends Explanation {
     public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
         String[] relSubspaces = new String[data.getNumRows()];
         List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces = (List<List<Pair<HiCSSubspace, Double>>>) pointsSubspaces;
-        HashSet<Integer> pointsOfInterestSet = new HashSet<>(getPointsToExplain());
+        HashSet<Integer> pointsOfInterestSet = new HashSet<>(super.getPointsToExplain());
         for(int pointId = 0; pointId < data.getNumRows(); pointId++){
             if(pointsOfInterestSet.contains(pointId)){
                 StringBuilder sb = new StringBuilder();
@@ -423,8 +423,7 @@ public class HiCS extends Explanation {
     private void analyzeHiCSdatasets(DataFrame input) throws Exception {
         String outputFilePath = "alexp/data/explanation/HiCS_Dataset_Analysis/test_010_000.txt";
         BufferedWriter bw = new BufferedWriter(new FileWriter(new File(outputFilePath)));
-        for(Object pointIdObj : getPointsToExplain()){
-            int pointId = pointIdObj instanceof Integer ? (Integer) pointIdObj : ((Double) pointIdObj).intValue();
+        for(int pointId : super.getPointsToExplain()){
             String subspaces = input.getStringColumnByName("relevant_subspace")[pointId];
             String pointScoreStr = "Point " + pointId + "\n";
             for(List<Integer> subspace : getSubspaces(subspaces)) {

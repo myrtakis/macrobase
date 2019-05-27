@@ -10,6 +10,7 @@ import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 
+import java.util.HashSet;
 import java.util.List;
 
 public abstract class Explanation implements Transformer {
@@ -19,6 +20,7 @@ public abstract class Explanation implements Transformer {
     protected   String              outputColumnName        = "_OUTLIER";
     protected   String              relSubspaceColumnName   = "__REL_SUBSPACES";
     private     ExplanationSettings explanationSettings;
+    private     HashSet<Integer>    pointsToExplain;
 
 
     public Explanation(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
@@ -32,9 +34,10 @@ public abstract class Explanation implements Transformer {
      */
     public abstract <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces);
 
-    public List<Integer> getPointsToExplain() {
-        if(explanationSettings.dictatedOutlierMethod())
-            return explanationSettings.getDictatedOutliers();
+    public HashSet<Integer> getPointsToExplain() {
+        if(explanationSettings.dictatedOutlierMethod()) {
+            return pointsToExplain == null ? new HashSet<>(explanationSettings.getDictatedOutliers()) : pointsToExplain;
+        }
         // TODO else do the detection and return the outlier points to explain
         return null;
     }

@@ -1,6 +1,7 @@
 package alexp.macrobase.explanation.beam;
 
 import alexp.macrobase.explanation.Explanation;
+import alexp.macrobase.explanation.utils.Subspace;
 import alexp.macrobase.explanation.utils.datastructures.heap.Heap;
 import alexp.macrobase.explanation.utils.datastructures.heap.TopBoundedHeap;
 import alexp.macrobase.pipeline.Pipelines;
@@ -21,7 +22,7 @@ public class BeamSubspaceSearch extends Explanation {
     private int topk;
 
     /**
-     * The maximum dimensionality.
+     * The maximum getDimensionality.
      */
     private int dmax;
 
@@ -44,16 +45,15 @@ public class BeamSubspaceSearch extends Explanation {
         output = input.copy();
         List<TopBoundedHeap<Subspace>> pointsBestSubspaces = new ArrayList<>();
         int counter = 0;
-        for(int pointId : getPointsToExplain()){
-            System.out.println("Calculating subspaces for point " + pointId + " (" + (++counter) + "/" + getPointsToExplain().size() + ") :");
+        for(int pointId : super.getPointsToExplain()){
+            System.out.println("Calculating subspaces for point " + pointId + " (" + (++counter) + "/" + super.getPointsToExplain().size() + ") :");
             calculateSubspaces(input, pointId, pointsBestSubspaces);
         }
-        HashSet<Integer> pointsToExplainSet = new HashSet<>(getPointsToExplain());
         double[] scores = new double[input.getNumRows()];
         int pointsOfInterestCounter = 0;
         for(int i = 0; i < scores.length; i++){
             double score = 0;
-            if(pointsToExplainSet.contains(i)){
+            if(super.getPointsToExplain().contains(i)){
                 score = getAvgScore(pointsBestSubspaces.get(pointsOfInterestCounter));
                 pointsOfInterestCounter++;
             }
@@ -66,15 +66,14 @@ public class BeamSubspaceSearch extends Explanation {
     @Override
     public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
         List<TopBoundedHeap<Subspace>> pointsBestSubspaces = (List<TopBoundedHeap<Subspace>> ) pointsSubspaces;
-        HashSet<Integer> pointsToExplainSet = new HashSet<>(getPointsToExplain());
         String[] relSubspaces = new String[data.getNumRows()];
         int pointsOfInterestCounter = 0;
         for(int i = 0; i < data.getNumRows(); i++){
             String relSubspaceStr = "-";
-            if(pointsToExplainSet.contains(i)){
+            if(super.getPointsToExplain().contains(i)){
                 StringBuilder sb = new StringBuilder();
                 for(Heap<Subspace>.UnorderedIter it = pointsBestSubspaces.get(pointsOfInterestCounter).unorderedIter(); it.valid(); it.advance()){
-                    sb.append(subspaceToString(Lists.newArrayList(it.get().getFeatures()), it.get().score)).append(" ");
+                    sb.append(subspaceToString(Lists.newArrayList(it.get().getFeatures()), it.get().getScore())).append(" ");
                 }
                 pointsOfInterestCounter++;
                 relSubspaceStr = sb.toString().trim();
@@ -102,17 +101,14 @@ public class BeamSubspaceSearch extends Explanation {
             TopBoundedHeap<Subspace> candidates = new TopBoundedHeap<>(topWsubspaces);  // copy current topWsubspaces heap to candidates heap
             topWsubspaces.clear();
             topScoredFeatures.clear();
-            // System.out.println(candidates);
             for(Heap<Subspace>.UnorderedIter it =  candidates.unorderedIter(); it.valid(); it.advance()){
-                // System.out.println(it.get().getFeatures());
                 for(int featureId = 0; featureId < getDatasetDimensionality(); featureId++){
                     Subspace newSubspace = new Subspace(it.get());  // copy previous subspace to the new one
-                    int oldSubspaceDim = newSubspace.dimenionality();
+                    int oldSubspaceDim = newSubspace.getDimensionality();
                     newSubspace.setFeature(featureId);
-                    //System.out.println("\tAdd feature " + featureId + " to " + it.get().getFeatures() + " -> " + newSubspace.getFeatures());
-                    if(newSubspace.dimenionality() == oldSubspaceDim || featuresInTopScored(topScoredFeatures, newSubspace))
+                    if(newSubspace.getDimensionality() == oldSubspaceDim || featuresInTopScored(topScoredFeatures, newSubspace))
                         continue;
-                    String[] subColumns = new String[newSubspace.dimenionality()];
+                    String[] subColumns = new String[newSubspace.getDimensionality()];
                     DataFrame tmpDataFrame = new DataFrame();
                     int counter = 0;
                     for(int subspaceFeatureId : newSubspace.getFeatures()){
@@ -121,7 +117,7 @@ public class BeamSubspaceSearch extends Explanation {
                     }
                     Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
                     classifier.process(tmpDataFrame);
-                    newSubspace.score = classifier.getResults().getDoubleColumnByName(outputColumnName)[pointId];
+                    newSubspace.setScore(classifier.getResults().getDoubleColumnByName(outputColumnName)[pointId]);
                     System.out.print("\r\t" + newSubspace);
                     updateTopScoredFeatures(topScoredFeatures, newSubspace, topWsubspaces);
                     topKsubspaces.add(newSubspace);
@@ -148,7 +144,7 @@ public class BeamSubspaceSearch extends Explanation {
                 Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
                 classifier.process(tmpDataFrame);
                 // TODO you can get directly all the points of interest there
-                subspace.score = classifier.getResults().getDoubleColumnByName(outputColumnName)[pointId];
+                subspace.setScore(classifier.getResults().getDoubleColumnByName(outputColumnName)[pointId]);
                 System.out.print("\r\t" + subspace);
                 topKsubspaces.add(subspace);
                 topWsubspaces.add(subspace);
@@ -166,7 +162,7 @@ public class BeamSubspaceSearch extends Explanation {
 
     private void updateTopScoredFeatures(HashSet<String> topScoredFeatures, Subspace candidateSubspace,
                                          TopBoundedHeap<Subspace> topWsubspaces) {
-        if(topWsubspaces.isEmpty() || topWsubspaces.peek().score < candidateSubspace.score)
+        if(topWsubspaces.isEmpty() || topWsubspaces.peek().getScore() < candidateSubspace.getScore())
             topScoredFeatures.add(featuresToString(candidateSubspace.getFeatures()));
     }
 
@@ -184,7 +180,7 @@ public class BeamSubspaceSearch extends Explanation {
     private double getAvgScore(TopBoundedHeap<Subspace> pointTopKsubspaces) {
         double sum = 0;
         for(Heap<Subspace>.UnorderedIter it = pointTopKsubspaces.unorderedIter(); it.valid(); it.advance()) {
-            sum += it.get().score;
+            sum += it.get().getScore();
         }
         return sum/pointTopKsubspaces.size();
     }
@@ -203,65 +199,6 @@ public class BeamSubspaceSearch extends Explanation {
 
     public void setW(int w) {
         W = w;
-    }
-
-    /*
-        Subspace Class
-     */
-
-    private static class Subspace{
-
-        private double score;
-
-        private HashSet<Integer> features;
-
-        public Subspace() {
-        }
-
-        public Subspace(Subspace subspaceToCopy) {
-            this.features = new HashSet<>(subspaceToCopy.features);
-            this.score = subspaceToCopy.score;
-        }
-
-        public HashSet<Integer> getFeatures() {
-            return features;
-        }
-
-        public int dimenionality() {
-            return features.size();
-        }
-
-        public void setFeature(int featureId) {
-            if(features == null)
-                features = new HashSet<>();
-            features.add(featureId);
-        }
-
-        @Override
-        public String toString() {
-            return "[" + score + ", " + features.toString() + "]";
-        }
-
-        /**
-         * Sort subspaces by their score in ascending order.
-         */
-        public static final Comparator<Subspace> SORT_BY_SCORE_ASC = (o1, o2) -> {
-            if(o1.score == o2.score) {
-                return 0;
-            }
-            return o1.score > o2.score ? 1 : -1;
-        };
-
-        /**
-         * Sort subspaces by their score in descending order.
-         */
-        public static final Comparator<Subspace> SORT_BY_SCORE_DESC = (o1, o2) -> {
-            if(o1.score == o2.score) {
-                return 0;
-            }
-            return o1.score < o2.score ? 1 : -1;
-        };
-
     }
 
 }
