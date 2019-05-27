@@ -219,7 +219,7 @@ public class Pipelines {
             case "lookout": {
                 LookOut lookOut = new LookOut(metricColumns, classifierConf, explanationSettings);
                 lookOut.setBudget(explainerConf.getParameters().get("budget", 3));
-                lookOut.setBudget(explainerConf.getParameters().get("dmax", 2));
+                lookOut.setDimensionality(explainerConf.getParameters().get("getDimensionality", 2));
                 return lookOut;
             }
             case "hics": {
