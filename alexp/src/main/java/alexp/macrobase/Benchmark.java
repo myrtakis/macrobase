@@ -122,10 +122,10 @@ public class Benchmark {
             List<String> confFilePaths = Lists.newArrayList(confPath);
 
             // run for all config files if a directory is given
-            if (Files.isDirectory(Paths.get(confPath))) {
+            boolean isDir = Files.isDirectory(Paths.get(confPath));
+            if (isDir) {
                 out.println("Running for all configs in " + confPath);
                 out.println("This should not be used for time/memory measurements");
-                out.println();
                 confFilePaths = Files.list(Paths.get(confPath))
                         .map(Path::toString)
                         .filter(s -> s.endsWith("yaml"))
@@ -133,6 +133,11 @@ public class Benchmark {
             }
 
             for (String confFilePath : confFilePaths) {
+                if (isDir) {
+                    out.println();
+                    out.println(confFilePath);
+                }
+
                 runBenchmark(confFilePath);
             }
         }
