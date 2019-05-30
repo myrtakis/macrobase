@@ -66,6 +66,13 @@ public class Benchmark {
             type = ExecutionType.EXPLANATION;
         }
 
+        if (config.getClassifierConfigs().isEmpty()) {
+            err.println("Classifiers were not specified");
+        }
+        if (type == ExecutionType.EXPLANATION && config.getExplainerConfigs().isEmpty()) {
+            err.println("Explainers were not specified");
+        }
+
         for (AlgorithmConfig classifierConf : config.getClassifierConfigs()) {
             for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(config.getExplainerConfigs())) {
                 BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config.getExecutionConfig(classifierConf, explainerConf), dataDirOption.value(options),
