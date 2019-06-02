@@ -91,6 +91,7 @@ public class Benchmark {
         optionParser.printHelpOn(out);
         out.println("Examples:");
         out.println("  -b alexp/data/outlier/config.yaml");
+        out.println("  -b alexp/data/outlier/config.yaml --data-dir ../datasets");
         out.println("  -b alexp/data/outlier/config.yaml --co");
         out.println("  -b alexp/data/outlier/config.yaml --so ../my-output-folder --co");
         out.println("  -b alexp/data/outlier/exlpanationConfig.yaml --e");
