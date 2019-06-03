@@ -37,6 +37,8 @@ public class Benchmark {
     private final OptionSpec streamOption;
     private final OptionSpec explanationOption;
     private final OptionSpec<String> dataDirOption;
+    private final OptionSpec<String> classifierOption;
+    private final OptionSpec<String> explainerOption;
 
     private OptionSet options;
 
@@ -54,6 +56,10 @@ public class Benchmark {
                 .availableIf(benchmarkOption);
         dataDirOption = optionParser.accepts("data-dir", "Path of the root data dir that will be prepended for paths from the config file")
                 .availableIf(benchmarkOption).withRequiredArg().describedAs("root_dir_path");
+        classifierOption = optionParser.acceptsAll(Arrays.asList("classification-algorithm", "ca"), "Run only the specified classifier")
+                .availableIf(benchmarkOption).withRequiredArg().describedAs("classifier");
+        explainerOption = optionParser.acceptsAll(Arrays.asList("explanation-algorithm", "ea"), "Run only the specified explainer")
+                .availableIf(explanationOption).withRequiredArg().describedAs("explainer");
     }
 
     private void runBenchmark(String confFilePath) throws Exception {
@@ -73,8 +79,33 @@ public class Benchmark {
             err.println("Explainers were not specified");
         }
 
-        for (AlgorithmConfig classifierConf : config.getClassifierConfigs()) {
-            for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(config.getExplainerConfigs())) {
+        List<AlgorithmConfig> classifiers = config.getClassifierConfigs();
+        List<AlgorithmConfig> explainers = config.getExplainerConfigs();
+
+        if (options.has(classifierOption)) {
+            String id = classifierOption.value(options);
+            classifiers = classifiers.stream()
+                    .filter(a -> a.getAlgorithmId().equals(id))
+                    .collect(Collectors.toList());
+            if (classifiers.isEmpty()) {
+                err.println(String.format("Classifier '%s' not found", id));
+                System.exit(1);
+            }
+        }
+
+        if (options.has(explainerOption)) {
+            String id = explainerOption.value(options);
+            explainers = explainers.stream()
+                    .filter(a -> a.getAlgorithmId().equals(id))
+                    .collect(Collectors.toList());
+            if (explainers.isEmpty()) {
+                err.println(String.format("Explainer '%s' not found", id));
+                System.exit(1);
+            }
+        }
+
+        for (AlgorithmConfig classifierConf : classifiers) {
+            for (AlgorithmConfig explainerConf : CollectionUtils.listOrSingleNullElement(explainers)) {
                 BenchmarkPipeline pipeline = new BenchmarkPipeline(type, config.getExecutionConfig(classifierConf, explainerConf), dataDirOption.value(options),
                         new ResultFileWriter(type)
                                 .setOutputDir(outputDir)
@@ -96,6 +127,8 @@ public class Benchmark {
         out.println("  -b alexp/data/outlier/config.yaml --so ../my-output-folder --co");
         out.println("  -b alexp/data/outlier/exlpanationConfig.yaml --e");
         out.println("  -b alexp/data/outlier/streamingConfig.yaml --s");
+        out.println("  -b alexp/data/outlier/config.yaml --ca iforest");
+        out.println("  -b alexp/data/outlier/config.yaml -e --ca iforest --ea lookout");
     }
 
     int run(String[] args) throws Exception {
