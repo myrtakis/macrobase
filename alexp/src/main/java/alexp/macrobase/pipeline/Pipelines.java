@@ -2,6 +2,7 @@ package alexp.macrobase.pipeline;
 
 import alexp.macrobase.explanation.beam.BeamSubspaceSearch;
 import alexp.macrobase.explanation.Itemset;
+import alexp.macrobase.explanation.refOut.RefOut;
 import alexp.macrobase.ingest.*;
 import alexp.macrobase.normalization.MinMaxNormalizer;
 import alexp.macrobase.normalization.Normalizer;
@@ -237,6 +238,15 @@ public class Pipelines {
                 beam.setW(explainerConf.getParameters().get("beamWidth", 100));
                 return beam;
             }
+            case "refout": {
+                RefOut refout = new RefOut(metricColumns, classifierConf, explanationSettings);
+                refout.setD1(explainerConf.getParameters().get("d1", 5));
+                refout.setD2(explainerConf.getParameters().get("d2", 3));
+                refout.setOpct(explainerConf.getParameters().get("opct", 5));
+                refout.setPsize(explainerConf.getParameters().get("psize", 5));
+                return refout;
+            }
+
             default: {
                 throw new RuntimeException("Bad Classifier ID " + explainerConf.getAlgorithmId());
             }
