@@ -1,0 +1,56 @@
+explanationSettings:
+  method: "dictatedOutliers"
+
+  dictatedOutliers:
+    - 9
+    - 32
+    - 56
+    - 68
+    - 69
+    - 129
+    - 135
+    - 136
+    - 145
+    - 150
+    - 176
+    - 206
+    - 213
+    - 238
+    - 265
+    - 266
+    - 282
+    - 305
+    - 331
+    - 382
+    - 397
+    - 424
+    - 433
+    - 459
+    - 479
+    - 481
+    - 527
+    - 529
+    - 567
+    - 635
+    - 727
+    - 744
+    - 752
+    - 783
+    - 810
+    - 827
+    - 846
+    - 868
+    - 877
+    - 928
+    - 940
+    - 948
+    - 955
+    - 994
+
+  detectedOutliers:
+    classifier:
+      id: "lof-bkaluza"
+      parameters:
+        knn: 15
+        trainSize: 100
+    threshold: 1.20

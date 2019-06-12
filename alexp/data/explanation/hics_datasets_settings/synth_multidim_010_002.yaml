@@ -2,25 +2,21 @@ explanationSettings:
   method: "dictatedOutliers"
 
   dictatedOutliers:
-    - 40
-    - 192
-    - 218
-    - 230
-    - 237
-    - 364
-    - 394
-    - 455
-    - 526
-    - 536
-    - 609
-    - 646
-    - 666
-    - 694
-    - 708
-    - 735
-    - 838
-    - 855
-    - 987
+    - 115
+    - 142
+    - 268
+    - 293
+    - 299
+    - 319
+    - 354
+    - 385
+    - 389
+    - 392
+    - 439
+    - 543
+    - 667
+    - 696
+    - 942
 
   detectedOutliers:
     classifier:
