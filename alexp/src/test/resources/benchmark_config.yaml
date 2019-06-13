@@ -4,8 +4,8 @@ dataset:
     - "usage"
   labelColumn: "is_anomaly"
 
-algorithm:
-  id: "percentile"
+classifiers:
+- id: "percentile"
   parameters:
     cutoff: 1.0
     includeHi: true
