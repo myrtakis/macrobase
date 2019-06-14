@@ -1,176 +1,295 @@
 package alexp.macrobase.explanation.refOut;
 
 import alexp.macrobase.explanation.Explanation;
+import alexp.macrobase.explanation.hics.statistics.tests.GoodnessOfFitTest;
+import alexp.macrobase.explanation.hics.statistics.tests.WelchTTest;
 import alexp.macrobase.explanation.utils.Subspace;
-import alexp.macrobase.explanation.utils.RandomFactory;
+import alexp.macrobase.explanation.utils.datastructures.heap.Heap;
+import alexp.macrobase.explanation.utils.datastructures.heap.TopBoundedHeap;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
-import com.github.chen0040.data.frame.OutputDataColumn;
+import com.github.chen0040.data.utils.TupleTwo;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Doubles;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javafx.util.Pair;
 
 
 public class RefOut extends Explanation {
 
-    private int d1;
-    private int d2;
-    private  int psize;
-    private int opct;
+    private double  d1;
+    private int     d2;
+    private int     psize;
+    private int     beamSize;
+    private int     topk;
 
-
-    public RefOut(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, explanationSettings);
-    }
-
-    @java.lang.Override
-    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
-
-    }
-
-    private RandomFactory rnd = new RandomFactory((long)0);
-
+    GoodnessOfFitTest statTest = new WelchTTest();
 
     /**
      * The output DataFrame.
      */
     private DataFrame output;
 
+    public RefOut(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
+        super(columns, classifierConf, explanationSettings);
+    }
+
     /*
         OVERRIDE FUNCTIONS
      */
 
-    @java.lang.Override
+    @Override
     public void process(DataFrame input) throws Exception {
         output = input.copy();
-        calculateSubspaces(input);
-        //get all subspaces and
-        // random subspace of dim d1
-
+        List<Subspace> refinedPool = calculateSubspaces(input);
+        HashMap<Integer, List<Subspace>> pointsScores = scorePointsInRefinedPool(input, refinedPool);
+        double[] avgScores = new double[input.getNumRows()];
+        for(int pointId : pointsScores.keySet()) {
+            double avgScore = pointsScores.get(pointId).stream().mapToDouble(Subspace::getScore).sum() / pointsScores.get(pointId).size();
+            avgScores[pointId] = avgScore;
+        }
+        output.addColumn(outputColumnName, avgScores);
+        addRelSubspaceColumnToDataframe(output, pointsScores);
     }
 
-    private void preProcessingOutlierScores(DataFrame input,int d1, int d2, int psize, int opct){
-
-    }
-
-    private <T> void refineSubspaces(){
-
-    }
-
-    private void calculateSubspaces(DataFrame input) throws Exception{
-        //List of subspaces which are in P1
-        HashSet<String> tmpP1 = new HashSet<>(psize);
-        List<Subspace> P1 = new ArrayList<>();
-        int counter = 0;
-        int card = getDatasetDimensionality();
-        System.out.println(card);
-        while (counter < psize){
-            Subspace newSubspace = new Subspace();
-            while (newSubspace.getDimensionality() < d1){
-                for (int featureId = new Random().nextInt(card); featureId >= 0; featureId--) {
-                    System.out.println(featureId);
-                    newSubspace.setFeature(featureId);
-                    if(newSubspace.getDimensionality() == d1)
-                        break;
+    @Override
+    public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
+        HashMap<Integer, List<Subspace>> pointsScores = (HashMap<Integer, List<Subspace>>) pointsSubspaces;
+        String[] relSubspaces = new String[data.getNumRows()];
+        for (int i = 0; i < relSubspaces.length; i++) {
+            if (pointsScores.containsKey(i)) {
+                StringBuilder sb = new StringBuilder();
+                for (Subspace subspace : pointsScores.get(i)) {
+                    sb.append(subspaceToString(subspace.getFeatures(), subspace.getScore())).append(" ");
                 }
+                relSubspaces[i] = sb.toString().trim();
+            } else {
+                relSubspaces[i] = "-";
             }
-            System.out.println("--------");
-            if(!tmpP1.contains(newSubspace.getFeatures().toString())) {
-                tmpP1.add(newSubspace.getFeatures().toString());
-                System.out.println(tmpP1);
-                counter++;
-            }
-
         }
-
-        System.out.println("The P1: " + tmpP1);
-
-        for(String subspaceStr : tmpP1){
-            P1.add(toSubspace(subspaceStr));
-        }
-
-        //Apply the score funnction on each subspace
-        // Parcourir la liste P1 et appliquer le score function a chaque subspace et ensuite récxupérer le score
-
-        List<List<Pair<Subspace, Double>>> pointsScoresInSubspaces = new ArrayList<>(input.getNumRows());
-        Map <Integer,List<Subspace>> rankedSpaces = new HashMap<>(input.getNumRows());
-
-        //Scoring each subspace or each point of each subspace?
-        for (Subspace space : P1) {
-            DataFrame tmpDataFrame = new DataFrame();
-            String[] subColumns = new String[space.getDimensionality()];
-            counter = 0;
-
-            for (int featureId : space.getFeatures()) {
-                tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
-                subColumns[counter++] = columns[featureId];
-            }
-            Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-            classifier.process(tmpDataFrame);
-            DataFrame results = classifier.getResults();
-            double[] scores = results.getDoubleColumnByName(outputColumnName);
-            int j = 0;
-            for(double score: scores){
-                List<Subspace> subspaceList = rankedSpaces.getOrDefault(j, new ArrayList<>());
-                subspaceList.add(new Subspace(space.getFeatures(), score));
-                rankedSpaces.put(j, subspaceList);
-                j++;
-            }
-           // updatePointsScoresInSubspace(space, results.getDoubleColumnByName(outputColumnName), pointsScoresInSubspaces);
-        }
-            //what's the point to index here  instead of d1 one should put something else
-
-       }
-
-        private Subspace toSubspace(String subspaceStr) {
-            //String[] parts = subspaceStr.split("\\[, \\]");
-            System.out.println(subspaceStr);
-            String[] parts = subspaceStr.split("^\\[|, |\\]");
-            Subspace subspace = new Subspace();
-            for(String featureStr : parts){
-                if (!featureStr.equals("")) {
-                    System.out.println("FeatureStr:" + featureStr);
-                    subspace.setFeature(Integer.parseInt(featureStr));
-                }
-            }
-            return subspace;
-        }
-
-    private void updatePointsScoresInSubspace(Subspace subspace, double[] pointScores,
-                                              List<List<Pair<Subspace, Double>>> pointsScoresInSubspaces){
-        for(int i = 0; i < pointScores.length; i++){
-            if(pointsScoresInSubspaces.size() <= i)
-                pointsScoresInSubspaces.add(null);
-            List<Pair<Subspace, Double>> subspacesScores = pointsScoresInSubspaces.get(i);
-            Pair<Subspace, Double> pair = new Pair<>(subspace, pointScores[i]);
-            if(subspacesScores == null)
-                subspacesScores = new ArrayList<>();
-            subspacesScores.add(pair);
-            pointsScoresInSubspaces.set(i, subspacesScores);
-        }
+        data.addColumn(relSubspaceColumnName, relSubspaces);
     }
 
-    public void setD1(int d1) {
-        this.d1 = d1;
-    }
-
-    public void setD2(int d2) {
-        this.d2 = d2;
-    }
-
-    public void setPsize(int psize) {
-        this.psize = psize;
-    }
-
-    public void setOpct(int opct) {
-        this.opct = opct;
-    }
-    @java.lang.Override
+    @Override
     public DataFrame getResults() {
-        return null;
+        return output;
     }
+
+    /*
+    *   HELPER FUNCTIONS
+    * */
+
+    private double[] normalizeScores(double[] rawScores) {
+        double[] normalizedScores = new double[rawScores.length];
+        double sum = 0;
+        double mean;
+        double N = rawScores.length;
+        double var;
+        for(double score : rawScores) {
+            sum += score;
+        }
+        mean = sum / N;
+        sum = 0;
+        for(double score : rawScores) {
+            sum += Math.pow(score - mean, 2);
+        }
+        var = sum / (N - 1);
+        for (int i = 0; i < rawScores.length; i++) {
+            normalizedScores[i] = (rawScores[i] - mean) / Math.sqrt(var);
+        }
+        return normalizedScores;
+    }
+
+    private HashMap<Integer, List<Subspace>> scorePointsInRefinedPool(DataFrame input, List<Subspace> refinedPool) throws Exception {
+        System.out.println("Score all refined subspaces from the refined pool");
+        HashMap<Integer, List<Subspace>> pointsScores = getPointsOfInterestScoresInSubspaces(input, refinedPool);
+        for (int pointId : pointsScores.keySet()) {
+            List<Subspace> topkList = new ArrayList<>(pointsScores.get(pointId));
+            topkList.sort(Subspace.SORT_BY_SCORE_DESC);
+            pointsScores.put(pointId, topkList.subList(0, topk));
+        }
+        return pointsScores;
+    }
+
+    private List<Subspace> calculateSubspaces(DataFrame input) throws Exception {
+        System.out.println("Score all random subspaces in the pool");
+        HashMap<Integer, List<Subspace>> pointsScoresRandomPool = getPointsOfInterestScoresInSubspaces(input, getRandomPool());
+        HashSet<Subspace> refinedPool = new HashSet<>();
+        for(int pointId : pointsScoresRandomPool.keySet()) {
+            Subspace refinedSubspace = refine(pointsScoresRandomPool.get(pointId));
+            refinedPool.add(refinedSubspace);
+        }
+        return new ArrayList<>(refinedPool);
+    }
+
+    private List<Subspace> getRandomPool() {
+        HashSet<Subspace> P1 = new HashSet<>(psize);
+        int card = getDatasetDimensionality();
+        double poolSubspaceDim = Math.ceil(card * d1);
+        while(P1.size() < psize) {
+            HashSet<Integer> randFeatures = new HashSet<>();
+            while (randFeatures.size() < poolSubspaceDim) {
+                randFeatures.add(new Random().nextInt(card));
+            }
+            Subspace newRandSubspace = new Subspace(randFeatures);
+            P1.add(newRandSubspace);
+        }
+        return new ArrayList<>(P1);
+    }
+
+    private HashMap<Integer, List<Subspace>> getPointsOfInterestScoresInSubspaces(DataFrame input, List<Subspace> subspaceList) throws Exception {
+        HashMap<Integer, List<Subspace>> pointsScores = new HashMap<>();
+        int counter = 0;
+        for(Subspace subspace : subspaceList) {
+            System.out.print("\rScoring subspace " + (++counter) + "/" + subspaceList.size());
+            DataFrame results = runClassifier(input, subspace);
+            double[] scores = normalizeScores(results.getDoubleColumnByName(outputColumnName)); // get the score column from the dataframe and normalize
+            for(int pointId : getPointsToExplain()) {
+                List<Subspace> pointsSubspaces = pointsScores.getOrDefault(pointId, new ArrayList<>());
+                pointsSubspaces.add(new Subspace(subspace.getFeatures(), scores[pointId]));
+                pointsScores.put(pointId, pointsSubspaces);
+            }
+        }
+        System.out.println();
+        return pointsScores;
+    }
+
+    private Subspace refine(List<Subspace> pointScores) {
+        TopBoundedHeap<Subspace> topD2Subspaces = beamSearch(pointScores);
+        return topD2Subspaces.topK(topk, Subspace.SORT_BY_SCORE_DESC).get(0);    // returns the subspace with the best quality of dimensionality d2
+    }
+
+    private TopBoundedHeap<Subspace> beamSearch(List<Subspace> pointScores) {
+        TopBoundedHeap<Subspace> oneDimCandidates = buildOneDimCandidates(pointScores);
+        if(d2 == 1) {
+            return oneDimCandidates;
+        }
+        else {
+            return buildMultiDimCandidates(pointScores, oneDimCandidates);
+        }
+    }
+
+    private TopBoundedHeap<Subspace> buildOneDimCandidates(List<Subspace> pointScores) {
+        TopBoundedHeap<Subspace> oneDimCandidates = new TopBoundedHeap<>(beamSize, Subspace.SORT_BY_SCORE_ASC);
+        for (int featureId = 0; featureId < getDatasetDimensionality(); featureId++) {
+            Subspace oneDimCand = new Subspace(Sets.newHashSet(featureId));
+            TupleTwo<double[], double[]> partitions = partitionScores(pointScores, oneDimCand.getFeatures());
+            oneDimCand.setScore(candidateQuality(partitions));
+            oneDimCandidates.add(oneDimCand);
+        }
+        return oneDimCandidates;
+    }
+
+    private TopBoundedHeap<Subspace> buildMultiDimCandidates(List<Subspace> pointScores, TopBoundedHeap<Subspace> oneDimCandidates) {
+        TopBoundedHeap<Subspace> multiDimCandidates = new TopBoundedHeap<>(oneDimCandidates);
+        for (int stageDim = 2; stageDim <= d2; stageDim++) {
+            List<HashSet<Integer>> candidatesFeatures = candidatesFeatures(multiDimCandidates);
+            multiDimCandidates.clear();
+            HashSet<String> allFeatureCombinations = new HashSet<>();
+            for (int i=0; i < candidatesFeatures.size() - 1; i++) {
+                for (int j = i + 1; j < candidatesFeatures.size(); j++) {
+                    HashSet<Integer> featureCombination = combineCandFeatures(candidatesFeatures, i, j);
+                    featureCombination = featureCombination.size() > stageDim ? calculateStageDimCombination(pointScores, featureCombination, stageDim) : featureCombination;
+                    if(candidateAlreadyProcessed(allFeatureCombinations, featureCombination)) {
+                        continue;
+                    }
+                    Subspace multiDimCand = new Subspace(featureCombination);
+                    TupleTwo<double[], double[]> partitions = partitionScores(pointScores, featureCombination);
+                    multiDimCand.setScore(candidateQuality(partitions));
+                    multiDimCandidates.add(multiDimCand);
+                }
+            }
+        }
+        return multiDimCandidates;
+    }
+
+    private double candidateQuality(TupleTwo<double[], double[]> partitions) {
+        double[] leftPartition = partitions._1();
+        double[] rightPartition = partitions._2();
+        double quality = -1;
+        if(leftPartition.length > 2 && rightPartition.length > 2) {
+            quality = statTest.deviation(leftPartition, rightPartition);  // Welch test will return 1-pvalue -> Lower pvalue means higher quality
+        }
+        return quality;
+    }
+
+    private TupleTwo<double[], double[]> partitionScores(List<Subspace> pointScores, HashSet<Integer> candSubspaceFeatures) {
+        List<Double> leftScores = new ArrayList<>();
+        List<Double> rightScores = new ArrayList<>();
+        for (Subspace subspace : pointScores) {
+            if(subspace.getFeatures().containsAll(candSubspaceFeatures)){
+                rightScores.add(subspace.getScore());
+            } else {
+                leftScores.add(subspace.getScore());
+            }
+        }
+        return new TupleTwo<>(Doubles.toArray(leftScores), Doubles.toArray(rightScores));
+    }
+
+    private List<HashSet<Integer>> candidatesFeatures(TopBoundedHeap<Subspace> topList) {
+        List<HashSet<Integer>> candidatesFeatures = new ArrayList<>();
+        for (Heap<Subspace>.UnorderedIter iter = topList.unorderedIter(); iter.valid(); iter.advance()) {
+            candidatesFeatures.add(iter.get().getFeatures());
+        }
+        candidatesFeatures.sort(Comparator.comparing(HashSet::hashCode));
+        return candidatesFeatures;
+    }
+
+    private HashSet<Integer> combineCandFeatures(List<HashSet<Integer>> candFeatures, int i, int j) {
+        HashSet<Integer> set1 = new HashSet<>(candFeatures.get(i));
+        HashSet<Integer> set2 = new HashSet<>(candFeatures.get(j));
+        set1.addAll(set2);  // combine two sets
+        return set1;
+    }
+
+    private boolean candidateAlreadyProcessed(HashSet<String> allFeatureCombinations, HashSet<Integer> currFeatureCombination) {
+        if(allFeatureCombinations.contains(currFeatureCombination.toString())) {
+            return true;
+        } else {
+            allFeatureCombinations.add(currFeatureCombination.toString());
+            return false;
+        }
+    }
+
+    private HashSet<Integer> calculateStageDimCombination(List<Subspace> pointScores, HashSet<Integer> featureCombination, int stageDim) {
+        List<Pair<Integer, Double>> oneDimQuality = new ArrayList<>();
+        for (int featureId : featureCombination) {
+            TupleTwo<double[], double[]> partitions = partitionScores(pointScores, Sets.newHashSet(featureId));
+            oneDimQuality.add(new Pair<>(featureId, candidateQuality(partitions)));
+        }
+        oneDimQuality.sort(Comparator.comparing(Pair::getValue));
+        Collections.reverse(oneDimQuality);
+        HashSet<Integer> bestFeatures = oneDimQuality.stream().map(Pair::getKey).limit(3).collect(Collectors.toCollection(HashSet::new));
+        return bestFeatures;
+    }
+
+    private DataFrame runClassifier(DataFrame input, Subspace subspace) throws Exception {
+        DataFrame tmpDataFrame = new DataFrame();
+        String[] subColumns = new String[subspace.getDimensionality()];
+        int counter = 0;
+        for (int featureId : subspace.getFeatures()) {
+            tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
+            subColumns[counter++] = columns[featureId];
+        }
+        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
+        classifier.process(tmpDataFrame);
+        return classifier.getResults();
+    }
+
+    public void setD1(double d1) { this.d1 = d1; }
+
+    public void setD2(int d2) { this.d2 = d2; }
+
+    public void setPsize(int psize) { this.psize = psize; }
+
+    public void setBeamSize(int beamSize) { this.beamSize = beamSize; }
+
+    public void setTopk(int topk) { this.topk = topk; }
+
 }
