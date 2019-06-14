@@ -10,6 +10,7 @@ import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public abstract class Explanation implements Transformer {
         return columns.length;
     }
 
-    public String subspaceToString(List<Integer> subspaceFeatures, double score) {
+    public String subspaceToString(Collection<Integer> subspaceFeatures, double score) {
         return "[" + Joiner.on(" ").join(subspaceFeatures) + "] " + score + ";";
     }
 

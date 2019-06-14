@@ -23,7 +23,9 @@ package alexp.macrobase.explanation.utils.datastructures.heap;
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * heap class that is bounded in size from the top. It will keep the bottom
@@ -62,7 +64,7 @@ public class TopBoundedHeap<E> extends Heap<E> {
   }
 
   /**
-   * Constructor with an existing Bounded heap only.
+   * Copy constructor.
    *
    * @param topBoundedHeap An existing top bounded heap
    */
@@ -73,6 +75,32 @@ public class TopBoundedHeap<E> extends Heap<E> {
     for(Heap<E>.UnorderedIter it = topBoundedHeap.unorderedIter(); it.valid(); it.advance()){
       add(it.get());
     }
+  }
+
+  /**
+   * Take the topK elements as list of an existing topBoundedHeap
+   *
+   * @param k The starting point of the TopBoundedHeap
+   * @param comparator The comparator that will help choose the preferred topK
+   */
+  public List<E> topK(int k, Comparator<E> comparator){
+    List<E> topKList = new ArrayList<>();
+    for(Heap<E>.UnorderedIter it = this.unorderedIter(); it.valid(); it.advance()){
+      topKList.add(it.get());
+    }
+    topKList.sort(comparator);
+    return topKList.subList(0, k);
+  }
+
+  /**
+   * Converts the TopBoundedHeap to a list
+   */
+  public List<E> toList() {
+    List<E> list = new ArrayList<>();
+    for(Heap<E>.UnorderedIter it = this.unorderedIter(); it.valid(); it.advance()){
+      list.add(it.get());
+    }
+    return list;
   }
 
   @Override

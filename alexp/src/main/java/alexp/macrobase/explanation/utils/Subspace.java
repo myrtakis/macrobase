@@ -46,7 +46,7 @@ public class Subspace {
         return features.size();
     }
 
-    public void setFeature(int featureId) {
+    public void addFeature(int featureId) {
         if(features == null)
             features = new HashSet<>();
         features.add(featureId);
