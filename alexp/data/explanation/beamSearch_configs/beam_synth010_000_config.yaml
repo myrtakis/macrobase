@@ -22,7 +22,7 @@ classifiers:
 explainers:
   - id: "beam"
     parameters:
-      beamWidth: 40
+      beamWidth: 100
       topk: 5
       dmax: 3
 
