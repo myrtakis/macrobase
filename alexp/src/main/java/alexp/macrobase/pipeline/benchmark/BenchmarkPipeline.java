@@ -198,7 +198,6 @@ public class BenchmarkPipeline extends Pipeline {
         final long explanationTime = BenchmarkUtils.measureTime(() -> {
             explainer.process(dataFrame);
         });
-        DataFrame results = explainer.getResults();
         long maxMemoryUsage = memoryProfiler.getPeakUsage();
         System.out.println("\nTime " + explanationTime / 1000.0 + " sec");
 //                printInfo(String.format("Explanation time: %d ms (%.2f sec), Max memory usage: %d MB, ROC AUC: %s, PR AUC: %s",
@@ -206,7 +205,7 @@ public class BenchmarkPipeline extends Pipeline {
 //                        maxMemoryUsage / 1024 / 1024,
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
-        resultWriter.write(explainer.getResults(), new ExecutionResult(0, 0, 0,
+        resultWriter.write(explainer.getResults(), new ExecutionResult(0, explanationTime, 0,
                 conf, explainerConf.getParameters())
                 .setClassifierId(classifierConf.getAlgorithmId())
                 .setExplainerId(explainerConf.getAlgorithmId()));

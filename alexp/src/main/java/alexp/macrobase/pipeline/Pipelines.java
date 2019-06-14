@@ -240,10 +240,11 @@ public class Pipelines {
             }
             case "refout": {
                 RefOut refout = new RefOut(metricColumns, classifierConf, explanationSettings);
-                refout.setD1(explainerConf.getParameters().get("d1", 5));
-                refout.setD2(explainerConf.getParameters().get("d2", 3));
-                refout.setOpct(explainerConf.getParameters().get("opct", 5));
-                refout.setPsize(explainerConf.getParameters().get("psize", 5));
+                refout.setD1(explainerConf.getParameters().get("d1", 0.7));
+                refout.setD2(explainerConf.getParameters().get("d2", 2));
+                refout.setPsize(explainerConf.getParameters().get("psize", 100));
+                refout.setBeamSize(explainerConf.getParameters().get("beamSize", 100));
+                refout.setTopk(explainerConf.getParameters().get("topk", 5));
                 return refout;
             }
 
