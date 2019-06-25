@@ -1,0 +1,157 @@
+package alexp.macrobase.explanation.utils.anomalyDetectorsWrapper;
+
+import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
+import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
+import com.google.common.base.Joiner;
+import com.google.common.primitives.Doubles;
+import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import javafx.util.Pair;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.StringTokenizer;
+
+public class OutlierDetectorsWrapper {
+
+    private static final String pythonCommand = "python";
+    private static final String pythonFilePath = "alexp/demo/scripts/anomalyDetectors.py";
+
+    private static final String anomalyDetectorOption = "-ad";
+    private static final String paramsOption = "-params";
+    private static final String subspaceOption = "-s";
+    private static final String datasetPathOption = "-d";
+    private static final String datasetDimOption = "-dim";
+    private static final String combinationsOption = "-exhaust";
+
+    private static final String pythonResultsDelimiter = " ,\t\n[]{}";
+    private static final String subspaceTag = "@subspace";
+
+    public static double[] runPythonClassifier(AlgorithmConfig classifierConf, String datasetPath,
+                                               HashSet<Integer> features, int datasetDim,
+                                               int sampleSize) throws Exception {
+        String algorithmId = classifierConf.getAlgorithmId();
+        String params = classifierConf.getParameters().toString().replace(" ", "");
+        String subspace = featuresToString(features);
+        datasetPath = "\"" + datasetPath + "\"";
+       return execPython(algorithmId, params, subspace, datasetPath, datasetDim,sampleSize);
+    }
+
+    public static List<Pair<String, double[]>> runPythonClassifierExhaustive(AlgorithmConfig classifierConf, String datasetPath,
+                                                                             int datasetDim, int combinations,
+                                                                             int sampleSize) throws Exception {
+        String algorithmId = classifierConf.getAlgorithmId();
+        String params = classifierConf.getParameters().toString().replace(" ", "");
+        datasetPath = "\"" + datasetPath + "\"";
+        return execPythonExhaustive(algorithmId, params, datasetPath, datasetDim, combinations, sampleSize);
+    }
+
+    private static double[] execPython(String algorithmId, String params, String subspace,
+                                       String datasetPath, int sampleSize, int datasetDim) throws IOException{
+        if (!Files.exists(Paths.get(pythonFilePath)))
+            throw new IOException("File not found " + pythonFilePath);
+        ProcessBuilder pb = new ProcessBuilder(
+                pythonCommand,           pythonFilePath,
+                anomalyDetectorOption,              algorithmId,
+                paramsOption,                       params,
+                subspaceOption,                     subspace,
+                datasetDimOption,                   "" + datasetDim,
+                datasetPathOption,                  datasetPath
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        double[] pointsScores = parseSingleSubspace(in, sampleSize);
+        in.close();
+        return pointsScores;
+    }
+
+    private static List<Pair<String, double[]>> execPythonExhaustive(String algorithmId, String params,
+                                                                     String datasetPath, int datasetDim,
+                                                                     int combinations, int sampleSize) throws IOException {
+        if (!Files.exists(Paths.get(pythonFilePath)))
+            throw new IOException("File not found " + pythonFilePath);
+        ProcessBuilder pb = new ProcessBuilder(
+                pythonCommand,          pythonFilePath,
+                anomalyDetectorOption,              algorithmId,
+                paramsOption,                       params,
+                combinationsOption,                 "" + combinations,
+                datasetDimOption,                   "" + datasetDim,
+                datasetPathOption,                  datasetPath
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        List<Pair<String, double[]>> subspacePointsScores = parseMultiSubspaces(in, sampleSize);
+        in.close();
+        return subspacePointsScores;
+    }
+
+    private static double[] parseSingleSubspace(BufferedReader in, int sampleSize) throws IOException {
+        String line;
+        String consoleMsg = "";
+        int counter = 0;
+        double[] pointsScores = new double[sampleSize];
+        while ((line = in.readLine()) != null) {
+            if(!line.startsWith("@subspace")) {
+                consoleMsg += line;
+                continue;
+            }
+            String[] lineParts = line.split("=");   // Example @subspace [0, 1] = [0.5, 0.4, 0.07...]
+            StringTokenizer strtok = new StringTokenizer(lineParts[1], pythonResultsDelimiter);
+            while (strtok.hasMoreElements()) {
+                double num = Double.parseDouble(strtok.nextToken());
+                pointsScores[counter++] = num;
+            }
+        }
+        if (counter < sampleSize) {
+            System.out.println(consoleMsg);
+            throw new RuntimeException("Error occurred in python. See the console message above");
+        }
+        return pointsScores;
+    }
+
+    private static List<Pair<String, double[]>> parseMultiSubspaces(BufferedReader in, int sampleSize) throws IOException {
+        List<Pair<String, double[]>> subspacePointsScores = new ArrayList<>();
+        String line;
+        String consoleMsg = "";
+        while ((line = in.readLine()) != null) {
+            int counter = 0;
+            double[] pointsScores = new double[sampleSize];
+            if(line.startsWith(">")) {
+                System.out.print('\r' + line);
+            }
+            if(!line.startsWith("@subspace")) {
+                consoleMsg += line;
+                continue;
+            }
+            String[] lineParts = line.split("=");
+            String subspace = lineParts[0].replace("@subspace", "").trim();
+            StringTokenizer strtok = new StringTokenizer(lineParts[1], pythonResultsDelimiter);
+            while (strtok.hasMoreElements()) {
+                double num = Double.parseDouble(strtok.nextToken());
+                pointsScores[counter++] = num;
+            }
+            subspacePointsScores.add(new Pair<>(subspace, pointsScores));
+            if (counter < sampleSize) {
+                System.out.println(consoleMsg);
+                throw new RuntimeException("Error occurred in python. See the console message above");
+            }
+        }
+        if (subspacePointsScores.isEmpty()) {
+            System.out.println("\n" + consoleMsg);
+            throw new RuntimeException("Error occurred in python. See the console message above");
+        }
+        return subspacePointsScores;
+    }
+
+    private static String featuresToString(HashSet<Integer> features) {
+        return "[" + Joiner.on(",").join(features) + "]";
+    }
+
+}
