@@ -194,7 +194,7 @@ public class BenchmarkPipeline extends Pipeline {
 
         BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
 
-        Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig().getMetricColumns(), conf.getSettingsConfig().getExplanationSettings());
+        Explanation explainer = Pipelines.getExplainer(explainerConf, classifierConf, conf.getDatasetConfig(), conf.getSettingsConfig().getExplanationSettings());
         final long explanationTime = BenchmarkUtils.measureTime(() -> {
             explainer.process(dataFrame);
         });

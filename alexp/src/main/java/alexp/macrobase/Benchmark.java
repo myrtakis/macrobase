@@ -167,7 +167,7 @@ public class Benchmark {
             if (isDir) {
                 out.println("Running for all configs in " + confPath);
                 out.println("This should not be used for time/memory measurements");
-                confFilePaths = Files.list(Paths.get(confPath))
+                confFilePaths = Files.walk(Paths.get(confPath))
                         .map(Path::toString)
                         .filter(s -> s.endsWith("yaml"))
                         .collect(Collectors.toList());

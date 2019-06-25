@@ -37,8 +37,8 @@ public class BeamSubspaceSearch extends Explanation {
      */
     private DataFrame output;
 
-    public BeamSubspaceSearch(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, explanationSettings);
+    public BeamSubspaceSearch(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
+        super(columns, classifierConf, datasetPath, explanationSettings);
     }
 
     @Override
@@ -157,19 +157,6 @@ public class BeamSubspaceSearch extends Explanation {
         // Recur
         return binomialCoeff(n - 1, k - 1) +
                 binomialCoeff(n - 1, k);
-    }
-
-    private DataFrame runClassifier(DataFrame input, Subspace subspace) throws Exception {
-        String[] subColumns = new String[subspace.getDimensionality()];
-        DataFrame tmpDataFrame = new DataFrame();
-        int counter = 0;
-        for(int subspaceFeatureId : subspace.getFeatures()){
-            tmpDataFrame.addColumn(columns[subspaceFeatureId], input.getDoubleColumn(subspaceFeatureId));
-            subColumns[counter++] = columns[subspaceFeatureId];
-        }
-        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-        classifier.process(tmpDataFrame);
-        return classifier.getResults();
     }
 
     /*

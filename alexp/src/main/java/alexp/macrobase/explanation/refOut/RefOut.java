@@ -36,8 +36,8 @@ public class RefOut extends Explanation {
      */
     private DataFrame output;
 
-    public RefOut(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, explanationSettings);
+    public RefOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
+        super(columns, classifierConf, datasetPath, explanationSettings);
     }
 
     /*
@@ -269,18 +269,6 @@ public class RefOut extends Explanation {
         return bestFeatures;
     }
 
-    private DataFrame runClassifier(DataFrame input, Subspace subspace) throws Exception {
-        DataFrame tmpDataFrame = new DataFrame();
-        String[] subColumns = new String[subspace.getDimensionality()];
-        int counter = 0;
-        for (int featureId : subspace.getFeatures()) {
-            tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
-            subColumns[counter++] = columns[featureId];
-        }
-        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-        classifier.process(tmpDataFrame);
-        return classifier.getResults();
-    }
 
     public void setD1(double d1) { this.d1 = d1; }
 

@@ -9,23 +9,30 @@ import java.util.List;
 public class ExplanationSettings {
 
     private final String                method;
+    private final boolean               invokePythonClassifier;
     private final List<Integer>         dictatedOutliers;
     private final AlgorithmConfig       classifierConf;
     private final double                threshold;
 
-    private final static String         METHOD_TAG              =   "method";
-    private final static String         DICTATED_OUTLIERS_TAG   =   "dictatedOutliers";
-    private final static String         DETECTED_OUTLIERS_TAG   =   "detectedOutliers";
-    private final static String         CLASSIFIER_TAG          =   "classifier";
-    private final static String         THRESHOLD_TAG           =   "threshold";
+    private final static String         METHOD_TAG                      =   "method";
+    private final static String         INVOKE_PYTHON_CLASSIFIER_TAG    =   "invokePythonClassifier";
+    private final static String         DICTATED_OUTLIERS_TAG           =   "dictatedOutliers";
+    private final static String         DETECTED_OUTLIERS_TAG           =   "detectedOutliers";
+    private final static String         CLASSIFIER_TAG                  =   "classifier";
+    private final static String         THRESHOLD_TAG                   =   "threshold";
 
 
-    public ExplanationSettings(String method, List<Integer> dictatedOutliers,
-                               AlgorithmConfig classifierConf, double threshold) {
-        this.method             =   method;
-        this.dictatedOutliers   =   dictatedOutliers;
-        this.classifierConf     =   classifierConf;
-        this.threshold          =   threshold;
+    private ExplanationSettings(String method,
+                               boolean invokePythonClassifier,
+                               List<Integer> dictatedOutliers,
+                               AlgorithmConfig classifierConf,
+                               double threshold) {
+        this.method                 =   method;
+        this.invokePythonClassifier =   invokePythonClassifier;
+        this.dictatedOutliers       =   dictatedOutliers;
+        this.classifierConf         =   classifierConf;
+        this.threshold              =   threshold;
+        System.out.println("Invoke classifier from python: " + invokePythonClassifier);
         validateConfig();
     }
 
@@ -33,6 +40,7 @@ public class ExplanationSettings {
         Assert.notNull(explSettingsConf);
         return new ExplanationSettings(
                 explSettingsConf.get(METHOD_TAG),
+                explSettingsConf.get(INVOKE_PYTHON_CLASSIFIER_TAG),
                 explSettingsConf.get(DICTATED_OUTLIERS_TAG),
                 AlgorithmConfig.load(explSettingsConf.getMap(DETECTED_OUTLIERS_TAG).getMap(CLASSIFIER_TAG)),
                 explSettingsConf.getMap(DETECTED_OUTLIERS_TAG).get(THRESHOLD_TAG)
@@ -42,6 +50,8 @@ public class ExplanationSettings {
     public String getMethod() {
         return method;
     }
+
+    public boolean invokePythonClassifier() { return invokePythonClassifier; }
 
     public List<Integer> getDictatedOutliers() {
         return dictatedOutliers;

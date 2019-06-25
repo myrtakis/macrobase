@@ -28,6 +28,7 @@ import alexp.macrobase.explanation.hics.statistics.tests.GoodnessOfFitTest;
 import alexp.macrobase.explanation.hics.statistics.tests.KolmogorovSmirnovTest;
 import alexp.macrobase.explanation.hics.statistics.tests.TestNames;
 import alexp.macrobase.explanation.hics.statistics.tests.WelchTTest;
+import alexp.macrobase.explanation.utils.Subspace;
 import alexp.macrobase.explanation.utils.datastructures.heap.Heap;
 import alexp.macrobase.explanation.utils.datastructures.heap.TopBoundedHeap;
 import alexp.macrobase.explanation.utils.RandomFactory;
@@ -82,8 +83,8 @@ public class HiCS extends Explanation {
      */
     private DataFrame output;
 
-    public HiCS(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, explanationSettings);
+    public HiCS(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
+        super(columns, classifierConf, datasetPath, explanationSettings);
     }
 
     /*
@@ -107,16 +108,7 @@ public class HiCS extends Explanation {
         System.out.println("\n");
         for(HiCSSubspace hiCSSubspace : subspaces){
             System.out.print("\rMake Detection in: " + hiCSSubspace.toString() + " (" + (subspaceCounter++) + "/"  + subspaces.size() + ")");
-            DataFrame tmpDataFrame = new DataFrame();
-            String[] subColumns = new String[hiCSSubspace.cardinality()];
-            int counter = 0;
-            for (int featureId : hiCSSubspace.getFeatures()) {
-                tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
-                subColumns[counter++] = columns[featureId];
-            }
-            Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-            classifier.process(tmpDataFrame);
-            DataFrame results = classifier.getResults();
+            DataFrame results = runClassifier(input, new Subspace(new HashSet<>(hiCSSubspace.getFeatures())));
             updatePointsScoresInSubspace(hiCSSubspace, results.getDoubleColumnByName(outputColumnName), pointsScoresInSubspaces);
             addArrays(pointCumulativeScores, results.getDoubleColumnByName(outputColumnName));
         }
@@ -426,18 +418,9 @@ public class HiCS extends Explanation {
         for(int pointId : super.getPointsToExplain()){
             String subspaces = input.getStringColumnByName("relevant_subspace")[pointId];
             String pointScoreStr = "Point " + pointId + "\n";
-            for(List<Integer> subspace : getSubspaces(subspaces)) {
-                DataFrame dataFrame = new DataFrame();
-                String[] subColumns = new String[subspace.size()];
-                int counter = 0;
-                for (int featureId : subspace) {
-                    dataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
-                    subColumns[counter++] = columns[featureId];
-                }
-                Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-                classifier.process(dataFrame);
-                DataFrame results = classifier.getResults();
-                pointScoreStr += subspace + "\n" + results.getRow(pointId).getVals().get(subspace.size()) + "\n";
+            for(List<Integer> subspaceFeatures : getSubspaces(subspaces)) {
+                DataFrame results = runClassifier(input, new Subspace(new HashSet<>(subspaceFeatures)));
+                pointScoreStr += subspaceFeatures + "\n" + results.getRow(pointId).getVals().get(subspaceFeatures.size()) + "\n";
             }
             bw.write(pointScoreStr);
             bw.write("---------\n");

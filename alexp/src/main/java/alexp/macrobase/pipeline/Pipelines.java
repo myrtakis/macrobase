@@ -14,6 +14,7 @@ import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
+import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
 import alexp.macrobase.utils.TimeUtils;
 import com.google.common.collect.Iterables;
@@ -214,17 +215,17 @@ public class Pipelines {
 
     public static alexp.macrobase.explanation.Explanation getExplainer(AlgorithmConfig explainerConf,
                                                                      AlgorithmConfig classifierConf,
-                                                                     String[] metricColumns,
+                                                                     DatasetConfig datasetConfig,
                                                                      ExplanationSettings explanationSettings) throws MacroBaseException {
         switch (explainerConf.getAlgorithmId()){
             case "lookout": {
-                LookOut lookOut = new LookOut(metricColumns, classifierConf, explanationSettings);
+                LookOut lookOut = new LookOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
                 lookOut.setBudget(explainerConf.getParameters().get("budget", 3));
-                lookOut.setDimensionality(explainerConf.getParameters().get("getDimensionality", 2));
+                lookOut.setDimensionality(explainerConf.getParameters().get("dimensionality", 2));
                 return lookOut;
             }
             case "hics": {
-                HiCS hiCS = new HiCS(metricColumns, classifierConf, explanationSettings);
+                HiCS hiCS = new HiCS(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
                 hiCS.setCutoff(explainerConf.getParameters().get("cutoff",400));
                 hiCS.setAlpha(explainerConf.getParameters().get("alpha",0.05));
                 hiCS.setM(explainerConf.getParameters().get("m",50));
@@ -232,14 +233,14 @@ public class Pipelines {
                 return hiCS;
             }
             case "beam": {
-                BeamSubspaceSearch beam = new BeamSubspaceSearch(metricColumns, classifierConf, explanationSettings);
+                BeamSubspaceSearch beam = new BeamSubspaceSearch(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
                 beam.setDmax(explainerConf.getParameters().get("dmax", 3));
                 beam.setTopk(explainerConf.getParameters().get("topk", 10));
                 beam.setW(explainerConf.getParameters().get("beamWidth", 100));
                 return beam;
             }
             case "refout": {
-                RefOut refout = new RefOut(metricColumns, classifierConf, explanationSettings);
+                RefOut refout = new RefOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
                 refout.setD1(explainerConf.getParameters().get("d1", 0.7));
                 refout.setD2(explainerConf.getParameters().get("d2", 2));
                 refout.setPsize(explainerConf.getParameters().get("psize", 100));

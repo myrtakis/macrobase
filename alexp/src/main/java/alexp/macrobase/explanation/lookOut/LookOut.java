@@ -1,23 +1,19 @@
 package alexp.macrobase.explanation.lookOut;
 
 import alexp.macrobase.explanation.utils.Subspace;
-import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import com.google.common.collect.*;
-import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import alexp.macrobase.explanation.Explanation;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 import javafx.util.Pair;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class LookOut extends Explanation {
 
-    private int budget; // How many plots (i.e. each plot consists of a dmax number of features) the algorithm will return. Default value is 6 plots
-    private int dimensionality; // Indicates the getDimensionality of the subspaces where the lookOut will examine to find the best dmax dimensional subspace. Defaul value is 2 dimensional subspaces
+    private int budget; // The highest scored top-budget subspaces (each subspace of fixed dimensionality) will be returned. Default value is 6 for the budget
+    private int dimensionality; // Indicates the dimensionality where lookout will exhaustively score the subspaces into. Default value is 2 dimensional subspaces
 
     private DataFrame output;
 
@@ -25,8 +21,8 @@ public class LookOut extends Explanation {
         CONSTRUCTORS
      */
 
-    public LookOut(String[] columns, AlgorithmConfig classifierConf, ExplanationSettings explanationSettings) throws MacroBaseException {
-        super(columns, classifierConf, explanationSettings);
+    public LookOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
+        super(columns, classifierConf, datasetPath, explanationSettings);
     }
 
     /*
@@ -81,6 +77,8 @@ public class LookOut extends Explanation {
         UTIL FUNCTIONS
      */
 
+    // TODO: Possible flaw of the algorithm, we can get less diagrams than our budget because the marginal gain could maximized early, thus not a new subspace will be added in the best subspaces
+
     private void calculateSubspaces(DataFrame input, List<LookOutSubspace> bestSubspaces) throws Exception {
         Set<LookOutSubspace> allSubspaces = pointsOfInterestScores(input);
         HashMap<Integer, Double> maxOutlierScores = new HashMap<>();
@@ -88,15 +86,17 @@ public class LookOut extends Explanation {
         int counter = 0;
         while (counter < budget) {
             LookOutSubspace maxMarginalGainSubspace = new LookOutSubspace();
-            int currSubspaceCounter = 0;
+            boolean marginalGainCanUpdate = false;
             for(LookOutSubspace subspace : allSubspaces) {
-                System.out.print("\rMaking detection in subspace (" + (++currSubspaceCounter) + "/" + allSubspaces.size() + ")" + subspace);
                 double currMarginalGain = calculateMarginalGain(subspace.getPointsOfInterestScores(), maxOutlierScores);
                 if(maxMarginalGainSubspace.getScore() < currMarginalGain) {
                     maxMarginalGainSubspace = new LookOutSubspace(subspace);
                     maxMarginalGainSubspace.setScore(currMarginalGain);
+                    marginalGainCanUpdate = true;
                 }
             }
+            if(!marginalGainCanUpdate)
+                break;
             allSubspaces.remove(maxMarginalGainSubspace);
             bestSubspaces.add(maxMarginalGainSubspace);
             patchMaxOutlierScores(maxOutlierScores, maxMarginalGainSubspace.getPointsOfInterestScores());
@@ -120,19 +120,9 @@ public class LookOut extends Explanation {
 
     private Set<LookOutSubspace> pointsOfInterestScores(DataFrame input) throws Exception {
         Set<LookOutSubspace> allSubspaces = Collections.synchronizedSet(new HashSet<>());
-        for(LookOutSubspace comb : featureCombinations(dimensionality)) {
-            DataFrame tmpDataFrame = new DataFrame();
-            LookOutSubspace currSubspace = new LookOutSubspace(comb);
-            int counter = 0;
-            String[] subColumns = new String[comb.getDimensionality()];
-            for(Integer featureId : comb.getFeatures()) {
-                tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
-                subColumns[counter++] = columns[featureId];
-            }
-            Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-            classifier.process(tmpDataFrame);
-            double[] pointsScores = classifier.getResults().getDoubleColumnByName(outputColumnName);
-            patchPointsOfInterestScores(pointsScores, currSubspace, allSubspaces);
+        List<Pair<String, double[]>> subspacesPointsScores = runClassifierExhaustive(input, dimensionality);
+        for(Pair<String, double[]> pair : subspacesPointsScores) {
+            patchPointsOfInterestScores(pair.getValue(), new LookOutSubspace(subspaceToSet(pair.getKey())), allSubspaces);
         }
         return allSubspaces;
     }
@@ -183,42 +173,7 @@ public class LookOut extends Explanation {
         return marginalGain;
     }
 
-    private List<LookOutSubspace> featureCombinations(int dimensionality) {
-        int datasetDim = getDatasetDimensionality();
-        List<LookOutSubspace> subspacesCombinationList = new ArrayList<>();
-        for(int i = 0; i < datasetDim; i++){
-            for(int j = i+1; j < datasetDim; j++){
-                HashSet<Integer> features = new HashSet<>();
-                features.add(i);
-                features.add(j);
-                LookOutSubspace newLookOutSubspace = new LookOutSubspace(features);
-                subspacesCombinationList.add(newLookOutSubspace);
-            }
-        }
-        List<LookOutSubspace> tmpCombList = new ArrayList<>();
-        HashSet<String> tmpCombStringSet = new HashSet<>();
-        for(int i = 2; i < dimensionality; i++){
-            for(LookOutSubspace lookOutSubspace : subspacesCombinationList){
-                HashSet<Integer> featuresCombination = lookOutSubspace.getFeatures();
-                for(int featureId = 0; featureId < getDatasetDimensionality(); featureId++){
-                    if(!featuresCombination.contains(featureId)){
-                        HashSet<Integer> updatedFeaturesCombination = new HashSet<>(featuresCombination);
-                        updatedFeaturesCombination.add(featureId);
-                        if(!tmpCombStringSet.contains(updatedFeaturesCombination.toString())){
-                            LookOutSubspace newLookOutSubspace = new LookOutSubspace(updatedFeaturesCombination);
-                            tmpCombList.add(newLookOutSubspace);
-                            tmpCombStringSet.add(updatedFeaturesCombination.toString());
-                        }
-                    }
-                }
-            }
-            subspacesCombinationList.clear();
-            subspacesCombinationList.addAll(tmpCombList);
-            tmpCombList.clear();
-            tmpCombStringSet.clear();
-        }
-        return subspacesCombinationList;
-    }
+
 
     private HashMap<Integer, Double> getAvgPointsScores(List<LookOutSubspace> bestSubspaces) {
         HashMap<Integer, Double> avgPointsScores = new HashMap<>();
