@@ -23,7 +23,7 @@ classifiers:
 explainers:
   - id: "lookout"
     parameters:
-      budget: 5
-      dimensionality: 2
+      budget: 50
+      dimensionality: 4
 
 settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_010_000.yaml"
