@@ -28,6 +28,7 @@ import alexp.macrobase.explanation.hics.statistics.tests.GoodnessOfFitTest;
 import alexp.macrobase.explanation.hics.statistics.tests.KolmogorovSmirnovTest;
 import alexp.macrobase.explanation.hics.statistics.tests.TestNames;
 import alexp.macrobase.explanation.hics.statistics.tests.WelchTTest;
+import alexp.macrobase.explanation.lookOut.LookOut;
 import alexp.macrobase.explanation.utils.Subspace;
 import alexp.macrobase.explanation.utils.datastructures.heap.Heap;
 import alexp.macrobase.explanation.utils.datastructures.heap.TopBoundedHeap;
@@ -74,6 +75,17 @@ public class HiCS extends Explanation {
     private int cutoff;
 
     /**
+     * This is an optional parameter. If it is set (!= -1) then the best candidates of dimensionality dmax will be returned.
+     * It is a variation to compare how HiCS behaves by returning subspaces of a specific dimensionality.
+     */
+    private int dmax;
+
+    /**
+     * The top-k best scored subspaces will be returned
+     */
+    private int topk;
+
+    /**
      * Random generator.
      */
     private RandomFactory rnd = new RandomFactory((long)0);
@@ -100,46 +112,35 @@ public class HiCS extends Explanation {
 
         List<List<Integer>> subspaceIndex = buildOneDimensionalIndexes(input);
         Set<HiCSSubspace> subspaces = calculateSubspaces(input, subspaceIndex, rnd.getSingleThreadedRandom());
+        Map<String, double[]> subspacesOutlierDetectorScores = runClassifierInSubspaces(input, hicsSubspacesToFeaturesList(subspaces));
 
-        List<Double> pointCumulativeScores = Doubles.asList(new double[input.getNumRows()]);
-        List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces = new ArrayList<>(input.getNumRows());
+        output.addColumn(outputColumnName, getAvgPointsScores(subspacesOutlierDetectorScores, input.getNumRows()));
 
-        int subspaceCounter = 1;
-        System.out.println("\n");
-        for(HiCSSubspace hiCSSubspace : subspaces){
-            System.out.print("\rMake Detection in: " + hiCSSubspace.toString() + " (" + (subspaceCounter++) + "/"  + subspaces.size() + ")");
-            DataFrame results = runClassifier(input, new Subspace(new HashSet<>(hiCSSubspace.getFeatures())));
-            updatePointsScoresInSubspace(hiCSSubspace, results.getDoubleColumnByName(outputColumnName), pointsScoresInSubspaces);
-            addArrays(pointCumulativeScores, results.getDoubleColumnByName(outputColumnName));
-        }
-        // Calculate the average score for each point
-        for(int i = 0; i < pointCumulativeScores.size(); i++){
-            pointCumulativeScores.set(i, pointCumulativeScores.get(i)/subspaces.size());
-        }
+        addRelSubspaceColumnToDataframe(output, subspacesOutlierDetectorScores);
 
-        output.addColumn(outputColumnName, pointCumulativeScores.stream().mapToDouble(d -> d).toArray());
-
-        addRelSubspaceColumnToDataframe(output, pointsScoresInSubspaces);
-
-        System.out.println("\n");
     }
 
     @Override
     public <T> void addRelSubspaceColumnToDataframe(DataFrame data, T pointsSubspaces) {
         String[] relSubspaces = new String[data.getNumRows()];
-        List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces = (List<List<Pair<HiCSSubspace, Double>>>) pointsSubspaces;
-        HashSet<Integer> pointsOfInterestSet = new HashSet<>(super.getPointsToExplain());
-        for(int pointId = 0; pointId < data.getNumRows(); pointId++){
-            if(pointsOfInterestSet.contains(pointId)){
-                StringBuilder sb = new StringBuilder();
-                List<Pair<HiCSSubspace,Double>> scoresInSubspaces = pointsScoresInSubspaces.get(pointId);
-                scoresInSubspaces.sort(Comparator.comparing(Pair::getValue));
-                for(Pair<HiCSSubspace,Double> pair : scoresInSubspaces){
-                    sb.append(subspaceToString(pair.getKey().getFeatures(), pair.getValue())).append(" ");
-                }
-                relSubspaces[pointId] = sb.toString().trim();
-            }else {
-                relSubspaces[pointId] = "-";
+        Map<String, double[]> subspacesScores = (Map<String, double[]>) pointsSubspaces;
+        for(int pointId = 0; pointId < relSubspaces.length; pointId++) {
+            if(getPointsToExplain().contains(pointId)) { relSubspaces[pointId] = ""; }
+            else { relSubspaces[pointId] = "-"; }
+        }
+        for (int poiID : getPointsToExplain()) {
+            List<Pair<String, Double>> pointScores = new ArrayList<>();
+            for (String subspaceStr : subspacesScores.keySet()) {
+                Subspace subspace = toSubspace(subspaceStr);
+                double[] subspaceScores = subspacesScores.get(subspaceStr);
+                String finalSubspaceStr = subspaceToString(subspace.getFeatures(), subspaceScores[poiID]) + " ";
+                pointScores.add(new Pair<>(finalSubspaceStr, subspaceScores[poiID]));
+            }
+            pointScores.sort(Comparator.comparing(Pair::getValue));
+            Collections.reverse(pointScores);
+            pointScores = pointScores.subList(0, Math.min(topk, pointScores.size()));
+            for (Pair<String, Double> pair : pointScores) {
+                relSubspaces[poiID] += pair.getKey();
             }
         }
         data.addColumn(relSubspaceColumnName, relSubspaces);
@@ -148,21 +149,6 @@ public class HiCS extends Explanation {
     @Override
     public DataFrame getResults() {
         return output;
-    }
-
-    /**
-     * Takes as input two double arrays of same size and add them to a new double array
-     * @param cumulArray
-     * @param currArr
-     * @return The arr1 + arr2
-     */
-    private void addArrays(List<Double> cumulArray, double[] currArr) {
-        if(cumulArray.size() != currArr.length)
-            throw new RuntimeException("The two arrays cannot be added due to different sizes. " + cumulArray.size() + " != "+ currArr.length);
-
-        for(int i = 0; i < currArr.length; i++){
-            cumulArray.set(i, cumulArray.get(i) + currArr[i]);
-        }
     }
 
     /**
@@ -176,7 +162,6 @@ public class HiCS extends Explanation {
 
     private List<List<Integer>> buildOneDimensionalIndexes(DataFrame input) {
         final int dim = getDatasetDimensionality();
-        System.out.println("Dimensionality: " + dim + "\n");
         List<List<Integer>> subspaceIndex = new ArrayList<>();
         for(int i = 0; i < dim; i++){
             double[] values = input.getDoubleColumn(i);
@@ -219,7 +204,12 @@ public class HiCS extends Explanation {
             }
         }
 
+        HashSet<String> consideredFeatures = new HashSet<>();
+
         for(int d = 3; !dDimensionalList.isEmpty(); d++) {
+
+            if(dmax != -1 && d > dmax)       // This is the HiCS variation, if dmax is set (!= -1) and the current dimensionality is > than dmax, then, the best subspaces of dimensionality dmax are returned
+                return new HashSet<>(dDimensionalList.toList());
 
             // result now contains all d-dimensional sets of subspaces
             ArrayList<HiCSSubspace> candidateList = new ArrayList<>(dDimensionalList.size());
@@ -227,6 +217,8 @@ public class HiCS extends Explanation {
                 subspaceList.add(it.get());
                 candidateList.add(it.get());
             }
+
+            consideredFeatures.clear();
 
             dDimensionalList.clear();
             // candidateList now contains the *m* best d-dimensional sets
@@ -240,9 +232,12 @@ public class HiCS extends Explanation {
                     HiCSSubspace joinedSet = new HiCSSubspace();
                     joinedSet.or(set1);
                     joinedSet.or(set2);
-                    if(joinedSet.cardinality() != d) {
+
+                    if(joinedSet.cardinality() != d || consideredFeatures.contains(joinedSet.getFeatures().toString())) {
                         continue;
                     }
+
+                    consideredFeatures.add(joinedSet.getFeatures().toString());
 
                     calculateContrast(input, joinedSet, subspaceIndex, rand);
                     System.out.print("\r" + joinedSet);
@@ -356,18 +351,18 @@ public class HiCS extends Explanation {
         return new ArrayList<>(hashSet1);
     }
 
-    private void updatePointsScoresInSubspace(HiCSSubspace subspace, double[] pointScores,
-                                              List<List<Pair<HiCSSubspace, Double>>> pointsScoresInSubspaces){
-        for(int i = 0; i < pointScores.length; i++){
-            if(pointsScoresInSubspaces.size() <= i)
-                pointsScoresInSubspaces.add(null);
-            List<Pair<HiCSSubspace, Double>> subspacesScores = pointsScoresInSubspaces.get(i);
-            Pair<HiCSSubspace, Double> pair = new Pair<>(subspace, pointScores[i]);
-            if(subspacesScores == null)
-                subspacesScores = new ArrayList<>();
-            subspacesScores.add(pair);
-            pointsScoresInSubspaces.set(i, subspacesScores);
+    private double[] getAvgPointsScores(Map<String, double[]> bestSubspaces, int sampleSize) {
+        double[] avgScores = new double[sampleSize];
+        for(String subspace : bestSubspaces.keySet()) {
+            double[] subspaceScores = bestSubspaces.get(subspace);
+            for (int poiID : getPointsToExplain()) {
+                avgScores[poiID] += subspaceScores[poiID];
+            }
         }
+        for (int poiID : getPointsToExplain()) {
+            avgScores[poiID] = avgScores[poiID] / bestSubspaces.size();
+        }
+        return avgScores;
     }
 
     /*
@@ -395,6 +390,10 @@ public class HiCS extends Explanation {
         this.cutoff = cutoff;
     }
 
+    public void setDmax(int dmax) { this.dmax = dmax; }
+
+    public void setTopk(int topk) { this.topk = topk; }
+
     /*
         VARIANTS
      */
@@ -411,23 +410,6 @@ public class HiCS extends Explanation {
      /*
         OTHER FUNCTIONS
      */
-
-    private void analyzeHiCSdatasets(DataFrame input) throws Exception {
-        String outputFilePath = "alexp/data/explanation/HiCS_Dataset_Analysis/test_010_000.txt";
-        BufferedWriter bw = new BufferedWriter(new FileWriter(new File(outputFilePath)));
-        for(int pointId : super.getPointsToExplain()){
-            String subspaces = input.getStringColumnByName("relevant_subspace")[pointId];
-            String pointScoreStr = "Point " + pointId + "\n";
-            for(List<Integer> subspaceFeatures : getSubspaces(subspaces)) {
-                DataFrame results = runClassifier(input, new Subspace(new HashSet<>(subspaceFeatures)));
-                pointScoreStr += subspaceFeatures + "\n" + results.getRow(pointId).getVals().get(subspaceFeatures.size()) + "\n";
-            }
-            bw.write(pointScoreStr);
-            bw.write("---------\n");
-            bw.newLine();
-        }
-        bw.close();
-    }
 
     private List<List<Integer>> getSubspaces(String subspacesStr) {
         String[] subspacesParts = subspacesStr.split("[\\[\\]]");

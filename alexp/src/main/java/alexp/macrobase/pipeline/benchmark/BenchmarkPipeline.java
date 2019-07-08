@@ -205,7 +205,7 @@ public class BenchmarkPipeline extends Pipeline {
 //                        maxMemoryUsage / 1024 / 1024,
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
-        resultWriter.write(explainer.getResults(), new ExecutionResult(0, explanationTime, 0,
+        resultWriter.write(explainer.getResults(), new ExecutionResult(0, explanationTime, maxMemoryUsage,
                 conf, explainerConf.getParameters())
                 .setClassifierId(classifierConf.getAlgorithmId())
                 .setExplainerId(explainerConf.getAlgorithmId()));

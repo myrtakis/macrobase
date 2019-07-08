@@ -173,8 +173,6 @@ public class LookOut extends Explanation {
         return marginalGain;
     }
 
-
-
     private HashMap<Integer, Double> getAvgPointsScores(List<LookOutSubspace> bestSubspaces) {
         HashMap<Integer, Double> avgPointsScores = new HashMap<>();
         for(LookOutSubspace subspace : bestSubspaces) {

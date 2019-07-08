@@ -1,5 +1,6 @@
 package alexp.macrobase.explanation;
 
+import alexp.macrobase.explanation.hics.HiCS;
 import alexp.macrobase.explanation.lookOut.LookOut;
 import alexp.macrobase.explanation.utils.Subspace;
 import alexp.macrobase.explanation.utils.anomalyDetectorsWrapper.OutlierDetectorsWrapper;
@@ -60,6 +61,31 @@ public abstract class Explanation implements Transformer {
         return "[" + Joiner.on(" ").join(subspaceFeatures) + "] " + score + ";";
     }
 
+    protected Subspace toSubspace(String subspaceStr) {
+        HashSet<Integer> features = new HashSet<>();
+        StringTokenizer strtok = new StringTokenizer(subspaceStr, subspaceDelimiter);
+        while (strtok.hasMoreTokens()) {
+            features.add(Integer.parseInt(strtok.nextToken()));
+        }
+        return new Subspace(features);
+    }
+
+    protected List<HashSet<Integer>> subspacesToFeaturesList(Collection<Subspace> subspaceList) {
+        List<HashSet<Integer>> subspacesFeatures = new ArrayList<>();
+        for (Subspace subspace : subspaceList) {
+            subspacesFeatures.add(subspace.getFeatures());
+        }
+        return subspacesFeatures;
+    }
+
+    protected List<HashSet<Integer>> hicsSubspacesToFeaturesList(Collection<HiCS.HiCSSubspace> subspaceList) {
+        List<HashSet<Integer>> subspacesFeatures = new ArrayList<>();
+        for (HiCS.HiCSSubspace subspace : subspaceList) {
+            subspacesFeatures.add(new HashSet<>(subspace.getFeatures()));
+        }
+        return subspacesFeatures;
+    }
+
     protected HashSet<Integer> subspaceToSet(String subspace) {
         StringTokenizer strtok = new StringTokenizer(subspace, subspaceDelimiter);
         HashSet<Integer> featureSet = new HashSet<>();
@@ -74,6 +100,13 @@ public abstract class Explanation implements Transformer {
             return runClassifierPython(input, subspace);
         else
             return runClassifierNative(input, subspace);
+    }
+
+    protected Map<String, double[]>  runClassifierInSubspaces(DataFrame input, List<HashSet<Integer>> subspaceList) throws Exception {
+        if(explanationSettings.invokePythonClassifier())
+            return OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(classifierConf, datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
+        else
+            return runClassifierInSubspacesNative(input, subspaceList);
     }
 
     protected List<Pair<String, double[]>> runClassifierExhaustive(DataFrame input, int finalSubspacesDim) throws Exception {
@@ -102,6 +135,17 @@ public abstract class Explanation implements Transformer {
         DataFrame df = new DataFrame();
         df.addColumn(outputColumnName, points_scores);
         return df;
+    }
+
+    private Map<String, double[]> runClassifierInSubspacesNative(DataFrame input, List<HashSet<Integer>> featuresList) throws Exception {
+        Map<String, double[]> subspacesScores = new HashMap<>();
+        int subspaceCounter = 1;
+        for (HashSet<Integer> features : featuresList) {
+            System.out.print("\rMake Detection in: " + featuresList + " (" + (subspaceCounter++) + "/"  + featuresList.size() + ")");
+            double[] scores = runClassifierNative(input, new Subspace(features)).getDoubleColumnByName(outputColumnName);
+            subspacesScores.put(features.toString(), scores);
+        }
+        return subspacesScores;
     }
 
     private List<Pair<String, double[]>> runClassifierNativeExhaustive(DataFrame input, int finalSubspacesDim) throws Exception {

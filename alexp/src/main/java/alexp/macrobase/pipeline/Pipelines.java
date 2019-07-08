@@ -230,12 +230,14 @@ public class Pipelines {
                 hiCS.setAlpha(explainerConf.getParameters().get("alpha",0.05));
                 hiCS.setM(explainerConf.getParameters().get("m",50));
                 hiCS.setStatTest(explainerConf.getParameters().get("statTest", TestNames.WELTCH_TTEST.toString()));
+                hiCS.setDmax(explainerConf.getParameters().get("dmax", -1));
+                hiCS.setTopk(explainerConf.getParameters().get("topk", 50));
                 return hiCS;
             }
             case "beam": {
                 BeamSubspaceSearch beam = new BeamSubspaceSearch(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
-                beam.setDmax(explainerConf.getParameters().get("dmax", 3));
-                beam.setTopk(explainerConf.getParameters().get("topk", 10));
+                beam.setDmax(explainerConf.getParameters().get("dmax", 2));
+                beam.setTopk(explainerConf.getParameters().get("topk", 50));
                 beam.setW(explainerConf.getParameters().get("beamWidth", 100));
                 return beam;
             }
@@ -245,7 +247,7 @@ public class Pipelines {
                 refout.setD2(explainerConf.getParameters().get("d2", 2));
                 refout.setPsize(explainerConf.getParameters().get("psize", 100));
                 refout.setBeamSize(explainerConf.getParameters().get("beamSize", 100));
-                refout.setTopk(explainerConf.getParameters().get("topk", 5));
+                refout.setTopk(explainerConf.getParameters().get("topk", 50));
                 return refout;
             }
 
