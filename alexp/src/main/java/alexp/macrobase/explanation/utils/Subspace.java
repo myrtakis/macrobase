@@ -2,6 +2,8 @@ package alexp.macrobase.explanation.utils;
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.TreeSet;
 
 public class Subspace {
     private double score;
@@ -95,4 +97,20 @@ public class Subspace {
         }
         return o1.score < o2.score ? 1 : -1;
     };
+
+
+    public static final Comparator<Subspace> SORT_BY_FEATURES = (o1, o2) -> {
+        Iterator<Integer> o1TreeSetIter = new TreeSet<>(o1.getFeatures()).iterator();
+        Iterator<Integer> o2TreeSetIter = new TreeSet<>(o2.getFeatures()).iterator();
+        while (o1TreeSetIter.hasNext() && o2TreeSetIter.hasNext()) {
+            int o1FeatureId = o1TreeSetIter.next();
+            int o2FeatureId = o2TreeSetIter.next();
+            if (o1FeatureId < o2FeatureId)
+                return -1;
+            else if (o1FeatureId > o2FeatureId)
+                return 1;
+        }
+        return 0;
+    };
+
 }

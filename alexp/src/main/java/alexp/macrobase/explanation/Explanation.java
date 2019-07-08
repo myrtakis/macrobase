@@ -9,12 +9,14 @@ import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import com.google.common.base.Joiner;
+import com.google.common.primitives.Ints;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 import javafx.util.Pair;
+import org.apache.commons.lang3.ArrayUtils;
 
 import javax.naming.ldap.PagedResultsControl;
 import java.util.*;
@@ -102,7 +104,9 @@ public abstract class Explanation implements Transformer {
             return runClassifierNative(input, subspace);
     }
 
-    protected Map<String, double[]>  runClassifierInSubspaces(DataFrame input, List<HashSet<Integer>> subspaceList) throws Exception {
+    protected Map<String, double[]> runClassifierInSubspaces(DataFrame input, List<HashSet<Integer>> subspaceList) throws Exception {
+        if (subspaceList.isEmpty())
+            return new HashMap<>();
         if(explanationSettings.invokePythonClassifier())
             return OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(classifierConf, datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
         else
@@ -114,6 +118,29 @@ public abstract class Explanation implements Transformer {
             return OutlierDetectorsWrapper.runPythonClassifierExhaustive(classifierConf, datasetPath, getDatasetDimensionality(), finalSubspacesDim, input.getNumRows());
         else
             return runClassifierNativeExhaustive(input, finalSubspacesDim);
+    }
+
+    protected List<Set<Integer>> featureIDsCombinations(Set<Integer> featureIDs, int numOfElementsInComb) {
+        int[] arr = featureIDs.stream().mapToInt(Integer::intValue).toArray();
+        int[] tmpArr = new int[numOfElementsInComb];
+        List<Set<Integer>> featuresComb = new ArrayList<>();
+        combinationUtil(arr, tmpArr, featuresComb, 0, arr.length - 1, 0, numOfElementsInComb);
+        return featuresComb;
+    }
+
+    private void combinationUtil(int arr[], int data[], List<Set<Integer>> featuresComb,
+                                 int start, int end, int index, int numOfElementsInComb) {
+        // Current combination is ready to be printed, print it
+        if (index == numOfElementsInComb) {
+            featuresComb.add(new HashSet<>(Ints.asList(data)));
+            return;
+        }
+        // replace index with all possible elements. The condition "end-i+1 >= r-index" makes sure that including one element
+        // at index will make a combination with remaining elements at remaining positions
+        for (int i = start; i <= end && end - i + 1 >= numOfElementsInComb - index; i++) {
+            data[index] = arr[i];
+            combinationUtil(arr, data, featuresComb, i+1, end, index+1, numOfElementsInComb);
+        }
     }
 
     private DataFrame runClassifierNative(DataFrame input, Subspace subspace) throws Exception{

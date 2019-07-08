@@ -239,6 +239,7 @@ public class Pipelines {
                 beam.setDmax(explainerConf.getParameters().get("dmax", 2));
                 beam.setTopk(explainerConf.getParameters().get("topk", 50));
                 beam.setW(explainerConf.getParameters().get("beamWidth", 100));
+                beam.setBeamFixed(explainerConf.getParameters().get("beamFixed", false));
                 return beam;
             }
             case "refout": {
