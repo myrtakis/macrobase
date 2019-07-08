@@ -1,6 +1,8 @@
 explanationSettings:
   method: "dictatedOutliers"
 
+  invokePythonClassifier: True
+
   dictatedOutliers:
     - 3
     - 14
