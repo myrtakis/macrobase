@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
+from pyod.models import abod
 
 
 #########################################################################
@@ -35,17 +36,17 @@ def iforest(dataframe, params):
     return reverse_scores(normalize_scores(raw_scores))
 
 
-def loci(dataframe, params):
-    return None
-
-
 def fast_abod(dataframe, params):
-    return None
+    if 'n_neighbors' not in params:
+        params['n_neighbors'] = 5  # default value
+    clf = abod.ABOD(method='fast', n_neighbors=int(params['n_neighbors']))
+    clf.fit(dataframe)
+    raw_scores = clf.decision_scores_
+    return normalize_scores(raw_scores)
 
 
 FUNCTION_MAP = {
     'lof-bkaluza'   :   lof,
-    'loci'          :   loci,
     'fast_abod'     :   fast_abod,
     'iforest'       :   iforest
 }
@@ -72,6 +73,8 @@ def get_real_value_of(s):
 
 
 def algorithm_params(params_str):
+    if '=' not in params_str:
+        return {}
     params_split = re.split('[,=]', params_str.strip('{}'))
     params_dict = {}
     for i in range(0, len(params_split), 2):
@@ -89,9 +92,9 @@ def prepare_sub_dataframe(fp, subspace_str):
     return dataframe
 
 
-def subspace_to_list(subspace_str):
+def subspace_to_tuple(subspace_str):
     subspace = re.split(',', subspace_str.strip('[]'))
-    return [tuple(list(map(int, subspace)))]
+    return tuple(list(map(int, subspace)))
 
 
 def poi_to_list(poi_str):
@@ -102,18 +105,37 @@ def poi_to_list(poi_str):
         return list(map(int, poi))
 
 
+def get_subspaces(args):
+    if args.exhaust is not None:
+        return list(combinations(range(int(args.dim)), int(args.exhaust)))
+    elif args.sl is not None:
+        return parse_subspace_list(args.sl)
+    else:
+        assert args.s is not None
+        return [subspace_to_tuple(args.s)]
+
+
+def parse_subspace_list(subspace_list_str):
+    subspace_list = []
+    parts = subspace_list_str.strip().split(';')
+    for subspace_str in parts:
+        if not subspace_str.strip():
+            continue
+        subspace_list.append(subspace_to_tuple(subspace_str))
+    return subspace_list
+
+
 def execute_option(parser):
     args = parser.parse_args()
     dataframe = pd.read_csv(os.path.normpath(args.d))
-    poi = poi_to_list(args.poi)     # TODO examine if we are gonna use this information -> changes in the algorithms.
     params = algorithm_params(args.params)
-    subspaces = list(combinations(range(int(args.dim)), int(args.exhaust))) if args.exhaust is not None else subspace_to_list(args.s)
+    subspaces = get_subspaces(args)
     output = ''
     counter = 0
     for subspace in subspaces:
-        subspace = list(subspace)
+        subspace = subspace if isinstance(subspace, list) else list(subspace)
         counter += 1
-        msg_prog = '> Scoring subspace ' + str(counter) + '/' + str(len(subspaces))
+        msg_prog = '> Scoring subspace ' + str(subspace) + ' (' + str(counter) + '/' + str(len(subspaces)) + ')'
         sys.stdout.write('\r' + msg_prog)
         sub_dataframe = dataframe.iloc[:, subspace]
         points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params)
@@ -127,10 +149,10 @@ def options_builder():
     parser.add_argument('-ad',          type=str,   required=True, help='Give the id of anomaly detector as it presents in configuration files')
     parser.add_argument('-params',      type=str,   required=True, help='Give the parameters of the algorithms')
     parser.add_argument('-s',           type=str,   help='A subspace type string in the form [0 1] where 0 and 1 are features')
+    parser.add_argument('-sl',          type=str,   help='Take a list of subspaces to make the detection')
     parser.add_argument('-d',           type=str,   required=True, help='The path to the data frame')
     parser.add_argument('-dim',         type=str,   required=True, help='The dimensionality of the dataset')
     parser.add_argument('-exhaust',     type=int,   help="Makes exhaustive search i.e. scores every combination of attributes of a given dimensionality. Default value is 2")
-    parser.add_argument('-poi',         type=str,   help="Takes the points of interest. Only the scores of those points will be returned")
     return parser
 
 
