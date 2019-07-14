@@ -1,16 +1,10 @@
 package alexp.macrobase.explanation.utils.anomalyDetectorsWrapper;
 
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
-import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
 import com.google.common.base.Joiner;
-import com.google.common.primitives.Doubles;
-import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import javafx.util.Pair;
-import spark.Experimental;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -27,6 +21,9 @@ public class OutlierDetectorsWrapper {
     private static final String datasetPathOption = "-d";
     private static final String datasetDimOption = "-dim";
     private static final String combinationsOption = "-exhaust";
+    private static final String argsFromFileOption = "-args_from_file";
+
+    private static final String tmpArgsFileName = "tmpArgs.txt";
 
     private static final String pythonResultsDelimiter = " ,\t\n[]{}";
     private static final String subspaceTag = "@subspace";
@@ -61,16 +58,13 @@ public class OutlierDetectorsWrapper {
     }
 
     private static Map<String, double[]>  execPythonInSubspaces(String algorithmId, String params, String subspacesAsStr,
-                                                               String datasetPath, int datasetDim, int sampleSize) throws IOException {
+                                                                String datasetPath, int datasetDim, int sampleSize) throws IOException {
         if (!Files.exists(Paths.get(pythonFilePath)))
             throw new IOException("File not found " + pythonFilePath);
+        saveArgsToTmpFile(algorithmId, params, subspacesAsStr, datasetPath, datasetDim);
         ProcessBuilder pb = new ProcessBuilder(
                 pythonCommand, pythonFilePath,
-                anomalyDetectorOption, algorithmId,
-                paramsOption, params,
-                subspacesListOption, subspacesAsStr,
-                datasetDimOption, "" + datasetDim,
-                datasetPathOption, datasetPath
+                argsFromFileOption, tmpArgsFileName
         );
         pb.redirectErrorStream(true);
         Process p = pb.start();
@@ -81,6 +75,8 @@ public class OutlierDetectorsWrapper {
             pointsScoresMap.put(pair.getKey(), pair.getValue());
         }
         in.close();
+        File file = new File(tmpArgsFileName);
+        file.delete();
         return pointsScoresMap;
     }
 
@@ -181,6 +177,24 @@ public class OutlierDetectorsWrapper {
             throw new RuntimeException("Error occurred in python. See the console message above");
         }
         return subspacePointsScores;
+    }
+
+    private static void saveArgsToTmpFile(String algorithmId, String params, String subspacesAsStr,
+                                          String datasetPath, int datasetDim) throws IOException{
+        File file = new File(tmpArgsFileName);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+        String args =
+                    anomalyDetectorOption   + " " +     algorithmId                         + " "
+                +   paramsOption            + " " +     params                              + " "
+                +   subspacesListOption     + " " +     subspacesAsStr                      + " "
+                +   datasetPathOption       + " " +     replaceSpacesInPath(datasetPath)    + " "
+                +   datasetDimOption        + " " +     datasetDim;
+        bw.write(args);
+        bw.close();
+    }
+
+    private static String replaceSpacesInPath(String datasetPath) {
+        return datasetPath.replace(" ", "%20");
     }
 
     private static String featuresToString(HashSet<Integer> features) {

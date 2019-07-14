@@ -89,7 +89,7 @@ public class TopBoundedHeap<E> extends Heap<E> {
       topKList.add(it.get());
     }
     topKList.sort(comparator);
-    return topKList.subList(0, k);
+    return topKList.subList(0, Math.min(topKList.size(),k));
   }
 
   /**

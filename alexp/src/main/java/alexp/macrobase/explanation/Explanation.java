@@ -88,6 +88,15 @@ public abstract class Explanation implements Transformer {
         return subspacesFeatures;
     }
 
+    private Map<String, double[]> refineSubspaceStrings(Map<String, double[]> subspacesScores) {
+        Map<String, double[]> refinedSubspaceScores = new HashMap<>();
+        for (String subspace : subspacesScores.keySet()) {
+            String refinedSubspace = subspaceToSet(subspace).toString();
+            refinedSubspaceScores.put(refinedSubspace, subspacesScores.get(subspace));
+        }
+        return refinedSubspaceScores;
+    }
+
     protected HashSet<Integer> subspaceToSet(String subspace) {
         StringTokenizer strtok = new StringTokenizer(subspace, subspaceDelimiter);
         HashSet<Integer> featureSet = new HashSet<>();
@@ -107,8 +116,11 @@ public abstract class Explanation implements Transformer {
     protected Map<String, double[]> runClassifierInSubspaces(DataFrame input, List<HashSet<Integer>> subspaceList) throws Exception {
         if (subspaceList.isEmpty())
             return new HashMap<>();
-        if(explanationSettings.invokePythonClassifier())
-            return OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(classifierConf, datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
+        if(explanationSettings.invokePythonClassifier()) {
+            Map<String, double[]> subspaceScores = OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(
+                    classifierConf, datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
+            return refineSubspaceStrings(subspaceScores);
+        }
         else
             return runClassifierInSubspacesNative(input, subspaceList);
     }

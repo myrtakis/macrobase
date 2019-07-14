@@ -12,6 +12,23 @@ from pyod.models import abod
 
 
 #########################################################################
+#               LOADER CLASS FOR ARGUMENTS READ FROM FILE               #
+#########################################################################
+
+
+class LoadFromFile (argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        with values as f:
+            args_list = f.read().split()
+            for i in range(0, len(args_list)):
+                if '%20' in args_list[i]:
+                    args_list[i] = args_list[i].replace('%20', ' ')
+                if '"' in args_list[i]:
+                    args_list[i] = args_list[i].replace('"', '')
+            parser.parse_args(args_list, namespace)
+
+
+#########################################################################
 #                           ANOMALY DETECTORS                           #
 #########################################################################
 
@@ -127,6 +144,7 @@ def parse_subspace_list(subspace_list_str):
 
 def execute_option(parser):
     args = parser.parse_args()
+    validate_args(parser, args)
     dataframe = pd.read_csv(os.path.normpath(args.d))
     params = algorithm_params(args.params)
     subspaces = get_subspaces(args)
@@ -144,15 +162,23 @@ def execute_option(parser):
     return output
 
 
+def validate_args(parser, args):
+    assert args.ad is not None, parser.print_help()
+    assert args.params is not None, parser.print_help()
+    assert args.d is not None, parser.print_help()
+    assert args.dim is not None, parser.print_help()
+
+
 def options_builder():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ad',          type=str,   required=True, help='Give the id of anomaly detector as it presents in configuration files')
-    parser.add_argument('-params',      type=str,   required=True, help='Give the parameters of the algorithms')
-    parser.add_argument('-s',           type=str,   help='A subspace type string in the form [0 1] where 0 and 1 are features')
-    parser.add_argument('-sl',          type=str,   help='Take a list of subspaces to make the detection')
-    parser.add_argument('-d',           type=str,   required=True, help='The path to the data frame')
-    parser.add_argument('-dim',         type=str,   required=True, help='The dimensionality of the dataset')
-    parser.add_argument('-exhaust',     type=int,   help="Makes exhaustive search i.e. scores every combination of attributes of a given dimensionality. Default value is 2")
+    parser.add_argument('-ad',              type=str,   help='Give the id of anomaly detector as it presents in configuration files')
+    parser.add_argument('-params',          type=str,   help='Give the parameters of the algorithms')
+    parser.add_argument('-s',               type=str,   help='A subspace type string in the form [0 1] where 0 and 1 are features')
+    parser.add_argument('-sl',              type=str,   help='Take a list of subspaces to make the detection')
+    parser.add_argument('-d',               type=str,   help='The path to the data frame')
+    parser.add_argument('-dim',             type=str,   help='The dimensionality of the dataset')
+    parser.add_argument('-exhaust',         type=int,   help="Makes exhaustive search i.e. scores every combination of attributes of a given dimensionality. Default value is 2")
+    parser.add_argument('-args_from_file',  type=open,  action=LoadFromFile, help='Read arguments from a text file')
     return parser
 
 
