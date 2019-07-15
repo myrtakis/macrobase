@@ -1,2 +1,6 @@
 psycopg2
 pyyaml
+numpy==1.16.4
+pandas==0.24.2
+scikit-learn==0.21.2
+pyod==0.7.3
