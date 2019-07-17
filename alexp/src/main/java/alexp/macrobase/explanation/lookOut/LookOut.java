@@ -13,7 +13,10 @@ import java.util.*;
 public class LookOut extends Explanation {
 
     private int budget; // The highest scored top-budget subspaces (each subspace of fixed dimensionality) will be returned. Default value is 6 for the budget
+
     private int dimensionality; // Indicates the dimensionality where lookout will exhaustively score the subspaces into. Default value is 2 dimensional subspaces
+
+    private int classifierRunRepeat;
 
     private DataFrame output;
 
@@ -21,8 +24,9 @@ public class LookOut extends Explanation {
         CONSTRUCTORS
      */
 
-    public LookOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, datasetPath, explanationSettings);
+    public LookOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath,
+                   ExplanationSettings explanationSettings, int classifierRunRepeat) {
+        super(columns, classifierConf, datasetPath, explanationSettings, classifierRunRepeat);
     }
 
     /*

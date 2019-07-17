@@ -22,46 +22,74 @@ public class OutlierDetectorsWrapper {
     private static final String datasetDimOption = "-dim";
     private static final String combinationsOption = "-exhaust";
     private static final String argsFromFileOption = "-args_from_file";
+    private static final String classifierRunRepeatOption = "-classifier_run_repeat";
 
     private static final String tmpArgsFileName = "tmpArgs.txt";
 
     private static final String pythonResultsDelimiter = " ,\t\n[]{}";
     private static final String subspaceTag = "@subspace";
 
-    public static double[] runPythonClassifier(AlgorithmConfig classifierConf, String datasetPath,
-                                               HashSet<Integer> features, int datasetDim,
-                                               int sampleSize) throws Exception {
+    public static double[] runPythonClassifier(AlgorithmConfig classifierConf, int classifierRunRepeat, String datasetPath,
+                                               HashSet<Integer> features, int datasetDim, int sampleSize) throws Exception {
         String algorithmId = classifierConf.getAlgorithmId();
         String params = classifierConf.getParameters().toString().replace(" ", "");
         String subspace = featuresToString(features);
         datasetPath = "\"" + datasetPath + "\"";
-       return execPython(algorithmId, params, subspace, datasetPath, datasetDim, sampleSize);
+        if (!Files.exists(Paths.get(pythonFilePath)))
+            throw new IOException("File not found " + pythonFilePath);
+        ProcessBuilder pb = new ProcessBuilder(
+                pythonCommand,           pythonFilePath,
+                anomalyDetectorOption,              algorithmId,
+                classifierRunRepeatOption,          "" + classifierRunRepeat,
+                paramsOption,                       params,
+                subspaceOption,                     subspace,
+                datasetDimOption,                   "" + datasetDim,
+                datasetPathOption,                  datasetPath
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        double[] pointsScores = parseSingleSubspace(in, sampleSize);
+        in.close();
+        return pointsScores;
     }
 
-    public static List<Pair<String, double[]>> runPythonClassifierExhaustive(AlgorithmConfig classifierConf, String datasetPath,
-                                                                             int datasetDim, int combinations,
+    public static List<Pair<String, double[]>> runPythonClassifierExhaustive(AlgorithmConfig classifierConf, int classifierRunRepeat,
+                                                                             String datasetPath, int datasetDim, int combinations,
                                                                              int sampleSize) throws Exception {
         String algorithmId = classifierConf.getAlgorithmId();
         String params = classifierConf.getParameters().toString().replace(" ", "");
         datasetPath = "\"" + datasetPath + "\"";
-        return execPythonExhaustive(algorithmId, params, datasetPath, datasetDim, combinations, sampleSize);
+        if (!Files.exists(Paths.get(pythonFilePath)))
+            throw new IOException("File not found " + pythonFilePath);
+        ProcessBuilder pb = new ProcessBuilder(
+                pythonCommand,              pythonFilePath,
+                anomalyDetectorOption,                algorithmId,
+                classifierRunRepeatOption,            "" + classifierRunRepeat,
+                paramsOption,                         params,
+                combinationsOption,                   "" + combinations,
+                datasetDimOption,                     "" + datasetDim,
+                datasetPathOption,                    datasetPath
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        List<Pair<String, double[]>> subspacePointsScores = parseMultiSubspaces(in, sampleSize);
+        in.close();
+        return subspacePointsScores;
     }
 
-    public static Map<String, double[]>  runPythonClassifierOnSubspaces(AlgorithmConfig classifierConf, String datasetPath,
-                                                                       List<HashSet<Integer>> subspacesFeatures, int datasetDim,
-                                                                       int sampleSize) throws Exception {
-        String algorithmId = classifierConf.getAlgorithmId();
+    public static Map<String, double[]>  runPythonClassifierOnSubspaces(AlgorithmConfig classifierConf, int classifierRunRepeat,
+                                                                        String datasetPath, List<HashSet<Integer>> subspacesFeatures,
+                                                                        int datasetDim, int sampleSize) throws Exception {
+        String classifierId = classifierConf.getAlgorithmId();
         String params = classifierConf.getParameters().toString().replace(" ", "");
         String subspacesAsStr = subspacesToString(subspacesFeatures);
         datasetPath = "\"" + datasetPath + "\"";
-        return execPythonInSubspaces(algorithmId, params, subspacesAsStr, datasetPath, datasetDim, sampleSize);
-    }
 
-    private static Map<String, double[]>  execPythonInSubspaces(String algorithmId, String params, String subspacesAsStr,
-                                                                String datasetPath, int datasetDim, int sampleSize) throws IOException {
         if (!Files.exists(Paths.get(pythonFilePath)))
             throw new IOException("File not found " + pythonFilePath);
-        saveArgsToTmpFile(algorithmId, params, subspacesAsStr, datasetPath, datasetDim);
+        saveArgsToTmpFile(classifierId, classifierRunRepeat, params, subspacesAsStr, datasetPath, datasetDim);
         ProcessBuilder pb = new ProcessBuilder(
                 pythonCommand, pythonFilePath,
                 argsFromFileOption, tmpArgsFileName
@@ -80,46 +108,6 @@ public class OutlierDetectorsWrapper {
         return pointsScoresMap;
     }
 
-    private static double[] execPython(String algorithmId, String params, String subspace,
-                                       String datasetPath, int datasetDim, int sampleSize) throws IOException{
-        if (!Files.exists(Paths.get(pythonFilePath)))
-            throw new IOException("File not found " + pythonFilePath);
-        ProcessBuilder pb = new ProcessBuilder(
-                pythonCommand,           pythonFilePath,
-                anomalyDetectorOption,              algorithmId,
-                paramsOption,                       params,
-                subspaceOption,                     subspace,
-                datasetDimOption,                   "" + datasetDim,
-                datasetPathOption,                  datasetPath
-        );
-        pb.redirectErrorStream(true);
-        Process p = pb.start();
-        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        double[] pointsScores = parseSingleSubspace(in, sampleSize);
-        in.close();
-        return pointsScores;
-    }
-
-    private static List<Pair<String, double[]>> execPythonExhaustive(String algorithmId, String params,
-                                                                     String datasetPath, int datasetDim,
-                                                                     int combinations, int sampleSize) throws IOException {
-        if (!Files.exists(Paths.get(pythonFilePath)))
-            throw new IOException("File not found " + pythonFilePath);
-        ProcessBuilder pb = new ProcessBuilder(
-                pythonCommand,          pythonFilePath,
-                anomalyDetectorOption,              algorithmId,
-                paramsOption,                       params,
-                combinationsOption,                 "" + combinations,
-                datasetDimOption,                   "" + datasetDim,
-                datasetPathOption,                  datasetPath
-        );
-        pb.redirectErrorStream(true);
-        Process p = pb.start();
-        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        List<Pair<String, double[]>> subspacePointsScores = parseMultiSubspaces(in, sampleSize);
-        in.close();
-        return subspacePointsScores;
-    }
 
     private static double[] parseSingleSubspace(BufferedReader in, int sampleSize) throws IOException {
         String line;
@@ -179,16 +167,17 @@ public class OutlierDetectorsWrapper {
         return subspacePointsScores;
     }
 
-    private static void saveArgsToTmpFile(String algorithmId, String params, String subspacesAsStr,
+    private static void saveArgsToTmpFile(String algorithmId, int classifierRunRepeat, String params, String subspacesAsStr,
                                           String datasetPath, int datasetDim) throws IOException{
         File file = new File(tmpArgsFileName);
         BufferedWriter bw = new BufferedWriter(new FileWriter(file));
         String args =
-                    anomalyDetectorOption   + " " +     algorithmId                         + " "
-                +   paramsOption            + " " +     params                              + " "
-                +   subspacesListOption     + " " +     subspacesAsStr                      + " "
-                +   datasetPathOption       + " " +     replaceSpacesInPath(datasetPath)    + " "
-                +   datasetDimOption        + " " +     datasetDim;
+                    anomalyDetectorOption       + " " +     algorithmId                         + " "
+                +   classifierRunRepeatOption   + " " +     classifierRunRepeat                 + " "
+                +   paramsOption                + " " +     params                              + " "
+                +   subspacesListOption         + " " +     subspacesAsStr                      + " "
+                +   datasetPathOption           + " " +     replaceSpacesInPath(datasetPath)    + " "
+                +   datasetDimOption            + " " +     datasetDim;
         bw.write(args);
         bw.close();
     }

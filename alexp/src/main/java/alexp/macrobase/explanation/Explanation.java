@@ -9,6 +9,8 @@ import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.BenchmarkConfig;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
@@ -16,10 +18,15 @@ import edu.stanford.futuredata.macrobase.operator.Transformer;
 import edu.stanford.futuredata.macrobase.util.MacroBaseException;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 import javafx.util.Pair;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.naming.ldap.PagedResultsControl;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.IntStream;
 
 public abstract class Explanation implements Transformer {
 
@@ -29,17 +36,19 @@ public abstract class Explanation implements Transformer {
     protected   String              outputColumnName        = "_OUTLIER";
     protected   String              relSubspaceColumnName   = "__REL_SUBSPACES";
     private     ExplanationSettings explanationSettings;
+    private int classifierRunRepeat;
     private     HashSet<Integer>    pointsToExplain;
     private     boolean             invokePythonClassifier;
 
     private final String subspaceDelimiter = " .,-\t\n[]{}";
 
-    public Explanation(String[] columns, AlgorithmConfig classifierConf,
-                       String datasetPath, ExplanationSettings explanationSettings) {
+    public Explanation(String[] columns, AlgorithmConfig classifierConf, String datasetPath,
+                       ExplanationSettings explanationSettings, int classifierRunRepeat) {
         this.columns = columns;
         this.classifierConf = classifierConf;
         this.datasetPath = datasetPath;
         this.explanationSettings = explanationSettings;
+        this.classifierRunRepeat = classifierRunRepeat < 0 ? 1 : classifierRunRepeat;
     }
 
     /**
@@ -117,8 +126,9 @@ public abstract class Explanation implements Transformer {
         if (subspaceList.isEmpty())
             return new HashMap<>();
         if(explanationSettings.invokePythonClassifier()) {
-            Map<String, double[]> subspaceScores = OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(
-                    classifierConf, datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
+            Map<String, double[]> subspaceScores =
+                    OutlierDetectorsWrapper.runPythonClassifierOnSubspaces(classifierConf, classifierRunRepeat,
+                            datasetPath, subspaceList, getDatasetDimensionality(), input.getNumRows());
             return refineSubspaceStrings(subspaceScores);
         }
         else
@@ -127,7 +137,8 @@ public abstract class Explanation implements Transformer {
 
     protected List<Pair<String, double[]>> runClassifierExhaustive(DataFrame input, int finalSubspacesDim) throws Exception {
         if(explanationSettings.invokePythonClassifier())
-            return OutlierDetectorsWrapper.runPythonClassifierExhaustive(classifierConf, datasetPath, getDatasetDimensionality(), finalSubspacesDim, input.getNumRows());
+            return OutlierDetectorsWrapper.runPythonClassifierExhaustive(classifierConf, classifierRunRepeat, datasetPath,
+                    getDatasetDimensionality(), finalSubspacesDim, input.getNumRows());
         else
             return runClassifierNativeExhaustive(input, finalSubspacesDim);
     }
@@ -163,14 +174,24 @@ public abstract class Explanation implements Transformer {
             tmpDataFrame.addColumn(columns[featureId], input.getDoubleColumn(featureId));
             subColumns[counter++] = columns[featureId];
         }
+        DataFrame outputDf = input.copy();
+        double[] finalScores = new double[input.getNumRows()];
         Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
-        classifier.process(tmpDataFrame);
-        return classifier.getResults();
+        for (int rep = 0; rep < classifierRunRepeat; rep++) {
+            classifier.process(tmpDataFrame);
+            double[] scores = classifier.getResults().getDoubleColumnByName(outputColumnName);
+            finalScores = addDoubleArrays(finalScores, scores);
+        }
+        finalScores = avgArray(finalScores, classifierRunRepeat);
+        // printSortedIndexes(finalScores);
+        outputDf.addColumn(outputColumnName, finalScores);
+        return outputDf;
     }
 
     private DataFrame runClassifierPython(DataFrame input, Subspace subspace) throws Exception{
         double[] points_scores =
-                OutlierDetectorsWrapper.runPythonClassifier(classifierConf, datasetPath, subspace.getFeatures(), getDatasetDimensionality(), input.getNumRows());
+                OutlierDetectorsWrapper.runPythonClassifier(classifierConf, classifierRunRepeat, datasetPath, subspace.getFeatures(),
+                        getDatasetDimensionality(), input.getNumRows());
         DataFrame df = new DataFrame();
         df.addColumn(outputColumnName, points_scores);
         return df;
@@ -180,19 +201,24 @@ public abstract class Explanation implements Transformer {
         Map<String, double[]> subspacesScores = new HashMap<>();
         int subspaceCounter = 1;
         for (HashSet<Integer> features : featuresList) {
-            System.out.print("\rMake Detection in: " + featuresList + " (" + (subspaceCounter++) + "/"  + featuresList.size() + ")");
+            System.out.print("\r> (java) Scoring Subspace: " + features + " (" + (subspaceCounter++) + "/"  + featuresList.size() + ")");
             double[] scores = runClassifierNative(input, new Subspace(features)).getDoubleColumnByName(outputColumnName);
             subspacesScores.put(features.toString(), scores);
         }
+        System.out.println();
         return subspacesScores;
     }
 
     private List<Pair<String, double[]>> runClassifierNativeExhaustive(DataFrame input, int finalSubspacesDim) throws Exception {
         List<Pair<String, double[]>> subspacesPointsScores = new ArrayList<>();
-        for(Subspace subspace : featureCombinations(finalSubspacesDim)) {
+        int subspaceCounter = 1;
+        List<Subspace> combs = featureCombinations(finalSubspacesDim);
+        for(Subspace subspace : combs) {
+            System.out.print("\r> (java) Scoring Subspace: " + subspace.getFeatures() + " (" + (subspaceCounter++) + "/"  + combs.size() + ")");
             DataFrame results = runClassifierNative(input, subspace);
             subspacesPointsScores.add(new Pair<>(subspace.getFeatures().toString(), results.getDoubleColumnByName(outputColumnName)));
         }
+        System.out.println();
         return subspacesPointsScores;
     }
 
@@ -244,6 +270,41 @@ public abstract class Explanation implements Transformer {
             tmpCombStringSet.clear();
         }
         return subspacesCombinationList;
+    }
+
+    private double[] addDoubleArrays(double[] arr1, double[] arr2) {
+        int len = Math.min(arr1.length, arr2.length);
+        double[] mergedArray = new double[len];
+        for (int i=0; i < len; i++) {
+            mergedArray[i] = arr1[i] + arr2[i];
+        }
+        return mergedArray;
+    }
+
+    private double[] avgArray(double[] arr, int n) {
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = arr[i] / n;
+        }
+        return arr;
+    }
+
+    private void printSortedIndexes(double[] scores) {
+        final Integer[] idx = new Integer[scores.length];
+        for (int i = 0; i < scores.length; i++) {
+            idx[i] = i;
+        }
+        Arrays.sort(idx, Comparator.comparingDouble(o -> scores[o]));
+        for (int i = 0;  i < 10; i++){
+            System.out.print(idx[idx.length - (i+1)] + " ");
+        }
+        System.out.println();
+    }
+
+    protected Path pathForLogging(String explainer) {
+        return Paths.get("alexp",  "ExplanationLogs",
+                explainer,
+                classifierConf.getAlgorithmId(),
+                FilenameUtils.removeExtension(FilenameUtils.getBaseName(datasetPath)));
     }
 
     public String[] getColumns() {

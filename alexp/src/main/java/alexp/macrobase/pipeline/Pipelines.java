@@ -219,13 +219,15 @@ public class Pipelines {
                                                                      ExplanationSettings explanationSettings) throws MacroBaseException {
         switch (explainerConf.getAlgorithmId()){
             case "lookout": {
-                LookOut lookOut = new LookOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
+                LookOut lookOut = new LookOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(),
+                        explanationSettings, explainerConf.getParameters().get("classifierRunRepeat", 1));
                 lookOut.setBudget(explainerConf.getParameters().get("budget", 3));
                 lookOut.setDimensionality(explainerConf.getParameters().get("dimensionality", 2));
                 return lookOut;
             }
             case "hics": {
-                HiCS hiCS = new HiCS(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
+                HiCS hiCS = new HiCS(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(),
+                        explanationSettings, explainerConf.getParameters().get("classifierRunRepeat", 1));
                 hiCS.setCutoff(explainerConf.getParameters().get("cutoff",400));
                 hiCS.setAlpha(explainerConf.getParameters().get("alpha",0.05));
                 hiCS.setM(explainerConf.getParameters().get("m",50));
@@ -235,7 +237,8 @@ public class Pipelines {
                 return hiCS;
             }
             case "beam": {
-                BeamSubspaceSearch beam = new BeamSubspaceSearch(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
+                BeamSubspaceSearch beam = new BeamSubspaceSearch(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(),
+                        explanationSettings, explainerConf.getParameters().get("classifierRunRepeat", 1));
                 beam.setDmax(explainerConf.getParameters().get("dmax", 2));
                 beam.setTopk(explainerConf.getParameters().get("topk", 50));
                 beam.setW(explainerConf.getParameters().get("beamWidth", 100));
@@ -243,7 +246,8 @@ public class Pipelines {
                 return beam;
             }
             case "refout": {
-                RefOut refout = new RefOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(), explanationSettings);
+                RefOut refout = new RefOut(datasetConfig.getMetricColumns(), classifierConf, datasetConfig.getDatasetId(),
+                        explanationSettings, explainerConf.getParameters().get("classifierRunRepeat", 1));
                 refout.setD1(explainerConf.getParameters().get("d1", 0.7));
                 refout.setD2(explainerConf.getParameters().get("d2", 2));
                 refout.setPsize(explainerConf.getParameters().get("psize", 100));

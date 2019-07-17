@@ -47,14 +47,15 @@ public class BeamSubspaceSearch extends Explanation {
 
 
     /**
-     * Store in every stage the computed subspace scores for each point. That means, you don't have to compute
+     * Store in every stage the computed subspace scores for each point of interest. That means, you don't have to compute
      * scores of the outliers in subspaces that are already computed
      */
     private HashMap<String, HashMap<Integer, Double>> consideredSubspacesScores = new HashMap<>();
 
 
-    public BeamSubspaceSearch(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, datasetPath, explanationSettings);
+    public BeamSubspaceSearch(String[] columns, AlgorithmConfig classifierConf, String datasetPath,
+                              ExplanationSettings explanationSettings, int classifierRunRepeat) {
+        super(columns, classifierConf, datasetPath, explanationSettings, classifierRunRepeat);
     }
 
 
@@ -147,6 +148,16 @@ public class BeamSubspaceSearch extends Explanation {
         List<Subspace> stageCandList = stageCandidates.toList();
         Set<Subspace> newSubspaceSet = new HashSet<>();
         stageCandList.sort(Subspace.SORT_BY_FEATURES);
+        // TODO TEST THAT IN HELPER MAIN
+        for (Subspace subspace : stageCandList) {
+            for (int featureId = 0; featureId < getDatasetDimensionality(); featureId++) {
+                HashSet<Integer> mergedFeatures = new HashSet<>(subspace.getFeatures());
+                mergedFeatures.add(featureId);
+                if (mergedFeatures.size() == stage)
+                    newSubspaceSet.add(new Subspace(mergedFeatures));
+            }
+        }
+        /*
         for (int i = 0; i < stageCandList.size() - 1; i++) {
             for (int j = i+1; j < stageCandList.size(); j++) {
                 HashSet<Integer> mergedFeatures = new HashSet<>(stageCandList.get(i).getFeatures());
@@ -157,12 +168,16 @@ public class BeamSubspaceSearch extends Explanation {
                     List<Set<Integer>> mergedFeaturesCombs = featureIDsCombinations(mergedFeatures, stage);
                     for (Set<Integer> comb : mergedFeaturesCombs) {
                         if(comb.size() != stage)
-                            throw new RuntimeException("Number of elements (" + comb.size() + ")should be equal to the stage number (" + stage + ")");
+                            throw new RuntimeException("Number of elements (" + comb.size() + ") should be equal to the stage number (" + stage + ")");
                         newSubspaceSet.add(new Subspace(new HashSet<>(comb)));
                     }
                 }
             }
         }
+         */
+        if (newSubspaceSet.size() > stageCandidates.size() * ((getDatasetDimensionality() - stage) + 1))
+            throw new RuntimeException("More combinations than it should be. Stage candidates = " + stageCandidates.size() +
+                    " and combinations " + newSubspaceSet.size() + "\n" + newSubspaceSet);
         return new ArrayList<>(newSubspaceSet);
     }
 

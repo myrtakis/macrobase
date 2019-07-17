@@ -36,18 +36,22 @@ import alexp.macrobase.explanation.utils.RandomFactory;
 import alexp.macrobase.pipeline.Pipelines;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import com.google.common.primitives.Doubles;
+import com.google.gson.*;
 import edu.stanford.futuredata.macrobase.analysis.classify.Classifier;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import alexp.macrobase.pipeline.benchmark.config.settings.ExplanationSettings;
 import it.unimi.dsi.fastutil.ints.IntSortedSets;
 import javafx.util.Pair;
+import org.apache.commons.io.FileUtils;
+import org.jfree.data.json.impl.JSONArray;
+import org.jfree.data.json.impl.JSONObject;
 import sun.reflect.generics.tree.Tree;
 
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -95,8 +99,9 @@ public class HiCS extends Explanation {
      */
     private DataFrame output;
 
-    public HiCS(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, datasetPath, explanationSettings);
+    public HiCS(String[] columns, AlgorithmConfig classifierConf, String datasetPath,
+                ExplanationSettings explanationSettings, int classifierRunRepeat) {
+        super(columns, classifierConf, datasetPath, explanationSettings, classifierRunRepeat);
     }
 
     /*
@@ -186,7 +191,14 @@ public class HiCS extends Explanation {
      * @param subspaceIndex Subspace indexes
      * @return a set of high contrast subspaces
      */
-    private Set<HiCSSubspace> calculateSubspaces(DataFrame input, List<List<Integer>> subspaceIndex, Random rand) {
+    private Set<HiCSSubspace> calculateSubspaces(DataFrame input, List<List<Integer>> subspaceIndex,
+                                                 Random rand) throws IOException {
+
+        BufferedWriter logger = new BufferedWriter(new FileWriter(getHicsLogPath().toFile()));
+        logger.write("{");
+        logger.newLine();
+        logger.flush();
+
         final int dim = getDatasetDimensionality();
 
         SortedSet<HiCSSubspace> subspaceList = Collections.synchronizedSortedSet(new TreeSet<>(HiCSSubspace.SORT_BY_SUBSPACE));
@@ -204,12 +216,18 @@ public class HiCS extends Explanation {
             }
         }
 
+        logSubspaces(logger, 2, dDimensionalList);
+
         HashSet<String> consideredFeatures = new HashSet<>();
 
         for(int d = 3; !dDimensionalList.isEmpty(); d++) {
 
-            if(dmax != -1 && d > dmax)       // This is the HiCS variation, if dmax is set (!= -1) and the current dimensionality is > than dmax, then, the best subspaces of dimensionality dmax are returned
+            if(dmax != -1 && d > dmax) {      // This is the HiCS variation, if dmax is set (!= -1) and the current dimensionality is > than dmax, then, the best subspaces of dimensionality dmax are returned
+                logger.newLine();
+                logger.write("}");
+                logger.close();
                 return new HashSet<>(dDimensionalList.toList());
+            }
 
             // result now contains all d-dimensional sets of subspaces
             ArrayList<HiCSSubspace> candidateList = new ArrayList<>(dDimensionalList.size());
@@ -252,7 +270,12 @@ public class HiCS extends Explanation {
                     }
                 }
             }
+            logSubspaces(logger, d, dDimensionalList);
         }   // end for
+
+        logger.newLine();
+        logger.write("}");
+        logger.close();
 
         return subspaceList;
     }
@@ -365,6 +388,30 @@ public class HiCS extends Explanation {
         return avgScores;
     }
 
+    private void logSubspaces(BufferedWriter logger, int stage,
+                              TopBoundedHeap<HiCSSubspace> subspaceCandidates) throws IOException {
+        List<HiCSSubspace> subspaceList = subspaceCandidates.toList();
+        JsonArray jsonArray = new JsonArray();
+        for (HiCSSubspace subspace : subspaceList) {
+            String subspaceStr = subspace.getFeatures().toString();
+            subspaceStr = subspaceStr.replace('{','[').replace('}', ']').replace(",","");
+            JsonObject jsonObject = new JsonObject();
+            jsonObject.addProperty(subspaceStr, subspace.getContrast());
+            jsonArray.add(jsonObject);
+        }
+        String separator = stage == 2 ? "" : ",";
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String prettyOutput = gson.toJson(jsonArray);
+        logger.write(separator + "\"" + stage + "\":" + prettyOutput);
+        logger.flush();
+    }
+
+    private Path getHicsLogPath() throws IOException {
+        Path finalFilePath = Paths.get(pathForLogging("hics").toString(), "log_" + (dmax == -1 ? "dd" : dmax + "d") + ".json");
+        Files.createDirectories(finalFilePath.getParent());
+        return finalFilePath;
+    }
+
     /*
         SETTER FUNCTIONS
      */
@@ -465,6 +512,10 @@ public class HiCS extends Explanation {
                 features.add(i);
             }
             return features;
+        }
+
+        public double getContrast() {
+            return contrast;
         }
 
         /**

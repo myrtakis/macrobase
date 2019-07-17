@@ -36,8 +36,9 @@ public class RefOut extends Explanation {
      */
     private DataFrame output;
 
-    public RefOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath, ExplanationSettings explanationSettings) {
-        super(columns, classifierConf, datasetPath, explanationSettings);
+    public RefOut(String[] columns, AlgorithmConfig classifierConf, String datasetPath,
+                  ExplanationSettings explanationSettings, int classifierRunRepeat) {
+        super(columns, classifierConf, datasetPath, explanationSettings, classifierRunRepeat);
     }
 
     /*

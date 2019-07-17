@@ -101,14 +101,6 @@ def algorithm_params(params_str):
     return params_dict
 
 
-def prepare_sub_dataframe(fp, subspace_str):
-    fp = os.path.normpath(fp)
-    dataframe = pd.read_csv(fp)
-    subspace = subspace_to_list(subspace_str)
-    dataframe = dataframe.iloc[:, subspace]
-    return dataframe
-
-
 def subspace_to_tuple(subspace_str):
     subspace = re.split(',', subspace_str.strip('[]'))
     return tuple(list(map(int, subspace)))
@@ -144,6 +136,8 @@ def parse_subspace_list(subspace_list_str):
 
 def execute_option(parser):
     args = parser.parse_args()
+    classifier_run_repeat = 1 if args.classifier_run_repeat <= 0 else args.classifier_run_repeat
+    print()
     validate_args(parser, args)
     dataframe = pd.read_csv(os.path.normpath(args.d))
     params = algorithm_params(args.params)
@@ -153,10 +147,18 @@ def execute_option(parser):
     for subspace in subspaces:
         subspace = subspace if isinstance(subspace, list) else list(subspace)
         counter += 1
-        msg_prog = '> Scoring subspace ' + str(subspace) + ' (' + str(counter) + '/' + str(len(subspaces)) + ')'
-        sys.stdout.write('\r' + msg_prog)
         sub_dataframe = dataframe.iloc[:, subspace]
-        points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params)
+        points_scores = None
+        for i in range(0, classifier_run_repeat):
+            msg_prog = '> Scoring subspace ' + str(counter) + '/' + str(len(subspaces)) + ': ' + \
+                       str(subspace) + ' repeats: ' + str(i + 1) + '/' + str(classifier_run_repeat)
+            sys.stdout.write('\r' + msg_prog)
+            if points_scores is None:
+                points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params)
+            else:
+                tmpArr = FUNCTION_MAP[args.ad](sub_dataframe, params)
+                points_scores = np.add(points_scores, tmpArr)
+        points_scores = points_scores / classifier_run_repeat
         output = output + '@subspace ' + str(subspace) + ' = ' + str(list(points_scores)) + '\n'
     print()
     return output
@@ -167,18 +169,20 @@ def validate_args(parser, args):
     assert args.params is not None, parser.print_help()
     assert args.d is not None, parser.print_help()
     assert args.dim is not None, parser.print_help()
+    assert (args.exhaust is not None or args.sl is not None or args.s is not None), parser.print_help()
 
 
 def options_builder():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ad',              type=str,   help='Give the id of anomaly detector as it presents in configuration files')
-    parser.add_argument('-params',          type=str,   help='Give the parameters of the algorithms')
-    parser.add_argument('-s',               type=str,   help='A subspace type string in the form [0 1] where 0 and 1 are features')
-    parser.add_argument('-sl',              type=str,   help='Take a list of subspaces to make the detection')
-    parser.add_argument('-d',               type=str,   help='The path to the data frame')
-    parser.add_argument('-dim',             type=str,   help='The dimensionality of the dataset')
-    parser.add_argument('-exhaust',         type=int,   help="Makes exhaustive search i.e. scores every combination of attributes of a given dimensionality. Default value is 2")
-    parser.add_argument('-args_from_file',  type=open,  action=LoadFromFile, help='Read arguments from a text file')
+    parser.add_argument('-ad',                      type=str,                           help='Give the id of anomaly detector as it presents in configuration files')
+    parser.add_argument('-classifier_run_repeat',   type=int,   default=1,              help='How many times the anomaly detector will run')
+    parser.add_argument('-params',                  type=str,                           help='Give the parameters of the algorithms')
+    parser.add_argument('-s',                       type=str,                           help='A subspace type string in the form [0 1] where 0 and 1 are features')
+    parser.add_argument('-sl',                      type=str,                           help='Take a list of subspaces to make the detection')
+    parser.add_argument('-d',                       type=str,                           help='The path to the data frame')
+    parser.add_argument('-dim',                     type=str,                           help='The dimensionality of the dataset')
+    parser.add_argument('-exhaust',                 type=int,                           help="Makes exhaustive search i.e. scores every combination of attributes of a given dimensionality. Default value is 2")
+    parser.add_argument('-args_from_file',          type=open,  action=LoadFromFile,    help='Read arguments from a text file')
     return parser
 
 
@@ -198,4 +202,3 @@ if __name__ == '__main__':
 
     print(points_normalized_scores)
     #print(time.perf_counter())
-
