@@ -27,5 +27,6 @@ explainers:
       alpha: 0.5
       dmax: 2
       topk: 50
+      classifierRunRepeat: 2
 
-settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_010_000.yaml"
+settingsConfigPath: "alexp/data/explanation/hics_datasets_settings/synth_multidim_010_000_java.yaml"
