@@ -1,0 +1,72 @@
+explanationSettings:
+  method: "dictatedOutliers"
+
+  invokePythonClassifier: false
+
+  dictatedOutliers:
+  - 2
+  - 9
+  - 20
+  - 46
+  - 48
+  - 59
+  - 108
+  - 115
+  - 125
+  - 138
+  - 141
+  - 159
+  - 213
+  - 220
+  - 222
+  - 227
+  - 242
+  - 252
+  - 259
+  - 286
+  - 310
+  - 327
+  - 334
+  - 340
+  - 356
+  - 364
+  - 372
+  - 388
+  - 422
+  - 428
+  - 435
+  - 444
+  - 508
+  - 511
+  - 515
+  - 518
+  - 544
+  - 547
+  - 559
+  - 561
+  - 576
+  - 614
+  - 650
+  - 651
+  - 707
+  - 731
+  - 746
+  - 764
+  - 765
+  - 825
+  - 872
+  - 905
+  - 913
+  - 927
+  - 929
+  - 938
+  - 957
+  - 961
+  - 998
+  detectedOutliers:
+    classifier:
+      id: "lof-bkaluza"
+      parameters:
+        knn: 15
+        trainSize: 100
+    threshold: 1.20
