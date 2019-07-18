@@ -139,7 +139,7 @@ def execute_option(parser):
     classifier_run_repeat = 1 if args.classifier_run_repeat <= 0 else args.classifier_run_repeat
     print()
     validate_args(parser, args)
-    dataframe = pd.read_csv(os.path.normpath(args.d))
+    dataframe = pd.read_csv(os.path.normpath(args.d.replace('"', '')))
     params = algorithm_params(args.params)
     subspaces = get_subspaces(args)
     output = ''
