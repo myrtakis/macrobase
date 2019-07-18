@@ -213,8 +213,6 @@ public abstract class Explanation implements Transformer {
         List<Pair<String, double[]>> subspacesPointsScores = new ArrayList<>();
         int subspaceCounter = 1;
         List<Subspace> combs = featureCombinations(finalSubspacesDim);
-        System.out.println(combs.size());
-        System.exit(1);
         for(Subspace subspace : combs) {
             System.out.print("\r> (java) Scoring Subspace: " + subspace.getFeatures() + " (" + (subspaceCounter++) + "/"  + combs.size() + ")");
             DataFrame results = runClassifierNative(input, subspace);
@@ -231,7 +229,6 @@ public abstract class Explanation implements Transformer {
         for (int[] comb : combinations) {
             subspaceCombinations.add(new Subspace(new HashSet<>(Ints.asList(comb))));
         }
-        System.out.println(subspaceCombinations);
         return subspaceCombinations;
     }
 
