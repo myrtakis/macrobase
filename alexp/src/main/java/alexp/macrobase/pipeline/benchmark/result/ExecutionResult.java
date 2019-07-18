@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 public class ExecutionResult {
     private final long trainingTime;
     private final long classificationTime;
+    private final long updateTime;
     private final long maxMemory;
     private final ExecutionConfig executionConfig;
     private final StringObjectMap finalAlgorithmConfig;
@@ -16,10 +17,11 @@ public class ExecutionResult {
     private String classifierId;
     private String explainerId;
 
-    public ExecutionResult(long trainingTime, long classificationTime, long maxMemory, ExecutionConfig executionConfig,
+    public ExecutionResult(long trainingTime, long classificationTime, long updateTime, long maxMemory, ExecutionConfig executionConfig,
                            StringObjectMap finalAlgorithmConfig) {
         this.trainingTime = trainingTime;
         this.classificationTime = classificationTime;
+        this.updateTime = updateTime;
         this.maxMemory = maxMemory;
         this.executionConfig = executionConfig;
         this.finalAlgorithmConfig = finalAlgorithmConfig;
@@ -27,6 +29,10 @@ public class ExecutionResult {
 
     public long getTrainingTime() {
         return trainingTime;
+    }
+
+    public long getUpdateTime() {
+        return updateTime;
     }
 
     public long getClassificationTime() {
@@ -51,6 +57,7 @@ public class ExecutionResult {
                 "result", ImmutableMap.of(
                         "trainingTime", trainingTime,
                         "classificationTime", classificationTime,
+                        "updateTime", updateTime,
                         "maxMemory", maxMemory,
                         "finalAlgorithmConfig", ImmutableMap.of(
                                 "parameters", finalAlgorithmConfig.getValues()

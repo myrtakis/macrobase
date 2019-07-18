@@ -99,6 +99,7 @@ public class BenchmarkPipeline extends Pipeline {
 
         resultWriter.write(resultHolder.getResultsDf(),
                 new ExecutionResult(resultHolder.getTrainingTime(), resultHolder.getClassificationTime(),
+                        0,
                         resultHolder.getMaxMemoryUsage(), conf, algorithmParameters)
                         .setClassifierId(classifierConf.getAlgorithmId())
         );
@@ -181,7 +182,7 @@ public class BenchmarkPipeline extends Pipeline {
                     String.format("%.4f", aucCurve(scores, labels).prArea()),
                     String.format("%.4f", aucCurve(scores, labels).rocArea())
             ));
-            resultWriter.write(streamDF, new ExecutionResult(avg(streamTrainTime), avg(streamPredictTime), streamMemoryUsage, conf, algorithmParameters));
+            resultWriter.write(streamDF, new ExecutionResult(avg(streamTrainTime), avg(streamPredictTime), avg(streamUpdateTime),streamMemoryUsage, conf, algorithmParameters));
         } else {
             System.out.println("[Alert] There are no data points processed by the current algorithm");
         }
@@ -221,7 +222,7 @@ public class BenchmarkPipeline extends Pipeline {
 //                        maxMemoryUsage / 1024 / 1024,
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).rocArea()),
 //                        labels == null ? "n/a" : String.format("%.2f", aucCurve(results.getDoubleColumnByName(explainer.getOutputColumnName()), labels).prArea())));
-        resultWriter.write(explainer.getResults(), new ExecutionResult(0, explanationTime, maxMemoryUsage,
+        resultWriter.write(explainer.getResults(), new ExecutionResult(0, explanationTime, 0, maxMemoryUsage,
                 conf, explainerConf.getParameters())
                 .setClassifierId(classifierConf.getAlgorithmId())
                 .setExplainerId(explainerConf.getAlgorithmId()));
