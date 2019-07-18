@@ -1,0 +1,24 @@
+dataset: 
+  uri: "csv://alexp/data/streaming/datasets/Wiscosin_Breast_Cancer_shuffle.csv"
+  metricColumns: 
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+    - "d10"
+  labelColumn: "is_anomaly"
+classifiers: 
+  - id: mcod
+    parameters: 
+      windowType: "sliding"
+      windowMode: "count"
+      windowSize: 128
+      windowSlide: 64
+      allowDuplicates: true
+      maxDistance: 1.0
+      minNeighborCount: 6

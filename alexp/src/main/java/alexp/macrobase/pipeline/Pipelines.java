@@ -13,6 +13,7 @@ import alexp.macrobase.outlier.iforest.IsolationForest;
 import alexp.macrobase.outlier.lof.bkaluza.LOF;
 import alexp.macrobase.outlier.lof.chen.LOCI;
 import alexp.macrobase.outlier.mcod.McodClassifier;
+import alexp.macrobase.outlier.rrcf.RCFClassifier;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import alexp.macrobase.pipeline.benchmark.config.DatasetConfig;
 import alexp.macrobase.pipeline.config.StringObjectMap;
@@ -122,8 +123,17 @@ public class Pipelines {
                 classifier.setNumTree(conf.get("treesCount", 256));
                 classifier.setNumSub(conf.get("subSampleSize", 100));
                 classifier.setNumDim(conf.get("subDimensionSize", 100));
-                classifier.setSizeLimit(conf.get("minLeafSize", 10));
                 classifier.setDepthLimit(conf.get("depthLimit", 100));
+                classifier.setContamination(conf.get("contamination", 1.0));
+                classifier.setForgetThreshold(conf.get("forgetThreshold", 256));
+                return classifier;
+            }
+            case "rrcf": {
+                RCFClassifier classifier = new RCFClassifier(metricColumns);
+                classifier.setNumTree(conf.get("treesCount", 256));
+                classifier.setNumSub(conf.get("subSampleSize", 100));
+                classifier.setForgetThreshold(conf.get("forgetThreshold", 256));
+                classifier.setShingle(conf.get("shingle", true));
                 return classifier;
             }
             case "mcod": {

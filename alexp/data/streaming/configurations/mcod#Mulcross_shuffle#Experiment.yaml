@@ -1,0 +1,18 @@
+dataset: 
+  uri: "csv://alexp/data/streaming/datasets/Mulcross_shuffle.csv"
+  metricColumns: 
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+  labelColumn: "is_anomaly"
+classifiers: 
+  - id: mcod
+    parameters: 
+      windowType: "sliding"
+      windowMode: "count"
+      windowSize: 128
+      windowSlide: 64
+      allowDuplicates: true
+      maxDistance: 1.0
+      minNeighborCount: 6

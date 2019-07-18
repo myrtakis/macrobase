@@ -1,0 +1,46 @@
+dataset: 
+  uri: "csv://alexp/data/streaming/datasets/Breast_Diagnostic_KNN_010_shuffle.csv"
+  metricColumns: 
+    - "d1"
+    - "d2"
+    - "d3"
+    - "d4"
+    - "d5"
+    - "d6"
+    - "d7"
+    - "d8"
+    - "d9"
+    - "d10"
+    - "d11"
+    - "d12"
+    - "d13"
+    - "d14"
+    - "d15"
+    - "d16"
+    - "d17"
+    - "d18"
+    - "d19"
+    - "d20"
+    - "d21"
+    - "d22"
+    - "d23"
+    - "d24"
+    - "d25"
+    - "d26"
+    - "d27"
+    - "d28"
+    - "d29"
+    - "d30"
+  labelColumn: "is_anomaly"
+classifiers: 
+  - id: hst
+    parameters: 
+      windowType: "tumbling"
+      windowMode: "count"
+      windowSize: 128
+      treesCount: 25
+      contamination: 1.0
+      subSampleSize: 100
+      subDimensionSize: 0
+      forgetThreshold: 80
+      depthLimit: 10
