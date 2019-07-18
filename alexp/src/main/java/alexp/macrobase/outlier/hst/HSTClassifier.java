@@ -10,12 +10,12 @@ import com.google.common.collect.Multimap;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import javafx.util.Pair;
 import org.apache.commons.lang3.ArrayUtils;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-// last checked: 15/07/2019 - Report: All (debugging and correctness) tests passed!
+
+// last checked: 18/07/2019 - Report: All (debugging and correctness) tests passed!
 
 public class HSTClassifier extends MultiMetricClassifier implements Trainable, Updatable {
 
@@ -28,7 +28,6 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     private String orderedWindow = "_WINDOW";
     private String treeTag = "_TREE";
     private String featuresTag = "_FEATURES";
-    private String loggerWindowForestFeaturesPath = "./null/hst#windowForestFeatures.csv";
     private double inlierScore = -1.0;
 
     // Node controlling variables:
@@ -46,6 +45,7 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     private int depthLimit;         // Maximum depth limitation
     private int forgetThreshold;    // Threshold (bottom) to apply the forget mechanism
     private double contamination;   // contamination (rate of outliers)
+    private String datasetID;       // Define dataset ID, to save the CSV of features per window.
 
     // Model and Output:
     private List<Node> forest = new ArrayList<>();
@@ -68,6 +68,8 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     public void setDepthLimit(int depthLimit) {
         this.depthLimit = depthLimit;
     }
+
+    public void setDatasetID(String datasetID){ this.datasetID = datasetID; }
 
     public void setForgetThreshold(int forgetThreshold) {
         this.forgetThreshold = forgetThreshold;
@@ -443,7 +445,8 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
 
         // EXPORT THE WINDOW/TREES/FEATURES INTO A CSV
         try {
-            logger_tree_features_csv();
+            String loggerWindowForestFeaturesPath = "./alexp/output/hst#"+beautifyDatasetID()+"#windowForestFeatures.csv";
+            logger_tree_features_csv(loggerWindowForestFeaturesPath);
             System.out.println("[Logger] The Window/Trees/Features information has been exported at "+loggerWindowForestFeaturesPath+"...");
         } catch (IOException e) {
             e.printStackTrace();
@@ -527,6 +530,11 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     // =============================================================================================================== //
     // - - - - - - - - - - - - - - - - - - - - SUB  METHODS OF THE HST ALGORITHM - - - - - - - - - - - - - - - - - - - //
     // =============================================================================================================== //
+
+    private String beautifyDatasetID() {
+        List<String> collapsedID = Arrays.asList(datasetID.split("/"));
+        return collapsedID.get(collapsedID.size() - 1).replace(".csv", "");
+    }
 
     private List<Integer> subSampling(int originalSize, int subSampleSize, boolean sampling) {
         // build the original size list of indexes.
@@ -625,7 +633,7 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         }
     }
 
-    private void logger_tree_features_csv() throws IOException {
+    private void logger_tree_features_csv(String loggerWindowForestFeaturesPath) throws IOException {
         FileWriter csvWriter = new FileWriter(loggerWindowForestFeaturesPath);
         csvWriter.append(orderedWindow);
         csvWriter.append(",");

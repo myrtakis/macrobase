@@ -113,10 +113,10 @@ public class Pipelines {
     }
 
     public static Classifier getClassifier(StringObjectMap conf, String[] metricColumns) throws MacroBaseException {
-        return getClassifier(conf.get("classifier"), conf, metricColumns);
+        return getClassifier(conf.get("classifier"), conf, metricColumns, null);
     }
 
-    public static Classifier getClassifier(String id, StringObjectMap conf, String[] metricColumns) throws MacroBaseException {
+    public static Classifier getClassifier(String id, StringObjectMap conf, String[] metricColumns, String datasetID) throws MacroBaseException {
         switch (id.toLowerCase()) {
             case "hst":{
                 HSTClassifier classifier = new HSTClassifier(metricColumns);
@@ -126,6 +126,7 @@ public class Pipelines {
                 classifier.setDepthLimit(conf.get("depthLimit", 100));
                 classifier.setContamination(conf.get("contamination", 1.0));
                 classifier.setForgetThreshold(conf.get("forgetThreshold", 256));
+                classifier.setDatasetID(datasetID);
                 return classifier;
             }
             case "rrcf": {
@@ -134,6 +135,7 @@ public class Pipelines {
                 classifier.setNumSub(conf.get("subSampleSize", 100));
                 classifier.setForgetThreshold(conf.get("forgetThreshold", 256));
                 classifier.setShingle(conf.get("shingle", true));
+                classifier.setDatasetID(datasetID);
                 return classifier;
             }
             case "mcod": {

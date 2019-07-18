@@ -15,7 +15,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-// last checked: 20/06/2019 - Report: All (debugging and correctness) tests passed!
+// last checked: 17/07/2019 - Report: All (debugging and correctness) tests passed!
 
 public class RCFClassifier extends MultiMetricClassifier implements Trainable, Updatable {
 
@@ -31,7 +31,6 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     private String orderedWindow = "_WINDOW";
     private String treeTag = "_TREE";
     private String featuresTag = "_FEATURES";
-    private String loggerWindowForestFeaturesPath = "./null/rrcf#windowForestFeatures.csv";
 
     // Controlling variables:
     private boolean trainable = true;
@@ -47,6 +46,7 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     private int numSub;             // Number of Leaves
     private int forgetThreshold;    // Threshold (bottom) to apply the forget mechanism
     private boolean shingle;        // Transform a window of data points into a shingle (one data point).
+    private String datasetID;
 
     // Model and Output:
     private List<Node> forest = new ArrayList<>();
@@ -72,6 +72,12 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     public void setShingle(boolean shingle) {
         this.shingle = shingle;
     }
+
+    public void setDatasetID(String datasetID) {
+        this.datasetID = datasetID;
+    }
+
+
 
     // Constructor
     public RCFClassifier(String[] columns) {
@@ -472,7 +478,8 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
         */
         // EXPORT THE WINDOW/TREES/FEATURES INTO A CSV
         try {
-            logger_tree_features_csv();
+            String loggerWindowForestFeaturesPath = "./alexp/output/rrcf#" + beautifyDatasetID() + "#windowForestFeatures.csv";
+            logger_tree_features_csv(loggerWindowForestFeaturesPath);
             System.out.println("[Logger] The Window/Trees/Features information has been exported at "+loggerWindowForestFeaturesPath+"...");
         } catch (IOException e) {
             e.printStackTrace();
@@ -484,6 +491,12 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     // =============================================================================================================== //
     // - - - - - - - - - - - - - - - - - - - - SUB-METHODS OF THE RRCF ALGORITHM - - - - - - - - - - - - - - - - - - - //
     // =============================================================================================================== //
+
+    private String beautifyDatasetID() {
+        List<String> collapsedID = Arrays.asList(datasetID.split("/"));
+        return collapsedID.get(collapsedID.size() - 1).replace(".csv", "");
+    }
+
 
     private Map<String, List<double[]>> treeTraverse(List<double[]> window, int splitFeature, double splitValue) {
         List<double[]> windowLeft = new ArrayList<>();
@@ -847,7 +860,7 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
         }
     }
 
-    private void logger_tree_features_csv() throws IOException {
+    private void logger_tree_features_csv(String loggerWindowForestFeaturesPath) throws IOException {
         FileWriter csvWriter = new FileWriter(loggerWindowForestFeaturesPath);
         csvWriter.append(orderedWindow);
         csvWriter.append(",");
