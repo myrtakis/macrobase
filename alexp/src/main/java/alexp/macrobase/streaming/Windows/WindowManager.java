@@ -20,15 +20,16 @@ public class WindowManager {
     private String windowMode;
     private String windowType;
     private int windowSize;
-    private int windowSlide;
+    private int windowSlide = 1;
     private int windowSizeTime;
-    private int windowSlideTime;
+    private int windowSlideTime = 1;
     private Window window;
 
     public WindowManager(AlgorithmConfig classifierConf, DatasetConfig datasetConf) {
         this.classifierConf = classifierConf;
         this.datasetConf = datasetConf;
         this.windowSize = classifierConf.getParameters().get(windowSizeKey);
+
         if (classifierConf.getParameters().get(windowSlideKey) != null) {
             this.windowSlide = classifierConf.getParameters().get(windowSlideKey);
         }
@@ -91,10 +92,10 @@ public class WindowManager {
         Map<String, double[]> accumulator = new HashMap<>();
         int dimCounter = 0;
         int pointCounter = 0;
-        System.out.println("==================== START");
+        //System.out.println("==================== START");
         for (String dp : windowRawDP) {
-            System.out.println(dp);
-            String[] lineParts = dp.split("[,]\\s+");
+            //System.out.println(dp);
+            String[] lineParts = dp.split("[,]\\s*+");
             for (String numStr : lineParts) {
                 double num = Double.parseDouble(numStr);
                 String currLabel = dimensions.get(dimCounter);
@@ -106,7 +107,7 @@ public class WindowManager {
             pointCounter++;
             dimCounter = 0;
         }
-        System.out.println("==================== END");
+        //System.out.println("==================== END");
         // BUILD THE DATA FRAME
         for (String dimension : accumulator.keySet()) {
             dataFrame.addColumn(dimension, accumulator.get(dimension));
@@ -138,8 +139,8 @@ public class WindowManager {
                 throw new IllegalArgumentException("window mode is unknown! " + windowModeKey + " You must select between 'count' or 'time' based window");
         }
 
-        System.out.println("Window Size: " + this.windowSize);
-        System.out.println("Window Slide: " + this.windowSlide);
+        //System.out.println("Window Size: " + this.windowSize);
+        //System.out.println("Window Slide: " + this.windowSlide);
 
     }
 

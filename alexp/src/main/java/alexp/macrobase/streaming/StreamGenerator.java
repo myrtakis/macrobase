@@ -17,6 +17,9 @@ public class StreamGenerator {
     private static boolean generatorIsSetted = false;
     private static int maxBound = 10;
 
+    public static void init(){
+        generatorIsSetted = false;
+    }
 
     // P/P Streaming Generator e.g. P1
     public static String fetch(String filePath) throws IOException {

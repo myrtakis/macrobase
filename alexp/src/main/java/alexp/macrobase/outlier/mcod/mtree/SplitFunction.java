@@ -23,7 +23,7 @@ public interface SplitFunction<DATA> {
      * @param dataSet          A set of data that are keys to the children of the node
      *                         to be split.
      * @param distanceFunction A {@linkplain DistanceFunction distance function}
-     *                         that can be used to help splitting the node.
+     *                         that can be used to Help splitting the node.
      * @return A {@link SplitResult} object with a pair of promoted data objects
      * and a pair of corresponding partitions of the data objects.
      */

@@ -31,7 +31,6 @@ public class Sliding implements Window {
                 ready = true;
             }
         } else {
-
             if (capacitor.size() <= windowSize) {
                 windowSize = capacitor.size();
                 endStream = true;
@@ -44,7 +43,13 @@ public class Sliding implements Window {
     public List<String> getWindow() {
         List<String> temp = new ArrayList<>();
         List<String> queueAsList = new ArrayList<>(capacitor);
-        for (int i = 0; i < windowSize; i++) {
+        int bound = 0;
+        if (queueAsList.size() >= windowSize) {
+            bound = windowSize;
+        } else {
+            bound = queueAsList.size();
+        }
+        for (int i = 0; i < bound; i++) {
             temp.add(queueAsList.get(i));
         }
         return temp;

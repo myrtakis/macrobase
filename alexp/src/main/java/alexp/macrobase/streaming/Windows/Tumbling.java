@@ -27,7 +27,6 @@ public class Tumbling implements Window {
                 ready = true;
             }
         } else {
-            System.out.println("WINDOW SIZE ::::::::::::::::::::::: "+window.size());
             endStream = true;
             ready = true;
         }

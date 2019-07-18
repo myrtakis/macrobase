@@ -52,13 +52,11 @@ public class MicroCluster_New {
                 if (d.arrivalTime() <= currentTime - windowSize) {
                     //remove d from data List 
                     dataList.remove(i);
-
                     //if d is in cluster 
                     if (d.isInCluster) {
                         removeFromCluster(d);
                     }
-                    //if d is PD 
-
+                    //if d is PD
                     removeFromPD(d);
                     //process event queue
                     process_event_queue(currentTime);
@@ -76,9 +74,7 @@ public class MicroCluster_New {
         }
 
         data.forEach(this::processNewData);
-
         printStatistic();
-
         return new ArrayList<>(outlierList);
     }
 
