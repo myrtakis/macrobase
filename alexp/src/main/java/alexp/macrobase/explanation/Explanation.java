@@ -213,6 +213,8 @@ public abstract class Explanation implements Transformer {
         List<Pair<String, double[]>> subspacesPointsScores = new ArrayList<>();
         int subspaceCounter = 1;
         List<Subspace> combs = featureCombinations(finalSubspacesDim);
+        System.out.println(combs.size());
+        System.exit(1);
         for(Subspace subspace : combs) {
             System.out.print("\r> (java) Scoring Subspace: " + subspace.getFeatures() + " (" + (subspaceCounter++) + "/"  + combs.size() + ")");
             DataFrame results = runClassifierNative(input, subspace);
@@ -223,53 +225,25 @@ public abstract class Explanation implements Transformer {
     }
 
     private List<Subspace> featureCombinations(int finalSubspacesDim) {
-        List<Subspace> features2dComb = features2dCombinations();
-        if(finalSubspacesDim == 2)
-            return features2dComb;
-        else
-            return featuresMultiCombinations(features2dComb, finalSubspacesDim);
+        List<int[]> combinations = new ArrayList<>();
+        List<Subspace> subspaceCombinations = new ArrayList<>();
+        helper(combinations, new int[finalSubspacesDim], 0, getDatasetDimensionality()-1, 0);
+        for (int[] comb : combinations) {
+            subspaceCombinations.add(new Subspace(new HashSet<>(Ints.asList(comb))));
+        }
+        System.out.println(subspaceCombinations);
+        return subspaceCombinations;
     }
 
-    private List<Subspace> features2dCombinations() {
-        int datasetDim = getDatasetDimensionality();
-        List<Subspace> subspacesCombinationList = new ArrayList<>();
-        for(int i = 0; i < datasetDim; i++){
-            for(int j = i+1; j < datasetDim; j++){
-                HashSet<Integer> features = new HashSet<>();
-                features.add(i);
-                features.add(j);
-                Subspace newLookOutSubspace = new Subspace(features);
-                subspacesCombinationList.add(newLookOutSubspace);
-            }
+    private void helper(List<int[]> combinations, int data[], int start, int end, int index) {
+        if (index == data.length) {
+            int[] combination = data.clone();
+            combinations.add(combination);
+        } else if (start <= end) {
+            data[index] = start;
+            helper(combinations, data, start + 1, end, index + 1);
+            helper(combinations, data, start + 1, end, index);
         }
-        return subspacesCombinationList;
-    }
-
-    private List<Subspace> featuresMultiCombinations(List<Subspace> features2dComb, int finalSubspacesDim) {
-        List<Subspace> tmpCombList = new ArrayList<>();
-        List<Subspace> subspacesCombinationList = new ArrayList<>(features2dComb);
-        HashSet<String> tmpCombStringSet = new HashSet<>();
-        for(int i = 2; i < finalSubspacesDim; i++){
-            for(Subspace subspace : subspacesCombinationList){
-                HashSet<Integer> featuresCombination = subspace.getFeatures();
-                for(int featureId = 0; featureId < getDatasetDimensionality(); featureId++){
-                    if(!featuresCombination.contains(featureId)){
-                        HashSet<Integer> updatedFeaturesCombination = new HashSet<>(featuresCombination);
-                        updatedFeaturesCombination.add(featureId);
-                        if(!tmpCombStringSet.contains(updatedFeaturesCombination.toString())){
-                            Subspace newSubspace = new Subspace(updatedFeaturesCombination);
-                            tmpCombList.add(newSubspace);
-                            tmpCombStringSet.add(updatedFeaturesCombination.toString());
-                        }
-                    }
-                }
-            }
-            subspacesCombinationList.clear();
-            subspacesCombinationList.addAll(tmpCombList);
-            tmpCombList.clear();
-            tmpCombStringSet.clear();
-        }
-        return subspacesCombinationList;
     }
 
     private double[] addDoubleArrays(double[] arr1, double[] arr2) {
