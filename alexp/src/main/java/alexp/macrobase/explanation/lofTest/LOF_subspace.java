@@ -27,7 +27,7 @@ public class LOF_subspace {
     private static String datasetPath = "alexp/data/explanation/TestLOF/synth_010_000_2_3_4_5.yaml";
 
     private static List<Pair<Integer, String>> runClassifier(DataFrame df, String[] columns, AlgorithmConfig conf) throws Exception {
-        Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmId(), conf.getParameters(), columns);
+        Classifier classifier = Pipelines.getClassifier(conf.getAlgorithmId(), conf.getParameters(), columns, null);
         return getPointsScoresInRelSubspaces(df, Arrays.asList(columns), classifier);
     }
 

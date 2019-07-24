@@ -176,7 +176,7 @@ public abstract class Explanation implements Transformer {
         }
         DataFrame outputDf = input.copy();
         double[] finalScores = new double[input.getNumRows()];
-        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns);
+        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), classifierConf.getParameters(), subColumns, null);
         for (int rep = 0; rep < classifierRunRepeat; rep++) {
             classifier.process(tmpDataFrame);
             double[] scores = classifier.getResults().getDoubleColumnByName(outputColumnName);

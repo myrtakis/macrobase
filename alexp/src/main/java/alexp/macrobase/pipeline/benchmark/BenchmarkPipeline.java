@@ -87,7 +87,11 @@ public class BenchmarkPipeline extends Pipeline {
         if (!algorithmParameters.equals(classifierConf.getParameters())) {
             out.println(algorithmParameters);
         }
-        Classifier classifier = Pipelines.getClassifier(classifierConf.getAlgorithmId(), algorithmParameters, conf.getDatasetConfig().getMetricColumns());
+        Classifier classifier = Pipelines.getClassifier(
+                classifierConf.getAlgorithmId(),
+                algorithmParameters,
+                conf.getDatasetConfig().getMetricColumns(),
+                conf.getDatasetConfig().getDatasetId());
         ResultHolder resultHolder = runClassifier(classifier);
 
         printInfo(String.format("Training time: %d ms (%.2f sec), Classification time: %d ms (%.2f sec), Max memory usage: %d MB, ROC AUC: %s, PR AUC: %s",
@@ -131,7 +135,8 @@ public class BenchmarkPipeline extends Pipeline {
         Classifier streamingClassifier = Pipelines.getClassifier( // Build the Streaming Classifier Model
                 classifierConf.getAlgorithmId(),
                 algorithmParameters,
-                conf.getDatasetConfig().getMetricColumns()
+                conf.getDatasetConfig().getMetricColumns(),
+                conf.getDatasetConfig().getDatasetId()
         );
         while (true) { // Iteratively Repeat (Streaming Simulation)
             if (!wm.windowIsConstructed()) {
@@ -253,7 +258,11 @@ public class BenchmarkPipeline extends Pipeline {
         gs.setOutputStream(out);
         gs.run(params -> {
             StringObjectMap currentParams = baseParams.merge(params);
-            Classifier classifier = Pipelines.getClassifier(algorithmConfig.getAlgorithmId(), currentParams, conf.getDatasetConfig().getMetricColumns());
+            Classifier classifier = Pipelines.getClassifier(
+                    algorithmConfig.getAlgorithmId(),
+                    currentParams,
+                    conf.getDatasetConfig().getMetricColumns(),
+                    conf.getDatasetConfig().getDatasetId());
             classifier.process(dataFrame);
             DataFrame classifierResultDf = classifier.getResults();
             double[] classifierResult = classifierResultDf.getDoubleColumnByName(classifier.getOutputColumnName());
