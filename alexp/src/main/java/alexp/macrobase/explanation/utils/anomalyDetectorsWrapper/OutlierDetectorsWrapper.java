@@ -8,6 +8,7 @@ import spark.utils.StringUtils;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class OutlierDetectorsWrapper {
@@ -24,8 +25,6 @@ public class OutlierDetectorsWrapper {
     private static final String combinationsOption = "-exhaust";
     private static final String argsFromFileOption = "-args_from_file";
     private static final String classifierRunRepeatOption = "-classifier_run_repeat";
-
-    private static final String tmpArgsFileName = "tmpArgs.txt";
 
     private static final String pythonResultsDelimiter = " ,\t\n[]{}";
     private static final String subspaceTag = "@subspace";
@@ -91,7 +90,14 @@ public class OutlierDetectorsWrapper {
 
         if (!Files.exists(Paths.get(pythonFilePath)))
             throw new IOException("File not found " + pythonFilePath);
-        saveArgsToTmpFile(classifierId, classifierRunRepeat, params, subspacesAsStr, datasetPath, datasetDim);
+
+        LocalDateTime myObj = LocalDateTime.now();
+        String dateTime =
+                myObj.toString().replace("-", "").replace(".","").replace(":","");
+        String tmpArgsFileName = "tmpArgs_" + dateTime;
+
+        saveArgsToTmpFile(classifierId, classifierRunRepeat, params, subspacesAsStr, datasetPath, datasetDim, tmpArgsFileName);
+
         ProcessBuilder pb = new ProcessBuilder(
                 pythonCommand, pythonFilePath,
                 argsFromFileOption, tmpArgsFileName
@@ -181,7 +187,7 @@ public class OutlierDetectorsWrapper {
     }
 
     private static void saveArgsToTmpFile(String algorithmId, int classifierRunRepeat, String params, String subspacesAsStr,
-                                          String datasetPath, int datasetDim) throws IOException{
+                                          String datasetPath, int datasetDim, String tmpArgsFileName) throws IOException{
         File file = new File(tmpArgsFileName);
         BufferedWriter bw = new BufferedWriter(new FileWriter(file));
         String args =
