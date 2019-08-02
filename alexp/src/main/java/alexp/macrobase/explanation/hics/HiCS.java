@@ -117,7 +117,9 @@ public class HiCS extends Explanation {
 
         List<List<Integer>> subspaceIndex = buildOneDimensionalIndexes(input);
         Set<HiCSSubspace> subspaces = calculateSubspaces(input, subspaceIndex, rnd.getSingleThreadedRandom());
-        Map<String, double[]> subspacesOutlierDetectorScores = runClassifierInSubspaces(input, hicsSubspacesToFeaturesList(subspaces));
+        Set<HiCSSubspace> topkSubspaces = topkSubspaces(subspaces);
+
+        Map<String, double[]> subspacesOutlierDetectorScores = runClassifierInSubspaces(input, hicsSubspacesToFeaturesList(topkSubspaces));
 
         output.addColumn(outputColumnName, getAvgPointsScores(subspacesOutlierDetectorScores, input.getNumRows()));
 
@@ -143,7 +145,6 @@ public class HiCS extends Explanation {
             }
             pointScores.sort(Comparator.comparing(Pair::getValue));
             Collections.reverse(pointScores);
-            pointScores = pointScores.subList(0, Math.min(topk, pointScores.size()));
             for (Pair<String, Double> pair : pointScores) {
                 relSubspaces[poiID] += pair.getKey();
             }
@@ -388,6 +389,14 @@ public class HiCS extends Explanation {
         return avgScores;
     }
 
+    private Set<HiCSSubspace> topkSubspaces(Set<HiCSSubspace> subspaces) {
+        TopBoundedHeap<HiCSSubspace> topkSubspaces = new TopBoundedHeap<>(topk, HiCSSubspace.SORT_BY_CONTRAST_ASC);
+        for (HiCSSubspace subspace : subspaces) {
+            topkSubspaces.add(subspace);
+        }
+        return new HashSet<>(topkSubspaces.toList());
+    }
+
     private void logSubspaces(BufferedWriter logger, int stage,
                               TopBoundedHeap<HiCSSubspace> subspaceCandidates) throws IOException {
         List<HiCSSubspace> subspaceList = subspaceCandidates.toList();
@@ -517,6 +526,8 @@ public class HiCS extends Explanation {
         public double getContrast() {
             return contrast;
         }
+
+        public void setContrast(double contrast) { this.contrast = contrast; }
 
         /**
          * Sort subspaces by their actual subspace.

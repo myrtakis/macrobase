@@ -3,6 +3,7 @@ package alexp.macrobase.explanation.utils.anomalyDetectorsWrapper;
 import alexp.macrobase.pipeline.benchmark.config.AlgorithmConfig;
 import com.google.common.base.Joiner;
 import javafx.util.Pair;
+import spark.utils.StringUtils;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -28,6 +29,7 @@ public class OutlierDetectorsWrapper {
 
     private static final String pythonResultsDelimiter = " ,\t\n[]{}";
     private static final String subspaceTag = "@subspace";
+    private static final String endTag = "@END";
 
     public static double[] runPythonClassifier(AlgorithmConfig classifierConf, int classifierRunRepeat, String datasetPath,
                                                HashSet<Integer> features, int datasetDim, int sampleSize) throws Exception {
@@ -99,6 +101,10 @@ public class OutlierDetectorsWrapper {
         BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
         Map<String, double[]> pointsScoresMap = new HashMap<>();
         List<Pair<String, double[]>>  pointsScores = parseMultiSubspaces(in, sampleSize);
+        if (pointsScores.size() != subspacesFeatures.size()) {
+            throw new RuntimeException("Input and output subspaces in python do not have same size. " +
+                    pointsScores.size() + " " + subspacesFeatures.size());
+        }
         for(Pair<String, double[]> pair : pointsScores) {
             pointsScoresMap.put(pair.getKey(), pair.getValue());
         }
@@ -115,6 +121,9 @@ public class OutlierDetectorsWrapper {
         int counter = 0;
         double[] pointsScores = new double[sampleSize];
         while ((line = in.readLine()) != null) {
+            if (line.equals("\n") || StringUtils.isBlank(line)) {
+                continue;
+            }
             if(!line.startsWith(subspaceTag)) {
                 consoleMsg += line;
                 continue;
@@ -140,8 +149,12 @@ public class OutlierDetectorsWrapper {
         while ((line = in.readLine()) != null) {
             int counter = 0;
             double[] pointsScores = new double[sampleSize];
+            if (line.equals("\n") || StringUtils.isBlank(line)) {
+                continue;
+            }
             if(line.startsWith(">")) {
                 System.out.print('\r' + line);
+                continue;
             }
             if(!line.startsWith(subspaceTag)) {
                 consoleMsg += line;

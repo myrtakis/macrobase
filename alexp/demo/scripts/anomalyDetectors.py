@@ -152,16 +152,15 @@ def execute_option(parser):
         for i in range(0, classifier_run_repeat):
             msg_prog = '> Scoring subspace ' + str(counter) + '/' + str(len(subspaces)) + ': ' + \
                        str(subspace) + ' repeats: ' + str(i + 1) + '/' + str(classifier_run_repeat)
-            sys.stdout.write('\r' + msg_prog)
+            print(msg_prog)
             if points_scores is None:
                 points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params)
             else:
                 tmpArr = FUNCTION_MAP[args.ad](sub_dataframe, params)
                 points_scores = np.add(points_scores, tmpArr)
         points_scores = points_scores / classifier_run_repeat
-        output = output + '@subspace ' + str(subspace) + ' = ' + str(list(points_scores)) + '\n'
-    print()
-    return output
+        output = '\n' + '@subspace ' + str(subspace) + ' = ' + str(list(points_scores)) + '\n'
+        print(output)
 
 
 def validate_args(parser, args):
@@ -191,14 +190,13 @@ def run_exhaustive():
 
 
 #########################################################################
-#                               MAIN                                    #
+#                                  MAIN                                 #
 #########################################################################
 
 
 if __name__ == '__main__':
 
     opt_parser = options_builder()
-    points_normalized_scores = execute_option(opt_parser)
+    execute_option(opt_parser)
 
-    print(points_normalized_scores)
     #print(time.perf_counter())
