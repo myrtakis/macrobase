@@ -33,33 +33,52 @@ class LoadFromFile (argparse.Action):
 #########################################################################
 
 
-def lof(dataframe, params):
+def lof(dataframe, params, repeats=1):
     if 'knn' not in params:
         params['knn'] = 15  # default value
-    clf = LocalOutlierFactor(n_neighbors=int(params['knn']), algorithm='brute', metric='euclidean', contamination='auto')
-    clf.fit_predict(dataframe)
-    raw_scores = clf.negative_outlier_factor_
-    return reverse_scores(normalize_scores(raw_scores))
+    scores = None
+    for i in range(0, repeats):
+        clf = LocalOutlierFactor(n_neighbors=int(params['knn']), algorithm='brute', metric='euclidean', contamination='auto')
+        clf.fit_predict(dataframe)
+        if scores is None:
+            scores = clf.negative_outlier_factor_
+        else:
+            scores = scores + clf.negative_outlier_factor_
+    scores = -scores
+    return scores / repeats
 
 
-def iforest(dataframe, params):
+def iforest(dataframe, params, repeats):
     if 'treesCount' not in params:
         params['treesCount'] = 100  # default value
     if 'subsampleSize' not in params:
         params['subsampleSize'] = 256  # default value
-    clf = IsolationForest(n_estimators=int(params['treesCount']), max_samples=int(params['subsampleSize']), behaviour='new', contamination='auto')
-    clf.fit(dataframe)
-    raw_scores = clf.decision_function(dataframe)
-    return reverse_scores(normalize_scores(raw_scores))
+    scores = None
+    for i in range(0, repeats):
+        clf = IsolationForest(n_estimators=int(params['treesCount']), max_samples=int(params['subsampleSize']), behaviour='new', contamination='auto')
+        clf.fit(dataframe)
+        if scores is None:
+            scores = clf.decision_function(dataframe)
+        else:
+            scores = scores + clf.decision_function(dataframe)
+    scores = -scores
+    scores = scores - scores.min()
+    return scores / repeats
 
 
-def fast_abod(dataframe, params):
+def fast_abod(dataframe, params, repeats=1):
     if 'n_neighbors' not in params:
         params['n_neighbors'] = 5  # default value
-    clf = abod.ABOD(method='fast', n_neighbors=int(params['n_neighbors']))
-    clf.fit(dataframe)
-    raw_scores = clf.decision_scores_
-    return normalize_scores(raw_scores)
+    scores = None
+    for i in range(0, repeats):
+        clf = abod.ABOD(method='fast', n_neighbors=int(params['n_neighbors']))
+        clf.fit(dataframe)
+        if scores is None:
+            scores = clf.decision_scores_
+        else:
+            scores = scores + clf.decision_scores_
+    scores = scores - scores.min()
+    return scores / repeats
 
 
 FUNCTION_MAP = {
@@ -71,14 +90,6 @@ FUNCTION_MAP = {
 #########################################################################
 #                           UTIL FUNCTIONS                              #
 #########################################################################
-
-
-def normalize_scores(raw_scores):
-    return np.interp(raw_scores, (raw_scores.min(), raw_scores.max()), (0, 1))
-
-
-def reverse_scores(scores):
-    return scores.max() - scores
 
 
 def get_real_value_of(s):
@@ -142,23 +153,15 @@ def execute_option(parser):
     dataframe = pd.read_csv(os.path.normpath(args.d.replace('"', '')))
     params = algorithm_params(args.params)
     subspaces = get_subspaces(args)
-    output = ''
     counter = 0
     for subspace in subspaces:
         subspace = subspace if isinstance(subspace, list) else list(subspace)
         counter += 1
         sub_dataframe = dataframe.iloc[:, subspace]
-        points_scores = None
-        for i in range(0, classifier_run_repeat):
-            msg_prog = '> Scoring subspace ' + str(counter) + '/' + str(len(subspaces)) + ': ' + \
-                       str(subspace) + ' repeats: ' + str(i + 1) + '/' + str(classifier_run_repeat)
-            print(msg_prog)
-            if points_scores is None:
-                points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params)
-            else:
-                tmpArr = FUNCTION_MAP[args.ad](sub_dataframe, params)
-                points_scores = np.add(points_scores, tmpArr)
-        points_scores = points_scores / classifier_run_repeat
+        msg_prog = '> Scoring subspace ' + str(counter) + '/' + str(len(subspaces)) + ': ' + \
+                   str(subspace) + ' repeats: ' + str(classifier_run_repeat)
+        print(msg_prog)
+        points_scores = FUNCTION_MAP[args.ad](sub_dataframe, params, classifier_run_repeat)
         output = '\n' + '@subspace ' + str(subspace) + ' = ' + str(list(points_scores)) + '\n'
         print(output)
 
