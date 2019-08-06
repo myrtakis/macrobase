@@ -152,6 +152,7 @@ public class OutlierDetectorsWrapper {
         List<Pair<String, double[]>> subspacePointsScores = new ArrayList<>();
         String line;
         String consoleMsg = "";
+        double global_min = 0;
         while ((line = in.readLine()) != null) {
             int counter = 0;
             double[] pointsScores = new double[sampleSize];
@@ -172,6 +173,9 @@ public class OutlierDetectorsWrapper {
             while (strtok.hasMoreElements()) {
                 double num = Double.parseDouble(strtok.nextToken());
                 pointsScores[counter++] = num;
+                if (num < global_min) {
+                    global_min = num;
+                }
             }
             subspacePointsScores.add(new Pair<>(subspace, pointsScores));
             if (counter < sampleSize) {
@@ -182,6 +186,9 @@ public class OutlierDetectorsWrapper {
         if (subspacePointsScores.isEmpty()) {
             System.out.println("\n" + consoleMsg);
             throw new RuntimeException("Error occurred in python. See the console message above");
+        }
+        if (global_min < 0) {
+            rescaleNegativeNumbers(subspacePointsScores, global_min);
         }
         return subspacePointsScores;
     }
@@ -215,6 +222,21 @@ public class OutlierDetectorsWrapper {
             sb.append(featuresToString(features)).append(";");
         }
         return sb.toString();
+    }
+
+    private static void rescaleNegativeNumbers(List<Pair<String, double[]>> subspacePointsScores, double global_min) {
+        if (global_min >= 0) {
+            throw new RuntimeException("global_min should be < 0 (" + global_min + ")");
+        }
+        for (int sub_num = 0; sub_num < subspacePointsScores.size(); sub_num++) {
+            Pair<String, double[]> pair = subspacePointsScores.get(sub_num);
+            double[] scores = pair.getValue();
+            String subspace = pair.getKey();
+            for (int score_num = 0; score_num < scores.length; score_num++) {
+                scores[score_num] = scores[score_num] - global_min;
+            }
+            subspacePointsScores.set(sub_num, new Pair<>(subspace, scores));
+        }
     }
 
 }

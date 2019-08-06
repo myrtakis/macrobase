@@ -62,7 +62,6 @@ def iforest(dataframe, params, repeats):
         else:
             scores = scores + clf.decision_function(dataframe)
     scores = -scores
-    scores = scores - scores.min()
     return scores / repeats
 
 
@@ -77,7 +76,6 @@ def fast_abod(dataframe, params, repeats=1):
             scores = clf.decision_scores_
         else:
             scores = scores + clf.decision_scores_
-    scores = scores - scores.min()
     return scores / repeats
 
 
