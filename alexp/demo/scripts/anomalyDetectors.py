@@ -67,7 +67,7 @@ def iforest(dataframe, params, repeats):
 
 def fast_abod(dataframe, params, repeats=1):
     if 'n_neighbors' not in params:
-        params['n_neighbors'] = 5  # default value
+        params['n_neighbors'] = 10  # default value
     scores = None
     for i in range(0, repeats):
         clf = abod.ABOD(method='fast', n_neighbors=int(params['n_neighbors']))

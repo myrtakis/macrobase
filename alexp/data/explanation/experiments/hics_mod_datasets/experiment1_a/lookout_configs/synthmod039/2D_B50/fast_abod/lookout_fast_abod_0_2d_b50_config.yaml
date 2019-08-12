@@ -45,7 +45,7 @@ dataset:
 classifiers:
 - id: "fast_abod"
   parameters:
-    n_neighbors: 5
+    n_neighbors: 10
 
 explainers:
 - id: "lookout"

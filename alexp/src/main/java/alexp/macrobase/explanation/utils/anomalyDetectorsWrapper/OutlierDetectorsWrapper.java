@@ -187,9 +187,9 @@ public class OutlierDetectorsWrapper {
             System.out.println("\n" + consoleMsg);
             throw new RuntimeException("Error occurred in python. See the console message above");
         }
-        if (global_min < 0) {
-            rescaleNegativeNumbers(subspacePointsScores, global_min);
-        }
+//        if (global_min < 0) {
+//            rescaleNegativeNumbers(subspacePointsScores, global_min);
+//        }
         return subspacePointsScores;
     }
 
