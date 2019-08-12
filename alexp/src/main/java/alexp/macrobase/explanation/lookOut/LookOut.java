@@ -81,7 +81,7 @@ public class LookOut extends Explanation {
         UTIL FUNCTIONS
      */
 
-    // TODO: Possible flaw of the algorithm, we can get less diagrams than our budget because the marginal gain could maximized early, thus not a new subspace will be added in the best subspaces
+    // TODO: Possible flaw of the algorithm, we can get less diagrams than our budget because the marginal gain could maximized early, thus the execution will stop without seeing all the subspaces
 
     private void calculateSubspaces(DataFrame input, List<LookOutSubspace> bestSubspaces) throws Exception {
         Set<LookOutSubspace> allSubspaces = pointsOfInterestScores(input);
@@ -142,7 +142,7 @@ public class LookOut extends Explanation {
 
     private void initMaxOutlierScores(Map<Integer, Double> maxOutlierScores) {
         for(int pointId : getPointsToExplain()) {
-            maxOutlierScores.put(pointId, 0.0);
+            maxOutlierScores.put(pointId, -Double.MAX_VALUE);
         }
     }
     
@@ -204,30 +204,32 @@ public class LookOut extends Explanation {
         this.dimensionality = dimensionality;
     }
 
+
     private static class LookOutSubspace extends Subspace{
+
         HashMap<Integer, Double> pointsOfInterestScores = new HashMap<>();
 
-        public LookOutSubspace() {
+        LookOutSubspace() {
         }
 
-        public LookOutSubspace(HashSet<Integer> features) {
+        LookOutSubspace(HashSet<Integer> features) {
             super(features);
         }
 
-        public LookOutSubspace(LookOutSubspace subspaceToCopy) {
+        LookOutSubspace(LookOutSubspace subspaceToCopy) {
             super(subspaceToCopy);
             this.pointsOfInterestScores.putAll(subspaceToCopy.getPointsOfInterestScores());
         }
 
-        public void setPointsScores(HashMap<Integer, Double> pointsOfInterestScores) {
+        void setPointsScores(HashMap<Integer, Double> pointsOfInterestScores) {
             this.pointsOfInterestScores = pointsOfInterestScores;
         }
 
-        public void addPointAndScore(int pointId, double score) {
+        void addPointAndScore(int pointId, double score) {
             pointsOfInterestScores.put(pointId, score);
         }
 
-        public HashMap<Integer, Double> getPointsOfInterestScores() {
+        HashMap<Integer, Double> getPointsOfInterestScores() {
             return pointsOfInterestScores;
         }
 
