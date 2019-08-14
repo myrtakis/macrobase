@@ -81,19 +81,18 @@ public class LookOut extends Explanation {
         UTIL FUNCTIONS
      */
 
-    // TODO: Possible flaw of the algorithm, we can get less diagrams than our budget because the marginal gain could maximized early, thus the execution will stop without seeing all the subspaces
-
     private void calculateSubspaces(DataFrame input, List<LookOutSubspace> bestSubspaces) throws Exception {
         Set<LookOutSubspace> allSubspaces = pointsOfInterestScores(input);
         HashMap<Integer, Double> maxOutlierScores = new HashMap<>();
         initMaxOutlierScores(maxOutlierScores);
         int counter = 0;
         while (counter < budget) {
-            LookOutSubspace maxMarginalGainSubspace = new LookOutSubspace();
+            LookOutSubspace maxMarginalGainSubspace = null;
             boolean marginalGainCanUpdate = false;
             for(LookOutSubspace subspace : allSubspaces) {
                 double currMarginalGain = calculateMarginalGain(subspace.getPointsOfInterestScores(), maxOutlierScores);
-                if(maxMarginalGainSubspace.getScore() < currMarginalGain) {
+                if (bestSubspaces.isEmpty() && subspace.getFeatures().contains(0) && subspace.getFeatures().contains(1))
+                if(maxMarginalGainSubspace == null || maxMarginalGainSubspace.getScore() < currMarginalGain) {
                     maxMarginalGainSubspace = new LookOutSubspace(subspace);
                     maxMarginalGainSubspace.setScore(currMarginalGain);
                     marginalGainCanUpdate = true;
@@ -142,7 +141,7 @@ public class LookOut extends Explanation {
 
     private void initMaxOutlierScores(Map<Integer, Double> maxOutlierScores) {
         for(int pointId : getPointsToExplain()) {
-            maxOutlierScores.put(pointId, -Double.MAX_VALUE);
+            maxOutlierScores.put(pointId, null);
         }
     }
     
@@ -150,14 +149,17 @@ public class LookOut extends Explanation {
         if(maxOutlierScores.size() != currOutlierScores.size())
             throw new RuntimeException("maxOutlierScores must have same size with currOutlierScores " + maxOutlierScores.size() + " != " + currOutlierScores.size());
         for(int pointId : maxOutlierScores.keySet()) {
-            maxOutlierScores.put(pointId, Math.max(maxOutlierScores.get(pointId), currOutlierScores.get(pointId)));
+            if (maxOutlierScores.get(pointId) == null)
+                maxOutlierScores.put(pointId, currOutlierScores.get(pointId));
+            else
+                maxOutlierScores.put(pointId, Math.max(maxOutlierScores.get(pointId), currOutlierScores.get(pointId)));
         }
     }
 
     private double outlierScoresSum(HashMap<Integer, Double> outlierScores) {
         double sum = 0;
         for(int pointId : outlierScores.keySet()) {
-            sum += outlierScores.get(pointId);
+            sum += outlierScores.get(pointId) == null ? 0 : outlierScores.get(pointId);
         }
         return sum;
     }
@@ -168,12 +170,22 @@ public class LookOut extends Explanation {
         double maxScoreSum = outlierScoresSum(maxPointsScores);
         double newScoreSum = 0;
         double marginalGain;
+        boolean maxScoreInit = true;
         for(int pointId : currPointsScores.keySet()){
-            newScoreSum += Math.max(currPointsScores.get(pointId), maxPointsScores.get(pointId));
+            if (maxPointsScores.get(pointId) == null) {
+                newScoreSum += currPointsScores.get(pointId);
+                maxScoreInit = false;
+            }
+            else {
+                newScoreSum += Math.max(currPointsScores.get(pointId), maxPointsScores.get(pointId));
+            }
         }
-        marginalGain = newScoreSum - maxScoreSum;
-        if(marginalGain < 0)
-            throw new RuntimeException("Marginal gain must be >= 0 " + marginalGain);
+        if(maxScoreInit && newScoreSum < maxScoreSum)
+            throw new RuntimeException("newScoreSum must be greater than maxScoreSum " + newScoreSum + " < " + maxScoreSum);
+        if (newScoreSum < 0)
+            marginalGain = newScoreSum + maxScoreSum;
+        else
+            marginalGain = newScoreSum - maxScoreSum;
         return marginalGain;
     }
 
