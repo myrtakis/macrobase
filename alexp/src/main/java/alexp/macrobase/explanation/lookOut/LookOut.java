@@ -91,7 +91,6 @@ public class LookOut extends Explanation {
             boolean marginalGainCanUpdate = false;
             for(LookOutSubspace subspace : allSubspaces) {
                 double currMarginalGain = calculateMarginalGain(subspace.getPointsOfInterestScores(), maxOutlierScores);
-                if (bestSubspaces.isEmpty() && subspace.getFeatures().contains(0) && subspace.getFeatures().contains(1))
                 if(maxMarginalGainSubspace == null || maxMarginalGainSubspace.getScore() < currMarginalGain) {
                     maxMarginalGainSubspace = new LookOutSubspace(subspace);
                     maxMarginalGainSubspace.setScore(currMarginalGain);
