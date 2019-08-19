@@ -62,7 +62,7 @@ public class BeamSubspaceSearch extends Explanation {
     @Override
     public void process(DataFrame input) throws Exception {
         output = input.copy();
-        HashMap<Integer, List<Subspace>> pointsSubspaces =  calculateSubspaces(input);
+        HashMap<Integer, List<Subspace>> pointsSubspaces =  calculateSubspaces2(input);
         double[] scores = new double[input.getNumRows()];
         for(int pointId : getPointsToExplain()) {
             scores[pointId] = getAvgScore(pointsSubspaces.get(pointId));
@@ -97,6 +97,64 @@ public class BeamSubspaceSearch extends Explanation {
     }
 
 
+    private HashMap<Integer, List<Subspace>> calculateSubspaces2(DataFrame input) throws Exception {
+        HashMap<Integer, List<Subspace>> pointsScores = new HashMap<>();
+        HashMap<Integer, TopBoundedHeap<Subspace>> results = score2dSubspaces(input);
+
+        if (dmax > 2) {
+            results = scorePointInMultiDimSubspaces2(results, input);
+        }
+
+        for(int pointId : results.keySet()) {
+            List<Subspace> topSubspaces = results.get(pointId).topK(topk, Subspace.SORT_BY_SCORE_DESC);
+            pointsScores.put(pointId, topSubspaces);
+        }
+
+        return pointsScores;
+    }
+
+
+    private HashMap<Integer, TopBoundedHeap<Subspace>> scorePointInMultiDimSubspaces2(
+            HashMap<Integer, TopBoundedHeap<Subspace>> best2dSubspaces, DataFrame input) throws Exception {
+
+        HashMap<Integer, TopBoundedHeap<Subspace>> globalPointsList = new HashMap<>();
+        HashMap<Integer, TopBoundedHeap<Subspace>> stagePointsList = new HashMap<>();
+
+        for (int i = 3; i <= dmax; i++) {
+            int counter = 0;
+            System.out.println("\n---------------- STAGE " + i + " ----------------");
+            for (int pointId : best2dSubspaces.keySet()) {
+                if (!globalPointsList.containsKey(pointId)) {
+                    globalPointsList.put(pointId, new TopBoundedHeap<>(topk, Subspace.SORT_BY_SCORE_ASC));
+                }
+                if (!stagePointsList.containsKey(pointId)) {
+                    stagePointsList.put(pointId, new TopBoundedHeap<>(best2dSubspaces.get(pointId)));
+                }
+                List<Subspace> newSubspaces = getNewSubspaces(stagePointsList.get(pointId), i);
+                stagePointsList.get(pointId).clear();
+                if (!stagePointsList.get(pointId).isEmpty())
+                    throw new RuntimeException("Point " + pointId + ": Stage points list should be cleared, " + stagePointsList.get(pointId).size());
+                List<HashSet<Integer>> nonComputedSubspaceList = nonComputedSubspaces(newSubspaces);
+                String consoleOutput = "(" + (++counter) + "/" + best2dSubspaces.keySet().size()+ ") Scoring point " + pointId;
+                consoleOutput = nonComputedSubspaceList.isEmpty() ? "\r" + consoleOutput : "\n" + consoleOutput + "\n";
+                System.out.print(consoleOutput);
+                Map<String, double[]> subspacesScores = runClassifierInSubspaces(input, nonComputedSubspaceList);
+                updateComputedSubspaces(subspacesScores);
+                for (Subspace subspace : newSubspaces) {
+                    Subspace poiSubspace = new Subspace(subspace);
+                    Double poiScore = consideredSubspacesScores.get(subspace.getFeatures().toString()).get(pointId);
+                    poiSubspace.setScore(poiScore);
+                    stagePointsList.get(pointId).add(poiSubspace);
+                    globalPointsList.get(pointId).add(poiSubspace);
+                }
+            }
+            consideredSubspacesScores.clear();
+        }
+        return beamFixed ? stagePointsList : globalPointsList;
+    }
+
+
+/*
     private HashMap<Integer, List<Subspace>> calculateSubspaces(DataFrame input) throws Exception {
         HashMap<Integer, List<Subspace>> pointsScores = new HashMap<>();
 
@@ -142,7 +200,7 @@ public class BeamSubspaceSearch extends Explanation {
         // Check which of the two Beam variations will be triggered
         return beamFixed ? stageList.toList() : globalList.toList();
     }
-
+*/
 
     private List<Subspace> getNewSubspaces(TopBoundedHeap<Subspace> stageCandidates, int stage) {
         List<Subspace> stageCandList = stageCandidates.toList();
@@ -157,24 +215,6 @@ public class BeamSubspaceSearch extends Explanation {
                     newSubspaceSet.add(new Subspace(mergedFeatures));
             }
         }
-        /*
-        for (int i = 0; i < stageCandList.size() - 1; i++) {
-            for (int j = i+1; j < stageCandList.size(); j++) {
-                HashSet<Integer> mergedFeatures = new HashSet<>(stageCandList.get(i).getFeatures());
-                mergedFeatures.addAll(stageCandList.get(j).getFeatures());
-                if (mergedFeatures.size() == stage) {
-                    newSubspaceSet.add(new Subspace(mergedFeatures));
-                } else if (mergedFeatures.size() > stage) {
-                    List<Set<Integer>> mergedFeaturesCombs = featureIDsCombinations(mergedFeatures, stage);
-                    for (Set<Integer> comb : mergedFeaturesCombs) {
-                        if(comb.size() != stage)
-                            throw new RuntimeException("Number of elements (" + comb.size() + ") should be equal to the stage number (" + stage + ")");
-                        newSubspaceSet.add(new Subspace(new HashSet<>(comb)));
-                    }
-                }
-            }
-        }
-         */
         if (newSubspaceSet.size() > stageCandidates.size() * ((getDatasetDimensionality() - stage) + 1))
             throw new RuntimeException("More combinations than it should be. Stage candidates = " + stageCandidates.size() +
                     " and combinations " + newSubspaceSet.size() + "\n" + newSubspaceSet);
