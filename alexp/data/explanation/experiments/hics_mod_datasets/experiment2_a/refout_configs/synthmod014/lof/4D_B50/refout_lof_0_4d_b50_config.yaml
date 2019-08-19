@@ -1,0 +1,35 @@
+dataset:
+  uri: "csv://alexp/data/explanation/hics_datasets_mod/synthmod_multidim_014_000.csv"
+  metricColumns:
+  - "var_0000"
+  - "var_0001"
+  - "var_0002"
+  - "var_0003"
+  - "var_0004"
+  - "var_0005"
+  - "var_0006"
+  - "var_0007"
+  - "var_0008"
+  - "var_0009"
+  - "var_0010"
+  - "var_0011"
+  - "var_0012"
+  - "var_0013"
+  labelColumn: "is_anomaly"
+
+classifiers:
+- id: "lof-bkaluza"
+  parameters:
+    knn: 15
+    trainSize: 100
+
+explainers:
+- id: "refout"
+  parameters:
+    d1: 0.7
+    d2: 4
+    psize: 100
+    beamSize: 100
+    topk: 100
+    classifierRunRepeat: 1
+settingsConfigPath: "alexp/data/explanation/hics_datasets_mod_settings/python_classifier/synthmod_multidim_014_000_python.yaml"

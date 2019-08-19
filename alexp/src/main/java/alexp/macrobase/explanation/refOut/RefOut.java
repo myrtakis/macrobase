@@ -108,12 +108,12 @@ public class RefOut extends Explanation {
     }
 
     private HashMap<Integer, List<Subspace>> scorePointsInRefinedPool(DataFrame input, List<Subspace> refinedPool) throws Exception {
-        System.out.println("Score all refined subspaces from the refined pool");
+        System.out.println("\nScore all refined subspaces from the refined pool");
         HashMap<Integer, List<Subspace>> pointsScores = getPointsOfInterestScoresInSubspaces(input, refinedPool);
         for (int pointId : pointsScores.keySet()) {
             List<Subspace> topkList = new ArrayList<>(pointsScores.get(pointId));
             topkList.sort(Subspace.SORT_BY_SCORE_DESC);
-            pointsScores.put(pointId, topkList.subList(0, topk));
+            pointsScores.put(pointId, topkList.subList(0, Math.min(topk, topkList.size())));
         }
         return pointsScores;
     }
@@ -146,18 +146,15 @@ public class RefOut extends Explanation {
 
     private HashMap<Integer, List<Subspace>> getPointsOfInterestScoresInSubspaces(DataFrame input, List<Subspace> subspaceList) throws Exception {
         HashMap<Integer, List<Subspace>> pointsScores = new HashMap<>();
-        int counter = 0;
-        for(Subspace subspace : subspaceList) {
-            System.out.print("\rScoring subspace " + (++counter) + "/" + subspaceList.size());
-            DataFrame results = runClassifier(input, subspace);
-            double[] scores = normalizeScores(results.getDoubleColumnByName(outputColumnName)); // get the score column from the dataframe and normalize
-            for(int pointId : getPointsToExplain()) {
+        Map<String, double[]> subspaceScores= runClassifierInSubspaces(input, subspacesToFeaturesList(subspaceList));
+        for (String subspaceStr : subspaceScores.keySet()) {
+            double[] scores = normalizeScores(subspaceScores.get(subspaceStr));
+            for (int pointId : super.getPointsToExplain()) {
                 List<Subspace> pointsSubspaces = pointsScores.getOrDefault(pointId, new ArrayList<>());
-                pointsSubspaces.add(new Subspace(subspace.getFeatures(), scores[pointId]));
+                pointsSubspaces.add(new Subspace(subspaceToSet(subspaceStr), scores[pointId]));
                 pointsScores.put(pointId, pointsSubspaces);
             }
         }
-        System.out.println();
         return pointsScores;
     }
 
@@ -196,7 +193,8 @@ public class RefOut extends Explanation {
             for (int i=0; i < candidatesFeatures.size() - 1; i++) {
                 for (int j = i + 1; j < candidatesFeatures.size(); j++) {
                     HashSet<Integer> featureCombination = combineCandFeatures(candidatesFeatures, i, j);
-                    featureCombination = featureCombination.size() > stageDim ? calculateStageDimCombination(pointScores, featureCombination, stageDim) : featureCombination;
+                    featureCombination = featureCombination.size() > stageDim ?
+                            calculateStageDimCombination(pointScores, featureCombination, stageDim) : featureCombination;
                     if(candidateAlreadyProcessed(allFeatureCombinations, featureCombination)) {
                         continue;
                     }
