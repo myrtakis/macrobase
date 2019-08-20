@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import javafx.util.Pair;
+import org.omg.SendingContext.RunTime;
 
 
 public class RefOut extends Explanation {
@@ -193,6 +194,9 @@ public class RefOut extends Explanation {
             for (int i=0; i < candidatesFeatures.size() - 1; i++) {
                 for (int j = i + 1; j < candidatesFeatures.size(); j++) {
                     HashSet<Integer> featureCombination = combineCandFeatures(candidatesFeatures, i, j);
+                    if (featureCombination.size() < stageDim) {
+                        continue;
+                    }
                     featureCombination = featureCombination.size() > stageDim ?
                             calculateStageDimCombination(pointScores, featureCombination, stageDim) : featureCombination;
                     if(candidateAlreadyProcessed(allFeatureCombinations, featureCombination)) {
@@ -257,6 +261,9 @@ public class RefOut extends Explanation {
     }
 
     private HashSet<Integer> calculateStageDimCombination(List<Subspace> pointScores, HashSet<Integer> featureCombination, int stageDim) {
+        if (featureCombination.size() == stageDim) {
+            throw new RuntimeException("This functions is called when feature combination is greater than the stage.");
+        }
         List<Pair<Integer, Double>> oneDimQuality = new ArrayList<>();
         for (int featureId : featureCombination) {
             TupleTwo<double[], double[]> partitions = partitionScores(pointScores, Sets.newHashSet(featureId));
@@ -264,7 +271,7 @@ public class RefOut extends Explanation {
         }
         oneDimQuality.sort(Comparator.comparing(Pair::getValue));
         Collections.reverse(oneDimQuality);
-        HashSet<Integer> bestFeatures = oneDimQuality.stream().map(Pair::getKey).limit(3).collect(Collectors.toCollection(HashSet::new));
+        HashSet<Integer> bestFeatures = oneDimQuality.stream().map(Pair::getKey).limit(stageDim).collect(Collectors.toCollection(HashSet::new));
         return bestFeatures;
     }
 
