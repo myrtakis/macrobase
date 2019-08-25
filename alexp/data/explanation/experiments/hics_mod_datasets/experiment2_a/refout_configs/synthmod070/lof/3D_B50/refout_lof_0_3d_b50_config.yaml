@@ -82,9 +82,9 @@ classifiers:
 explainers:
 - id: "refout"
   parameters:
-    d1: 0.7
+    d1: 0.5
     d2: 3
-    psize: 100
+    psize: 300
     beamSize: 100
     topk: 100
     classifierRunRepeat: 1
