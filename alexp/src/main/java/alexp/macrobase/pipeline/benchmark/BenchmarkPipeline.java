@@ -110,88 +110,170 @@ public class BenchmarkPipeline extends Pipeline {
     }
 
     private void streamingMode() throws Exception {
-        AlgorithmConfig classifierConf = conf.getClassifierConfig();
         // - - - - - - - - - - - - - - - - - - - - - - - - - - //
-        BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
-        StreamGenerator.init();
-        final List<Long> streamTrainTime = new ArrayList<>();
-        final List<Long> streamPredictTime = new ArrayList<>();
-        final List<Long> streamUpdateTime = new ArrayList<>();
-        String rawDataPoint = "";
+        List<List<Long>> streamTrainTimeReps = new ArrayList<>();
+        List<List<Long>> streamPredictTimeReps = new ArrayList<>();
+        List<List<Long>> streamUpdateTimeReps = new ArrayList<>();
+        List<Long> streamMemoryPeakReps = new ArrayList<>();
+        List<DataFrame> streamDFReps = new ArrayList<>();
+        List<DataFrame> streamMIReps = new ArrayList<>();
+        List<StringObjectMap> streamMPReps = new ArrayList<>();
+        List<Double> performanceReps = new ArrayList<>();
+        List<double[]> streamScores = new ArrayList<>();
+        Classifier clf = null;
         // - - - - - - - - - - - - - - - - - - - - - - - - - - //
-        WindowManager wm = new WindowManager(classifierConf, conf.getDatasetConfig()); // Initialize window manager
-        String windowType = wm.getWindowMethod();
-        if (windowType.equals("none")) { // Make sure that the current classifier is streaming classifier.
-            return;
-        }
-        printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
-        if (resultWriter == null) { // Print the classifier information
-            setupResultWriter();
-        }
-        StringObjectMap algorithmParameters = getAlgorithmParameters(classifierConf); // Validate the algorithm parameters
-        if (!algorithmParameters.equals(classifierConf.getParameters())) {
-            out.println(algorithmParameters);
-        }
-        Classifier streamingClassifier = Pipelines.getClassifier( // Build the Streaming Classifier Model
-                classifierConf.getAlgorithmId(),
-                algorithmParameters,
-                conf.getDatasetConfig().getMetricColumns(),
-                conf.getDatasetConfig().getDatasetId()
-        );
-        while (true) { // Iteratively Repeat (Streaming Simulation)
-            if (!wm.windowIsConstructed()) {
-                rawDataPoint = StreamGenerator.fetch(conf.getDatasetConfig().getUri().getPath()); // Read a raw data point from the Stream Generator
-                wm.manage(rawDataPoint); // Obtain the window when the window method invariants are satisfied
-                if (wm.getWindowSize() <= 0) {
-                    break; // Stop streaming simulation when the real size of the window is zero
+        int streaming_reps = 100 ;
+        // Repeat the streaming n times (that is because of non-deterministic algorithms)
+        for (int rep = 0; rep < streaming_reps; rep++) {
+            System.out.println("Streaming mode: ON. REP = " + rep);
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - //
+            DataFrame streamDF;
+            DataFrame streamMI;
+            final List<Long> streamTrainTime = new ArrayList<>();
+            final List<Long> streamPredictTime = new ArrayList<>();
+            final List<Long> streamUpdateTime = new ArrayList<>();
+            BasicMemoryProfiler memoryProfiler = new BasicMemoryProfiler();
+            StreamGenerator.init();
+            String rawDataPoint = "";
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - //
+            AlgorithmConfig classifierConf = conf.getClassifierConfig();
+            printInfo(String.format("Running %s %s on %s", classifierConf.getAlgorithmId(), classifierConf.getParameters(), conf.getDatasetConfig().getUri().getOriginalString()));
+            if (resultWriter == null) { // Print the classifier information
+                setupResultWriter();
+            }
+            StringObjectMap algorithmParameters = getAlgorithmParameters(classifierConf); // Validate the algorithm parameters
+            if (!algorithmParameters.equals(classifierConf.getParameters())) {
+                out.println(algorithmParameters);
+            }
+            WindowManager wm = new WindowManager(classifierConf, conf.getDatasetConfig()); // Initialize window manager
+            String windowType = wm.getWindowMethod();
+            Classifier streamingClassifier = Pipelines.getClassifier( // Build the Streaming Classifier Model
+                    classifierConf.getAlgorithmId(),
+                    algorithmParameters,
+                    conf.getDatasetConfig().getMetricColumns(),
+                    conf.getDatasetConfig().getDatasetId()
+            );
+            clf = streamingClassifier;
+            if (windowType.equals("none")) { // Make sure that the current classifier is streaming classifier.
+                return;
+            }
+            while (true) { // Iteratively Repeat (Streaming Simulation)
+                if (!wm.windowIsConstructed()) {
+
+                    rawDataPoint = StreamGenerator.fetch(conf.getDatasetConfig().getUri().getPath()); // Read a raw data point from the Stream Generator
+
+                    wm.manage(rawDataPoint); // Obtain the window when the window method invariants are satisfied
+
+                    if (wm.getWindowSize() <= 0) {
+                        break; // Stop streaming simulation when the real size of the window is zero
+                    }
+
+                } else {
+
+                    dataFrame = wm.getWindowDF(); // Build the window DataFrame
+
+                    createAutoGeneratedColumns(dataFrame, timeColumn); // Add a time column to the DataFrame
+
+                    streamTrainTime.add(streamingClassifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
+                        ((Trainable) streamingClassifier).train(dataFrame);
+                    }) : 0);
+
+                    streamPredictTime.add(BenchmarkUtils.measureTime(() -> {
+                        streamingClassifier.process(dataFrame);
+                    }));
+
+                    streamUpdateTime.add(streamingClassifier instanceof Updatable ? BenchmarkUtils.measureTime(() -> {
+                        ((Updatable) streamingClassifier).update(dataFrame);
+                    }) : 0);
+
+                    wm.clearWindowData();  // Clear the window data (in order to continue to the next window construction)
+
+                    if (wm.isEndStream()) {
+                        break; // Stop streaming simulation when the generator is empty
+                    }
+
                 }
+            } // End of streaming simulation
+            long streamMemoryPeak = memoryProfiler.getPeakUsage();
+            streamDF = streamingClassifier.getResults();
+            streamMI = streamingClassifier.getModelInfo();
+            if (streamDF != null) {
+                double[] scores = streamDF.getDoubleColumnByName(streamingClassifier.getOutputColumnName());
+                double performance = aucCurve(scores, getLabels(streamDF)).rocArea();
+                streamScores.add(scores);
+                streamTrainTimeReps.add(streamTrainTime);
+                streamPredictTimeReps.add(streamPredictTime);
+                streamUpdateTimeReps.add(streamUpdateTime);
+                streamMemoryPeakReps.add(streamMemoryPeak);
+                streamDFReps.add(streamDF);
+                streamMIReps.add(streamMI);
+                streamMPReps.add(algorithmParameters);
+                performanceReps.add(performance);
             } else {
-                dataFrame = wm.getWindowDF(); // Build the window DataFrame
-                createAutoGeneratedColumns(dataFrame, timeColumn); // Add a time column to the DataFrame
+                break;
+            }
+            // Continue to the next rep..
+        }
+        // Repetitions has been completed.
+        if (!streamDFReps.isEmpty()) {
+            // Calculate the average scores
+            double[] scoresAVG = new double[streamScores.get(0).length];
+            for (int col = 0; col < streamScores.get(0).length; col++) {
+                double colSum = 0;
+                for (double[] streamScore : streamScores) {
+                    colSum += streamScore[col];
+                }
+                scoresAVG[col] = colSum / streaming_reps;
+            }
 
-                streamTrainTime.add(streamingClassifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
-                    ((Trainable) streamingClassifier).train(dataFrame);
-                }) : 0);
-
-                streamPredictTime.add(BenchmarkUtils.measureTime(() -> {
-                    streamingClassifier.process(dataFrame);
-                }));
-
-                streamUpdateTime.add(streamingClassifier instanceof Trainable ? BenchmarkUtils.measureTime(() -> {
-                    ((Updatable) streamingClassifier).update(dataFrame);
-                }) : 0);
-
-                wm.clearWindowData();  // Clear the window data (in order to continue to the next window construction)
-                if (wm.isEndStream()) {
-                    break; // Stop streaming simulation when the generator is empty
+            // Calculate the average performance
+            double performanceAVG = aucCurve(scoresAVG, getLabels(streamDFReps.get(0))).rocArea();
+            // Find the index of the model that its performance is closer to the average performance
+            double[] performanceDistances = new double[performanceReps.size()];
+            for (int idx = 0; idx < performanceReps.size(); idx++) {
+                performanceDistances[idx] = Math.abs(performanceAVG - performanceReps.get(idx));
+            }
+            int avgModelIndex = 0;
+            double minValue = performanceDistances[avgModelIndex];
+            for (int idx = 0; idx < performanceDistances.length; idx++) {
+                if (minValue > performanceDistances[idx]) {
+                    minValue = performanceDistances[idx];
+                    avgModelIndex = idx;
                 }
             }
-        }
-        long streamMemoryUsage = memoryProfiler.getPeakUsage(); // total memory usage (per algorithm)
-        DataFrame streamDF = streamingClassifier.getResults();
-        if (streamDF != null) {
-            // - - - - - - - - - - - - - - - - - - - /
-            double[] scores = streamDF.getDoubleColumnByName(streamingClassifier.getOutputColumnName());
-            int[] labels = getLabels(streamDF);
+            // Find the information of the average model
+            double modelPerformance = performanceReps.get(avgModelIndex);
+            long modelTTime = avg(streamTrainTimeReps.get(avgModelIndex));
+            long modelPTime = avg(streamPredictTimeReps.get(avgModelIndex));
+            long modelUTime = avg(streamUpdateTimeReps.get(avgModelIndex));
+            long modelMPeak = streamMemoryPeakReps.get(avgModelIndex);
+            DataFrame model = streamDFReps.get(avgModelIndex);
+            DataFrame modelInfo = streamMIReps.get(avgModelIndex);
+            StringObjectMap modelParams = streamMPReps.get(avgModelIndex);
+
+            // Write the results of the average model
+            resultWriter.write(model, new ExecutionResult(modelTTime, modelPTime, modelUTime, modelMPeak, conf, modelParams));
+            // Write the model info
+            if (modelInfo != null) {
+                clf.setModelInfo(modelInfo);
+            }
+            // Print results
             printInfo(String.format("" +
                             "Training time: %f sec, " +
                             "Classification time: %f sec, " +
                             "Update time: %f sec, " +
                             "Max memory usage: %d MB, " +
-                            "PR AUC: %s, " +
-                            "ROC AUC: %s",
-                    ((double) avg(streamTrainTime) / 1000.0),
-                    ((double) avg(streamPredictTime) / 1000.0),
-                    ((double) avg(streamUpdateTime) / 1000.0),
-                    (streamMemoryUsage / 1024 / 1024),
-                    String.format("%.4f", aucCurve(scores, labels).prArea()),
-                    String.format("%.4f", aucCurve(scores, labels).rocArea())
+                            "ROC AUC: %.4f",
+                    ((double) modelTTime / 1000.0),
+                    ((double) modelPTime / 1000.0),
+                    ((double) modelUTime / 1000.0),
+                    (modelMPeak / 1024 / 1024),
+                    (modelPerformance)
             ));
-            resultWriter.write(streamDF, new ExecutionResult(avg(streamTrainTime), avg(streamPredictTime), avg(streamUpdateTime),streamMemoryUsage, conf, algorithmParameters));
         } else {
             System.out.println("[Alert] There are no data points processed by the current algorithm");
         }
-        // streaming mode has been completed.
+        // End of streaming mode
     }
 
     private static long avg(List<Long> list) {

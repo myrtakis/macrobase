@@ -8,14 +8,15 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Doubles;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import org.apache.commons.lang3.ArrayUtils;
-
+import org.apache.commons.lang3.StringUtils;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-// last checked: 17/07/2019 - Report: All (debugging and correctness) tests passed!
+// last checked: 23/07/2019 - Report: All (debugging and correctness) tests passed!
 
 public class RCFClassifier extends MultiMetricClassifier implements Trainable, Updatable {
 
@@ -31,21 +32,24 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     private String orderedWindow = "_WINDOW";
     private String treeTag = "_TREE";
     private String featuresTag = "_FEATURES";
+    private String scoresTag = "_SCORES";
+    private int maxNumberOfLeave = 5000;
 
     // Controlling variables:
     private boolean trainable = true;
     private boolean processable = false;
     private boolean updatable = false;
     private List<double[]> trainWindow = new ArrayList<>();
-    private int trainSize = 0;
+    private int trainSizeBuilder = 0;
     private int processWindowCounter = 0;
-    private Multimap<Integer, List<List<Integer>>> pWindowForestFeatures = ArrayListMultimap.create();
+    private Multimap<Integer, Queue<Queue<Integer>>> pWindowForestFeatures = ArrayListMultimap.create();
+    private Multimap<Integer, Queue<double[]>> pWindowForestScores = ArrayListMultimap.create();
 
     // Hyper Parameters:
     private int numTree;            // Number of Trees
-    private int numSub;             // Number of Leaves
+    private int numSub;             // sample size (sampling of each tree in the train size)
+    private int trainSize;          // number of train data
     private int forgetThreshold;    // Threshold (bottom) to apply the forget mechanism
-    private boolean shingle;        // Transform a window of data points into a shingle (one data point).
     private String datasetID;
 
     // Model and Output:
@@ -65,18 +69,17 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
         this.numSub = numSub;
     }
 
-    public void setForgetThreshold(int forgetThreshold) {
-        this.forgetThreshold = forgetThreshold;
+    public void setTrainSize(int trainSize) {
+        this.trainSize = trainSize;
     }
 
-    public void setShingle(boolean shingle) {
-        this.shingle = shingle;
+    public void setForgetThreshold(int forgetThreshold) {
+        this.forgetThreshold = forgetThreshold;
     }
 
     public void setDatasetID(String datasetID) {
         this.datasetID = datasetID;
     }
-
 
 
     // Constructor
@@ -93,30 +96,32 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
      * */
 
     @Override
-    public void train(DataFrame input) {
-        if (trainable) {                                  // RCF model must be initialize only once
+    public void train(DataFrame input) { // RCF model must be initialize only once
+        if (trainable) {
             List<double[]> inputWindow;
-            if (shingle) {
-                inputWindow = shingle((DataFrameUtils.toRowArray(removeOutliers(input), columns)));
-            } else {
-                inputWindow = (DataFrameUtils.toRowArray(removeOutliers(input), columns));
-            }
             // Increment by the size of real input data (inliers + outliers)
-            trainSize += (DataFrameUtils.toRowArray(input, columns)).size();
-            // Add only the inliers into the train window
-            trainWindow.addAll(inputWindow);
-            if (trainSize >= numSub) { // The size of training window must be at least numTree * numSub
-                buildClassifier(trainWindow);
-                System.out.println("Training window size (inliers only): " + trainWindow.size() + " (inliers + outliers): " + trainSize);
-                trainable = false;
-                trainWindow.clear();
-                //System.out.println("==========================================");
-                //System.out.println("============== INITIAL TREE ==============");
-                //System.out.println("==========================================");
-                //printTree(forest.get(0));
-                //System.out.println("==========================================");
+            trainSizeBuilder += (DataFrameUtils.toRowArray(input, columns)).size();
+            if (shingleMode()) {
+                inputWindow = shingleWindow((DataFrameUtils.toRowArray((input), columns)));
+            } else {
+                inputWindow = DataFrameUtils.toRowArray(removeOutliers(input), columns);
             }
+            // Add only the inliers into the train window (protect the efficiency of the algorithm)
+            if(trainWindow.size() < maxNumberOfLeave){
+                trainWindow.addAll(inputWindow);
+            }
+            if (trainSizeBuilder >= trainSize) { // The size of training window must be at least numTree * numSub
+                buildClassifier(trainWindow);
+                System.out.println("Training window size (sample size): " + numSub + " (full size): " + trainSizeBuilder + " (actual size): "+ trainWindow.size());
+                trainWindow.clear();
+                trainable = false;
+                System.out.println("---------------------------");
+                System.out.println("[TRAINED] Number of Nodes = " + forest.get(0).n);
+                System.out.println("---------------------------");
+            }
+
         }
+
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
@@ -178,16 +183,17 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
 
     @Override
     public void update(DataFrame input) {
-        List<double[]> inputWindow;
-        if (shingle) {
-            inputWindow = shingle((DataFrameUtils.toRowArray(input, columns)));
-        } else {
-            inputWindow = (DataFrameUtils.toRowArray(input, columns));
-        }
         if (!trainable) {
+            List<double[]> inputWindow;
+            if (shingleMode()) {
+                inputWindow = shingleWindow((DataFrameUtils.toRowArray(input, columns)));
+            } else {
+                inputWindow = DataFrameUtils.toRowArray(input, columns);
+            }
             if (updatable) {
                 double[] anomalyScores = updateAndScore(inputWindow);
                 outputBuilder(input, anomalyScores);
+
             } else {
                 updatable = true;
             }
@@ -199,34 +205,26 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
     private double[] updateAndScore(List<double[]> window) {
         double[] avgCoDisp = new double[window.size()];
+        double[][] fScores = new double[numTree][window.size()];
+        Queue<double[]> forestScores = new LinkedList<>();
         for (int d = 0; d < window.size(); d++) {
             for (int t = 0; t < numTree; t++) {
                 updateDecision(t, window.get(d));             // Update the tree structure
                 double coDisp = coDispTree(t, window.get(d)); // Compute the collusive displacement of the tree
+                fScores[t][d] = coDisp;
                 avgCoDisp[d] += (coDisp / numTree);           // Compute the collusive displacement of the forest
             }
-            //System.out.println("The Average Collusive Displace of [" + d + "] is = " + avgCoDisp[d]);
         }
+        Collections.addAll(forestScores, fScores);
+        //pWindowForestScores.put(processWindowCounter, forestScores);
         return avgCoDisp;
     }
 
     private void updateDecision(int treeIndex, double[] newDP) {
-        // [UPDATE] REMOVE THE OLDEST LEAF (FIFO)
         if (forest.get(treeIndex).n > forgetThreshold && forest.get(treeIndex) instanceof Branch) {
-            forgetPoint(treeIndex);
-            //System.out.println("==========================================");
-            //System.out.println("============== DELETED TREE ==============");
-            //System.out.println("==========================================");
-            //printTree(forest.get(treeIndex));
-            //System.out.println("==========================================");
+            forgetPoint(treeIndex);    // [UPDATE] REMOVE THE OLDEST LEAF (FIFO)
         }
-        // [UPDATE] INSERT A NEW DATA POINT
-        insertPoint(treeIndex, newDP);
-        //System.out.println("==========================================");
-        //System.out.println("============== INSERTED TREE ==============");
-        //System.out.println("==========================================");
-        //printTree(forest.get(treeIndex));
-        //System.out.println("==========================================");
+        insertPoint(treeIndex, newDP); // [UPDATE] INSERT A NEW DATA POINT
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
@@ -380,29 +378,26 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     public void process(DataFrame input) {
         if (!trainable) {
             if (processable) {
-
                 processWindowCounter++;
-
-                if (shingle) {
-                    System.out.println("Processing (shingle) window size: " + shingle((DataFrameUtils.toRowArray(input, columns))).size());
+                if (shingleMode()) {
+                    //System.out.println("Processing (shingle) window size: " + shingleWindow((DataFrameUtils.toRowArray(input, columns))).size());
                 } else {
-                    System.out.println("Processing window size: " + (DataFrameUtils.toRowArray(input, columns)).size());
+                    //System.out.println("Processing window size: " + (DataFrameUtils.toRowArray(input, columns)).size());
                 }
 
                 // CREATE A MAP OF THE CURRENT WINDOW -> TREES -> FEATURES
-                List<List<Integer>> forestFeatures = new ArrayList<>();
-                for (Node node : forest) {
-                    List<Integer> treeFeatures = new ArrayList<>();
-                    readTreeFeatures(node, treeFeatures);
-                    forestFeatures.add(treeFeatures);
-                }
-                pWindowForestFeatures.put(processWindowCounter, forestFeatures);
-
-
+                //Queue<Queue<Integer>> forestFeatures = new LinkedList<>();
+                //for (Node node : forest) {
+                    //Queue<Integer> treeFeatures = new LinkedList<>();
+                    //readTreeFeatures(node, treeFeatures);
+                    //forestFeatures.add(treeFeatures);
+                //}
+                //pWindowForestFeatures.put(processWindowCounter, forestFeatures);
             } else {
                 processable = true;
             }
         }
+
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
@@ -450,43 +445,88 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
     @Override
     public DataFrame getResults() {
         System.out.println("Resulting the final output..");
-        /*
-        System.out.println("======================== DATA POINTS ==========================");
-        double[] dps = output.getDoubleColumnByName(labelColumnName);
-        System.out.println("Total Data Points = " + dps.length);
-        System.out.println("---------------------------------------------------------------");
-        for (double g : dps) {
-            System.out.println(g);
-        }
-        System.out.println("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
-        double[] datas = output.getDoubleColumnByName("d1");
-        for (double dddd : datas) {
-            System.out.println(dddd);
-        }
-        System.out.println("===============================================================");
-        */
+        return output;
+    }
 
-        /*
-        System.out.println("======================= ANOMALY SCORES ========================");
-        double[] results = output.getDoubleColumnByName(outputColumnName);
-        System.out.println("Total Scores = " + results.length);
-        System.out.println("---------------------------------------------------------------");
-        for (double r : results) {
-            System.out.println(r);
+    /*
+
+    @Override
+    public DataFrame getModelInfo() {
+        String seperatorSTR = ";";
+        DataFrame infoDF = new DataFrame();
+        List<Integer> windowIDs = new ArrayList<>();
+        List<Integer> treeIDs = new ArrayList<>();
+        List<String> selectedFeatures = new ArrayList<>();
+        List<String> selectedScores = new ArrayList<>();
+        Set<Integer> windowsID = pWindowForestFeatures.keySet();
+        for (Integer wID : windowsID) {
+            // SELECTED SCORES BUILDER
+            Collection<Queue<double[]>> wIDCollectionScores = pWindowForestScores.get(wID);
+            for (Queue<double[]> forestScores : wIDCollectionScores) {
+                for (double[] treeScores : forestScores) {
+                    selectedScores.add(StringUtils.join(ArrayUtils.toObject(treeScores), seperatorSTR));
+                }
+            }
+            // SELECTED FEATURES BUILDER
+            Collection<Queue<Queue<Integer>>> wIDCollectionFeatures = pWindowForestFeatures.get(wID);
+            for (Queue<Queue<Integer>> forestFeatures : wIDCollectionFeatures) {
+                int treeID = 1;
+                for (Queue<Integer> treeFeatures : forestFeatures) {
+                    String features = Joiner.on(seperatorSTR).join(treeFeatures);
+                    windowIDs.add(wID);
+                    treeIDs.add(treeID);
+                    selectedFeatures.add(features);
+                    treeID += 1;
+                }
+            }
         }
-        System.out.println("===============================================================");
-        */
-        // EXPORT THE WINDOW/TREES/FEATURES INTO A CSV
+        infoDF.addColumn(orderedWindow, windowIDs.stream().mapToDouble(d -> d).toArray());
+        infoDF.addColumn(treeTag, treeIDs.stream().mapToDouble(d -> d).toArray());
+        infoDF.addColumn(featuresTag, selectedFeatures.toArray(new String[0]));
+        infoDF.addColumn(scoresTag, selectedScores.toArray(new String[0]));
+        return infoDF;
+    }
+
+    @Override
+    public void setModelInfo(DataFrame infoDF) {
         try {
-            String loggerWindowForestFeaturesPath = "./alexp/output/rrcf#" + beautifyDatasetID() + "#windowForestFeatures.csv";
-            logger_tree_features_csv(loggerWindowForestFeaturesPath);
-            System.out.println("[Logger] The Window/Trees/Features information has been exported at "+loggerWindowForestFeaturesPath+"...");
+            String appendSTR = ",";
+            String path = "./alexp/output/rrcf#" + beautifyDatasetID() + "#model.csv";
+            FileWriter csvWriter = new FileWriter(path);
+            csvWriter.append(orderedWindow);
+            csvWriter.append(appendSTR);
+            csvWriter.append(treeTag);
+            csvWriter.append(appendSTR);
+            csvWriter.append(featuresTag);
+            csvWriter.append(appendSTR);
+            csvWriter.append(scoresTag);
+            csvWriter.append("\n");
+            double[] windows = infoDF.getDoubleColumnByName(orderedWindow);
+            double[] trees = infoDF.getDoubleColumnByName(treeTag);
+            String[] forestFeatures = infoDF.getStringColumnByName(featuresTag);
+            String[] forestScores = infoDF.getStringColumnByName(scoresTag);
+            for (int row = 0; row < forestScores.length; row++) {
+                csvWriter.append(String.valueOf(windows[row])).append(appendSTR).append(String.valueOf(trees[row])).append(appendSTR).append(forestFeatures[row]).append(appendSTR).append(forestScores[row]);
+                csvWriter.append("\n");
+            }
+            csvWriter.flush();
+            csvWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        return output;
     }
+ */
+
+
+    public DataFrame getModelInfo() {
+        return new DataFrame();
+    }
+
+    public void setModelInfo(DataFrame infoDF) {
+    }
+
+
+
 
     // =============================================================================================================== //
     // - - - - - - - - - - - - - - - - - - - - SUB-METHODS OF THE RRCF ALGORITHM - - - - - - - - - - - - - - - - - - - //
@@ -783,50 +823,24 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
         }
     }
 
-    private List<double[]> shingle(List<double[]> window) {
-        int windowSize = window.size();
-        int dimensions = window.get(0).length;
-        int shingleSize = windowSize * dimensions;
-        double[] shingleWindow = new double[shingleSize];
-        int counter = 0;
-        for (double[] point : window) {
-            for (double dimValue : point) {
-                shingleWindow[counter++] = dimValue;
-            }
-        }
-        List<double[]> res = new ArrayList<>();
-        res.add(shingleWindow);
-        return res;
+    private boolean shingleMode() {
+        // Shingle can only be applied on univariate data set. Fore more info, please read the RRCF paper.
+        return columns.length <= 1;
     }
 
-    private List<double[]> normWindow(List<double[]> window) {
-        int winSize = window.size();
-        if (winSize > 1) {
-            // 1. Find minimum/maximum value per dimension
-            double[] dimsMax = new double[window.get(0).length];
-            double[] dimsMin = new double[window.get(0).length];
-            for (double[] dp : window) { // for each point
-                for (int d = 0; d < dp.length; d++) { // for each dimension
-                    if (dimsMax[d] < dp[d]) {
-                        dimsMax[d] = dp[d];
-                    }
-                    if (dimsMin[d] > dp[d]) {
-                        dimsMin[d] = dp[d];
-                    }
-                }
+    private List<double[]> shingleWindow(List<double[]> window) {
+        // The entire window must be transformed in a shingle!
+        int windowL = window.size();
+        List<double[]> shingles = new ArrayList<>();
+        if (windowL > 0) {
+            double[] shinglePoint = new double[windowL];
+            for (int i = 0; i < windowL; i++) {
+                shinglePoint[i] = window.get(i)[0];
             }
-            // 2. Normalize the window using the max value per dimension
-            List<double[]> normalizedWindow = new ArrayList<>();
-            for (double[] dp : window) {
-                double[] normdp = new double[dp.length];
-                for (int d = 0; d < dp.length; d++) {
-                    normdp[d] = ((dp[d] - dimsMin[d]) / (dimsMax[d] - dimsMin[d]));
-                }
-                normalizedWindow.add(normdp);
-            }
-            return normalizedWindow;
+            shingles.add(shinglePoint);
+            return shingles;
         } else {
-            return window;
+            return new ArrayList<>();
         }
     }
 
@@ -852,36 +866,12 @@ public class RCFClassifier extends MultiMetricClassifier implements Trainable, U
         return df_new;
     }
 
-    private void readTreeFeatures(Node node, List<Integer> treeFeatures) {
+    private void readTreeFeatures(Node node, Queue<Integer> treeFeatures) {
         if (node instanceof Branch) {
             treeFeatures.add(((Branch) node).q);
             readTreeFeatures(((Branch) node).r, treeFeatures);
             readTreeFeatures(((Branch) node).l, treeFeatures);
         }
-    }
-
-    private void logger_tree_features_csv(String loggerWindowForestFeaturesPath) throws IOException {
-        FileWriter csvWriter = new FileWriter(loggerWindowForestFeaturesPath);
-        csvWriter.append(orderedWindow);
-        csvWriter.append(",");
-        csvWriter.append(treeTag);
-        csvWriter.append(",");
-        csvWriter.append(featuresTag);
-        csvWriter.append("\n");
-        Set<Integer> windowsID = pWindowForestFeatures.keySet();
-        for (Integer wID : windowsID) {
-            Collection<List<List<Integer>>> wIDCollection = pWindowForestFeatures.get(wID);
-            for (List<List<Integer>> forestFeatures : wIDCollection) {
-                for (int treeIndex = 0; treeIndex < forestFeatures.size(); treeIndex++) {
-                    int treeID = treeIndex + 1;
-                    String features = Joiner.on(';').join(forestFeatures.get(treeIndex));
-                    csvWriter.append(String.valueOf(wID)).append(", ").append(String.valueOf(treeID)).append(", ").append(features);
-                    csvWriter.append("\n");
-                }
-            }
-        }
-        csvWriter.flush();
-        csvWriter.close();
     }
 
     private void printTree(Node node) {

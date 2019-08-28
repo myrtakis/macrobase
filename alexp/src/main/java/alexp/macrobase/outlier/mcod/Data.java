@@ -9,6 +9,7 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
 
     public double[] values;
     private final int hashCode;
+    public double criterion;
 
     private int arrivalTime;
 
@@ -28,6 +29,11 @@ public class Data implements DistanceFunctions.EuclideanCoordinate, Comparable<D
 
     public int arrivalTime() {
         return arrivalTime;
+    }
+
+
+    public void setArrivalTime(int arrivalTime){
+        this.arrivalTime = arrivalTime;
     }
 
     @Override

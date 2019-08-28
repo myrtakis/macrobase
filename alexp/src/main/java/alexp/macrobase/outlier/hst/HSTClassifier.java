@@ -10,12 +10,14 @@ import com.google.common.collect.Multimap;
 import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
 import javafx.util.Pair;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-// last checked: 18/07/2019 - Report: All (debugging and correctness) tests passed!
+
+// last checked: 02/08/2019 - Report: All (debugging and correctness) tests passed!
 
 public class HSTClassifier extends MultiMetricClassifier implements Trainable, Updatable {
 
@@ -28,6 +30,7 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     private String orderedWindow = "_WINDOW";
     private String treeTag = "_TREE";
     private String featuresTag = "_FEATURES";
+    private String scoresTag = "_SCORES";
     private double inlierScore = -1.0;
 
     // Node controlling variables:
@@ -35,12 +38,13 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     private boolean processable = false;
     private boolean updatable = false;
     private List<double[]> referenceWindow = new ArrayList<>();
-    private int trainSize = 0;
+    private int trainSizeBuilder = 0;
     private int latestWindowCounter = 0;
 
     // Hyper parameters:
     private int numTree;            // Number of Half Space Trees
-    private int numSub;             // Sub sample size
+    private int numSub;             // Sub sample size (sampling of each tree in the train size)
+    private int trainSize;          // train size
     private int numDim;             // Sub dimensional size
     private int depthLimit;         // Maximum depth limitation
     private int forgetThreshold;    // Threshold (bottom) to apply the forget mechanism
@@ -50,7 +54,8 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     // Model and Output:
     private List<Node> forest = new ArrayList<>();
     private DataFrame output;
-    private Multimap<Integer, List<List<Integer>>> pWindowForestFeatures = ArrayListMultimap.create();
+    private Multimap<Integer, Queue<Queue<Integer>>> pWindowForestFeatures = ArrayListMultimap.create();
+    private Multimap<Integer, Queue<double[]>> pWindowForestScores = ArrayListMultimap.create();
 
     // Setters & Getters:
     public void setNumTree(int numTree) {
@@ -61,6 +66,10 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         this.numSub = numSub;
     }
 
+    public void setTrainSize(int trainSize) {
+        this.trainSize = trainSize;
+    }
+
     public void setNumDim(int numDim) {
         this.numDim = numDim;
     }
@@ -69,7 +78,9 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         this.depthLimit = depthLimit;
     }
 
-    public void setDatasetID(String datasetID){ this.datasetID = datasetID; }
+    public void setDatasetID(String datasetID) {
+        this.datasetID = datasetID;
+    }
 
     public void setForgetThreshold(int forgetThreshold) {
         this.forgetThreshold = forgetThreshold;
@@ -94,20 +105,18 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     public void train(DataFrame input) {
         if (trainable) {
             // Increment by the size of real input data (inliers + outliers)
-            trainSize += (DataFrameUtils.toRowArray(input, columns)).size();
+            trainSizeBuilder += (DataFrameUtils.toRowArray(input, columns)).size();
             // Add only the inliers into the reference window
             referenceWindow.addAll((DataFrameUtils.toRowArray(removeOutliers(input), columns)));
-            if (trainSize >= numSub) { // The size of ref window must be at least numTree * numSub.
-                System.out.println("Reference window size (inliers only): " + referenceWindow.size() + " (inliers + outliers): " + trainSize);
+            if (trainSizeBuilder >= trainSize) { // The size of ref window must be at least numTree * numSub.
+                System.out.println("Training window size (sample size): " + numSub + " (full size): " + trainSizeBuilder + " (actual size): "+referenceWindow.size());
                 //System.out.println("Reference Window Size: " + referenceWindowSize);
                 buildClassifier(referenceWindow); // train an Node forest.
-                //System.out.println("==========================================");
-                //System.out.println("============== INITIAL TREE ==============");
-                //System.out.println("==========================================");
-                //printTree(forest.get(0));
-                //System.out.println("==========================================");
                 trainable = false; // the Node is not any more trainable.
                 referenceWindow.clear(); // flush the reference window from the memory.
+                System.out.println("---------------------------");
+                System.out.println("[TRAINED] Mass Size = " + forest.get(0).size);
+                System.out.println("---------------------------");
             }
         }
     }
@@ -185,17 +194,16 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
                 latestWindowCounter++;
                 double[] scores = anomalyDetection(inputWindow);
                 outputBuilder(input, scores);
-                System.out.println("Processing window size: " + inputWindow.size());
+                //System.out.println("Processing window size: " + inputWindow.size());
 
                 // CREATE A MAP OF THE CURRENT WINDOW -> TREES -> FEATURES
-                List<List<Integer>> forestFeatures = new ArrayList<>();
-                for (Node node : forest) {
-                    List<Integer> treeFeatures = new ArrayList<>();
-                    readTreeFeatures(node, treeFeatures);
-                    forestFeatures.add(treeFeatures);
-                }
-                pWindowForestFeatures.put(latestWindowCounter, forestFeatures);
-
+                 //Queue<Queue<Integer>> forestFeatures = new LinkedList<>();
+                 //for (Node node : forest) {
+                  //Queue<Integer> treeFeatures = new LinkedList<>();
+                  //readTreeFeatures(node, treeFeatures);
+                  //forestFeatures.add(treeFeatures);
+                  //}
+                 //.put(latestWindowCounter, forestFeatures);
             } else {
                 processable = true;
             }
@@ -219,6 +227,7 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         if (contamination < 1.0) {
             return scoreContaminator(scoreAccumulator(windowForestScores));
         } else {
+            //pWindowForestScores.put(latestWindowCounter, new LinkedList<>(windowForestScores));
             return scoreAccumulator(windowForestScores);
         }
     }
@@ -269,12 +278,11 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     }
 
     private double[] scoreAccumulator(List<double[]> massForest) {
-        int massTrees = massForest.size();
         int instances = massForest.get(0).length;
         double[] scores = new double[instances];
-        for (int i = 0; i < instances; i++) { // for each data point (instance)
-            for (int t = 0; t < massTrees; t++) {  // for each HS-Tree
-                scores[i] += massForest.get(t)[i]; // final score for i is the "SUM OF THE SCORES OBTAINED FROM EACH HS-TREE" in the ensemble.
+        for (int i = 0; i < instances; i++) {       // for each data point (instance)
+            for (double[] massTree : massForest) {  // for each HS-Tree
+                scores[i] += massTree[i];           // final score for i is the "SUM OF THE SCORES OBTAINED FROM EACH HS-TREE" in the ensemble.
             }
         }
         return scores;
@@ -317,11 +325,6 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         if (!trainable) {
             if (updatable) {
                 massUpdate(inputWindow); // Update the mass profiles using the current data points.
-                //System.out.println("==========================================");
-                //System.out.println("============== UPDATED TREE ==============");
-                //System.out.println("==========================================");
-                //printTree(forest.get(0));
-                //System.out.println("==========================================");
             } else {
                 updatable = true;
             }
@@ -429,31 +432,121 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
                 contaminatedDF(); // keep only the contaminated data points.
             }
         }
-        /*
-        System.out.println("======================== DATA POINTS ===========================");
-        double[] data1 = output.getDoubleColumnByName("d1");
-        for (int i = 0; i < data1.length; i++) {
-            System.out.println(data1[i]);
-        }
-        System.out.println("======================= ANOMALY SCORES ========================");
-        double[] results = output.getDoubleColumnByName(outputColumnName);
-        for (double r : results) {
-            System.out.println(r);
-        }
-        System.out.println("===============================================================");
-        */
+        return output;
+    }
 
-        // EXPORT THE WINDOW/TREES/FEATURES INTO A CSV
+
+/*
+    @Override
+    public DataFrame getModelInfo() {
+        String seperatorSTR = ";";
+        DataFrame infoDF = new DataFrame();
+        List<Integer> windowIDs = new ArrayList<>();
+        List<Integer> treeIDs = new ArrayList<>();
+        List<String> selectedFeatures = new ArrayList<>();
+        List<String> selectedScores = new ArrayList<>();
+        Set<Integer> windowsID = pWindowForestFeatures.keySet();
+        for (Integer wID : windowsID) {
+            // SELECTED SCORES BUILDER
+            Collection<Queue<double[]>> wIDCollectionScores = pWindowForestScores.get(wID);
+            for (Queue<double[]> forestScores : wIDCollectionScores) {
+                // find the max score of forest
+                double forestScoreMax = forestScores.element()[0];
+                for (double[] treeScores : forestScores) {
+                    double treeScoreMax = Arrays.stream(treeScores).max().getAsDouble();
+                    if (forestScoreMax < treeScoreMax) {
+                        forestScoreMax = treeScoreMax;
+                    }
+                }
+                // reverse the scores of each tree
+                for (double[] treeScores : forestScores) {
+                    for (int i = 0; i < treeScores.length; i++) {
+                        if (treeScores[i] != inlierScore) {
+                            treeScores[i] = (forestScoreMax - treeScores[i]);
+                        }
+                    }
+                }
+                // append the scores to a list
+                for (double[] treeScores : forestScores) {
+                    selectedScores.add(StringUtils.join(ArrayUtils.toObject(treeScores), seperatorSTR));
+                }
+            }
+
+            // SELECTED FEATURES BUILDER
+            Collection<Queue<Queue<Integer>>> wIDCollectionFeatures = pWindowForestFeatures.get(wID);
+            for (Queue<Queue<Integer>> forestFeatures : wIDCollectionFeatures) {
+                int treeID = 1;
+                for (Queue<Integer> treeFeatures : forestFeatures) {
+                    String features = Joiner.on(seperatorSTR).join(treeFeatures);
+                    windowIDs.add(wID);
+                    treeIDs.add(treeID);
+                    selectedFeatures.add(features);
+                    treeID += 1;
+                }
+            }
+
+        }
+        infoDF.addColumn(orderedWindow, windowIDs.stream().mapToDouble(d -> d).toArray());
+        infoDF.addColumn(treeTag, treeIDs.stream().mapToDouble(d -> d).toArray());
+        infoDF.addColumn(featuresTag, selectedFeatures.toArray(new String[0]));
+        infoDF.addColumn(scoresTag, selectedScores.toArray(new String[0]));
+        return infoDF;
+    }
+
+
+
+
+    @Override
+    public void setModelInfo(DataFrame infoDF) {
         try {
-            String loggerWindowForestFeaturesPath = "./alexp/output/hst#"+beautifyDatasetID()+"#windowForestFeatures.csv";
-            logger_tree_features_csv(loggerWindowForestFeaturesPath);
-            System.out.println("[Logger] The Window/Trees/Features information has been exported at "+loggerWindowForestFeaturesPath+"...");
+            String appendSTR = ",";
+            String versionHST;
+            if (forgetThreshold <= 0) {
+                versionHST = "hst";
+            } else {
+                versionHST = "hstf";
+            }
+            String path = "./alexp/output/" + versionHST + "#" + beautifyDatasetID() + "#model.csv";
+            FileWriter csvWriter = new FileWriter(path);
+            csvWriter.append(orderedWindow);
+            csvWriter.append(appendSTR);
+            csvWriter.append(treeTag);
+            csvWriter.append(appendSTR);
+            csvWriter.append(featuresTag);
+            csvWriter.append(appendSTR);
+            csvWriter.append(scoresTag);
+            csvWriter.append("\n");
+
+            System.out.println("aaaaaaa");
+            double[] windows = infoDF.getDoubleColumnByName(orderedWindow);
+            double[] trees = infoDF.getDoubleColumnByName(treeTag);
+            String[] forestFeatures = infoDF.getStringColumnByName(featuresTag);
+            String[] forestScores = infoDF.getStringColumnByName(scoresTag);
+            for (int row = 0; row < windows.length; row++) {
+                csvWriter.append(String.valueOf(windows[row])).append(appendSTR).append(String.valueOf(trees[row])).append(appendSTR).append(forestFeatures[row]).append(appendSTR).append(forestScores[row]);
+                csvWriter.append("\n");
+            }
+            csvWriter.flush();
+            csvWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        return output;
     }
+
+*/
+
+    @Override
+    public DataFrame getModelInfo(){
+        return new DataFrame();
+    }
+
+    @Override
+    public void setModelInfo(DataFrame infoDF){
+
+    }
+
+
+
 
     private void scoreReverser() {
         DataFrame tempDF = new DataFrame();
@@ -530,7 +623,6 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
     // =============================================================================================================== //
     // - - - - - - - - - - - - - - - - - - - - SUB  METHODS OF THE HST ALGORITHM - - - - - - - - - - - - - - - - - - - //
     // =============================================================================================================== //
-
     private String beautifyDatasetID() {
         List<String> collapsedID = Arrays.asList(datasetID.split("/"));
         return collapsedID.get(collapsedID.size() - 1).replace(".csv", "");
@@ -625,36 +717,12 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
         return guidelines;
     }
 
-    private void readTreeFeatures(Node node, List<Integer> treeFeatures) {
+    private void readTreeFeatures(Node node, Queue<Integer> treeFeatures) {
         if (node.nodeStatus == 1) {
             treeFeatures.add(node.splitAttribute);
             readTreeFeatures(node.rightChild, treeFeatures);
             readTreeFeatures(node.leftChild, treeFeatures);
         }
-    }
-
-    private void logger_tree_features_csv(String loggerWindowForestFeaturesPath) throws IOException {
-        FileWriter csvWriter = new FileWriter(loggerWindowForestFeaturesPath);
-        csvWriter.append(orderedWindow);
-        csvWriter.append(",");
-        csvWriter.append(treeTag);
-        csvWriter.append(",");
-        csvWriter.append(featuresTag);
-        csvWriter.append("\n");
-        Set<Integer> windowsID = pWindowForestFeatures.keySet();
-        for (Integer wID : windowsID) {
-            Collection<List<List<Integer>>> wIDCollection = pWindowForestFeatures.get(wID);
-            for (List<List<Integer>> forestFeatures : wIDCollection) {
-                for (int treeIndex = 0; treeIndex < forestFeatures.size(); treeIndex++) {
-                    int treeID = treeIndex + 1;
-                    String features = Joiner.on(';').join(forestFeatures.get(treeIndex));
-                    csvWriter.append(String.valueOf(wID)).append(", ").append(String.valueOf(treeID)).append(", ").append(features);
-                    csvWriter.append("\n");
-                }
-            }
-        }
-        csvWriter.flush();
-        csvWriter.close();
     }
 
     private DataFrame removeOutliers(DataFrame df) {
@@ -688,6 +756,5 @@ public class HSTClassifier extends MultiMetricClassifier implements Trainable, U
             printTree(node.leftChild);
         }
     }
-
 
 }

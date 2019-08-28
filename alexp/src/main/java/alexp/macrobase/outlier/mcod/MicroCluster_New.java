@@ -12,16 +12,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Luan
+ * @author Luan https://infolab.usc.edu/Luan/Outlier/TimeBasedWindow/DODDS/src/outlierdetection/
  */
 public class MicroCluster_New {
-    
-    private double maxDistance = 1; // R in paper
-    private int minNeighborCount = 30; // k in paper
-    private int windowSize = 1000; // W in paper
-    private int slide = 500;
 
-    private boolean allowDuplicates = false;
+    private double maxDistance;   // R in paper
+    private int minNeighborCount; // k in paper
+    private int windowSize;       // W in paper
+    private int slide;
+
+    private boolean allowDuplicates;
 
     private HashMap<Integer, MCO> dataList_set = new HashMap<>();
     private HashMap<Integer, ArrayList<MCO>> micro_clusters = new HashMap<>();
@@ -50,9 +50,9 @@ public class MicroCluster_New {
             for (int i = dataList.size() - 1; i >= 0; i--) {
                 MCO d = dataList.get(i);
                 if (d.arrivalTime() <= currentTime - windowSize) {
-                    //remove d from data List 
+                    //remove d from data List
                     dataList.remove(i);
-                    //if d is in cluster 
+                    //if d is in cluster
                     if (d.isInCluster) {
                         removeFromCluster(d);
                     }
@@ -74,14 +74,14 @@ public class MicroCluster_New {
         }
 
         data.forEach(this::processNewData);
-        printStatistic();
+        //printStatistic();
         return new ArrayList<>(outlierList);
     }
 
     private void printStatistic() {
-//        System.out.println("#points in clusters = " + micro_clusters.values().stream().mapToInt(ArrayList::size).sum());
-//        System.out.println("#points in event queue = " + eventQueue.size());
-//        System.out.println("avg neighborList length = " + PD.stream().mapToInt(p -> p.exps.size()).average().getAsDouble());
+        System.out.println("#points in clusters = " + micro_clusters.values().stream().mapToInt(ArrayList::size).sum());
+        System.out.println("#points in event queue = " + eventQueue.size());
+        System.out.println("avg neighborList length = " + PD.stream().mapToInt(p -> p.exps.size()).average().getAsDouble());
     }
 
     private void removeFromCluster(MCO d) {
@@ -116,7 +116,7 @@ public class MicroCluster_New {
         PD.remove(d);
 //        mtree.remove(d);
 
-        //if d is in outlier list 
+        //if d is in outlier list
         if (d.numberOfSucceeding + d.exps.size() < minNeighborCount) {
             outlierList.remove(d);
         }
@@ -180,18 +180,18 @@ public class MicroCluster_New {
         clusters.stream()
                 .map((center_id) -> micro_clusters.get(center_id))
                 .forEach((points) -> {
-            points.stream()
-                    .filter((p) -> (isNeighbor(p, o)))
-                    .forEach((p) -> {
-                if (isSameSlide(o, p) <= 0) {
-                    //o is preceding neighbor
-                    o.numberOfSucceeding++;
-                } else {
-                    //p is preceeding neighbor
-                    o.exps.add(p.arrivalTime() + windowSize);
-                }
-            });
-        });
+                    points.stream()
+                            .filter((p) -> (isNeighbor(p, o)))
+                            .forEach((p) -> {
+                                if (isSameSlide(o, p) <= 0) {
+                                    //o is preceding neighbor
+                                    o.numberOfSucceeding++;
+                                } else {
+                                    //p is preceeding neighbor
+                                    o.exps.add(p.arrivalTime() + windowSize);
+                                }
+                            });
+                });
 
         //keep minNeighborCount-numberofSucceedingNeighbor of o
         checkInlier(o);
@@ -241,7 +241,7 @@ public class MicroCluster_New {
         dataList.add(d);
 
         int nearest_center_id = findNearestCenter(d);
-        double min_distance = Double.MAX_VALUE;
+        double min_distance = maxDistance;
         if (nearest_center_id > -1) { //found neareast cluster
             min_distance = mtree.getDistanceFunction().
                     calculate(dataList_set.get(nearest_center_id), d);
@@ -278,20 +278,20 @@ public class MicroCluster_New {
         PD.stream()
                 .filter((inPD) -> (inPD.Rmc.contains(nearest_center_id)))
                 .forEach((inPD) -> {
-            //check if inPD is neighbor of d
-            double distance = mtree.getDistanceFunction().calculate(d, inPD);
-            if (distance <= maxDistance) {
-                if (isSameSlide(d, inPD) == -1) {
-                    inPD.exps.add(d.arrivalTime() + windowSize);
-                } else {
-                    inPD.numberOfSucceeding++;
-                }
-                //mark inPD has checked with d
+                    //check if inPD is neighbor of d
+                    double distance = mtree.getDistanceFunction().calculate(d, inPD);
+                    if (distance <= maxDistance) {
+                        if (isSameSlide(d, inPD) == -1) {
+                            inPD.exps.add(d.arrivalTime() + windowSize);
+                        } else {
+                            inPD.numberOfSucceeding++;
+                        }
+                        //mark inPD has checked with d
 //                    addToHashMap(inPD.arrivalTime(),d.arrivalTime());
-                //check if inPD become inlier
-                checkInlier(inPD);
-            }
-        });
+                        //check if inPD become inlier
+                        checkInlier(inPD);
+                    }
+                });
     }
 
     private ArrayList<MCO> findNeighborR2InPD(MCO d) {
@@ -381,6 +381,8 @@ public class MicroCluster_New {
         } else {
             eventQueue.remove(inPD);
             if (!allowDuplicates || !outlierList.contains(inPD)) {
+                //System.out.println("[1] OUTLIER CASE!");
+                inPD.criterion = inPD.exps.size() + inPD.numberOfSucceeding;
                 outlierList.add(inPD);
             }
         }
@@ -406,6 +408,9 @@ public class MicroCluster_New {
                 }
             }
             if (x.exps.size() + x.numberOfSucceeding < minNeighborCount) {
+
+                //System.out.println("[2] OUTLIER CASE!");
+                x.criterion = x.exps.size() + x.numberOfSucceeding;
 
                 outlierList.add(x);
 
