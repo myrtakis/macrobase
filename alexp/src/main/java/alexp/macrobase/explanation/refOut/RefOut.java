@@ -3,6 +3,7 @@ package alexp.macrobase.explanation.refOut;
 import alexp.macrobase.explanation.Explanation;
 import alexp.macrobase.explanation.hics.statistics.tests.GoodnessOfFitTest;
 import alexp.macrobase.explanation.hics.statistics.tests.WelchTTest;
+import alexp.macrobase.explanation.utils.RandomFactory;
 import alexp.macrobase.explanation.utils.Subspace;
 import alexp.macrobase.explanation.utils.datastructures.heap.Heap;
 import alexp.macrobase.explanation.utils.datastructures.heap.TopBoundedHeap;
@@ -31,6 +32,11 @@ public class RefOut extends Explanation {
     private int     topk;
 
     GoodnessOfFitTest statTest = new WelchTTest();
+
+    /**
+     * Random generator.
+     */
+    private RandomFactory rnd = new RandomFactory((long)0);
 
     /**
      * The output DataFrame.
@@ -134,10 +140,11 @@ public class RefOut extends Explanation {
         HashSet<Subspace> P1 = new HashSet<>(psize);
         int card = getDatasetDimensionality();
         double poolSubspaceDim = Math.ceil(card * d1);
+        Random rand = rnd.getSingleThreadedRandom();
         while(P1.size() < psize) {
             HashSet<Integer> randFeatures = new HashSet<>();
             while (randFeatures.size() < poolSubspaceDim) {
-                randFeatures.add(new Random().nextInt(card));
+                randFeatures.add(rand.nextInt(card));
             }
             Subspace newRandSubspace = new Subspace(randFeatures);
             P1.add(newRandSubspace);

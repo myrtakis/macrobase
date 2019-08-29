@@ -58,9 +58,9 @@ def iforest(dataframe, params, repeats):
         clf = IsolationForest(n_estimators=int(params['treesCount']), max_samples=int(params['subsampleSize']), behaviour='new', contamination='auto')
         clf.fit(dataframe)
         if scores is None:
-            scores = clf.decision_function(dataframe)
+            scores = clf.score_samples(dataframe)
         else:
-            scores = scores + clf.decision_function(dataframe)
+            scores = scores + clf.score_samples(dataframe)
     scores = -scores
     return scores / repeats
 
