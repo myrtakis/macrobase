@@ -36,7 +36,7 @@ dataset:
 classifiers:
 - id: "fast_abod"
   parameters:
-    n_neighbors: 10
+    n_neighbors: 15
 
 explainers:
 - id: "beam"
