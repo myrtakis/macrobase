@@ -50,3 +50,5 @@ conf/custom/
 
 # Profiler
 .profiler/
+
+!.idea/
