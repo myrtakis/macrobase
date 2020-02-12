@@ -1,5 +1,5 @@
 dataset:
-  uri: "csv://alexp/data/explanation/refout_datasets/breast_diag_lof.csv"
+  uri: "csv://alexp/data/explanation/refout_datasets/mod/breast_diag_lof_mod.csv"
   metricColumns:
   - "var_0000"
   - "var_0001"
@@ -44,4 +44,4 @@ explainers:
     budget: 100
     dimensionality: 4
     classifierRunRepeat: 1
-settingsConfigPath: "alexp/data/explanation/refout_datasets_settings/python_classifier/refout_lof_030_010_python.yaml"
+settingsConfigPath: "alexp/data/explanation/refout_datasets_settings/python_classifier/refout_lof_breast_diag_lof_mod_python.yaml"
