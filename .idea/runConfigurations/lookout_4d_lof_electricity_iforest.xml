@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="lookout_4d_lof_electricity_iforest" type="Application" factoryName="Application" folderName="LookOut_Electricity_lof" singleton="false">
+    <option name="MAIN_CLASS_NAME" value="alexp.macrobase.Benchmark" />
+    <module name="macrobase-alexp" />
+    <option name="PROGRAM_PARAMETERS" value="-b alexp/data/explanation/experiments/refout_datasets/experiment1_a/lookout_configs/electricity_lof_mod/4D_B50/iforest --e --so alexp/explanationExp/refout_datasets/mod/experiment1_a" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="alexp.macrobase.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
