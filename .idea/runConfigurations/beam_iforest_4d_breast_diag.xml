@@ -2,7 +2,7 @@
   <configuration default="false" name="beam_iforest_4d_breast_diag" type="Application" factoryName="Application" folderName="Beam_Breast_Diag_mod" singleton="false">
     <option name="MAIN_CLASS_NAME" value="alexp.macrobase.Benchmark" />
     <module name="macrobase-alexp" />
-    <option name="PROGRAM_PARAMETERS" value="-b alexp/data/explanation/experiments/refout_datasets/experiment2_a/beam_configs/breast_diag/4D_B50/iforest --e --so alexp/explanationExp/refout_datasets/mod/experiment2_a" />
+    <option name="PROGRAM_PARAMETERS" value="-b alexp/data/explanation/experiments/refout_datasets/experiment2_a/beam_configs/breast_diag_lof_mod/4D_B50/iforest --e --so alexp/explanationExp/refout_datasets/mod/experiment2_a" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="alexp.macrobase.*" />
