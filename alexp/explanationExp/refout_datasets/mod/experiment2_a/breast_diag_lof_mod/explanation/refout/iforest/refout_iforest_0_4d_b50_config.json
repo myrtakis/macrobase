@@ -1,26 +1,28 @@
 {
   "result" : {
-    "classificationTime" : 54196,
+    "classificationTime" : 58302,
     "updateTime" : 0,
     "trainingTime" : 0,
     "finalAlgorithmConfig" : {
       "parameters" : {
         "d1" : 0.7,
-        "d2" : 3,
+        "d2" : 4,
         "psize" : 100,
         "beamSize" : 100,
         "topk" : 100,
-        "classifierRunRepeat" : 1
+        "classifierRunRepeat" : 10
       }
     },
-    "algorithmOutputFilePath" : "refout_fast_abod_0_3d_b50_config.csv",
-    "maxMemory" : 878820904
+    "algorithmOutputFilePath" : "refout_iforest_0_4d_b50_config.csv",
+    "maxMemory" : 1150151488
   },
   "config" : {
     "classifier" : {
-      "id" : "fast_abod",
+      "id" : "iforest",
       "parameters" : {
-        "n_neighbors" : 10
+        "treesCount" : 100,
+        "subsampleSize" : 256,
+        "trainSize" : 4000
       }
     },
     "dataset" : {
@@ -33,11 +35,11 @@
       "id" : "refout",
       "parameters" : {
         "d1" : 0.7,
-        "d2" : 3,
+        "d2" : 4,
         "psize" : 100,
         "beamSize" : 100,
         "topk" : 100,
-        "classifierRunRepeat" : 1
+        "classifierRunRepeat" : 10
       }
     }
   }

@@ -1,26 +1,25 @@
 {
   "result" : {
-    "classificationTime" : 54196,
+    "classificationTime" : 26423004,
     "updateTime" : 0,
     "trainingTime" : 0,
     "finalAlgorithmConfig" : {
       "parameters" : {
-        "d1" : 0.7,
-        "d2" : 3,
-        "psize" : 100,
-        "beamSize" : 100,
+        "beamWidth" : 100,
         "topk" : 100,
+        "dmax" : 4,
+        "beamFixed" : true,
         "classifierRunRepeat" : 1
       }
     },
-    "algorithmOutputFilePath" : "refout_fast_abod_0_3d_b50_config.csv",
-    "maxMemory" : 878820904
+    "algorithmOutputFilePath" : "beam_fast_abod_0_4d_b50_config.csv",
+    "maxMemory" : 479173432
   },
   "config" : {
     "classifier" : {
       "id" : "fast_abod",
       "parameters" : {
-        "n_neighbors" : 10
+        "n_neighbors" : 15
       }
     },
     "dataset" : {
@@ -30,13 +29,12 @@
       "labelColumn" : "is_anomaly"
     },
     "explainer" : {
-      "id" : "refout",
+      "id" : "beam",
       "parameters" : {
-        "d1" : 0.7,
-        "d2" : 3,
-        "psize" : 100,
-        "beamSize" : 100,
+        "beamWidth" : 100,
         "topk" : 100,
+        "dmax" : 4,
+        "beamFixed" : true,
         "classifierRunRepeat" : 1
       }
     }

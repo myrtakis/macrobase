@@ -1,26 +1,27 @@
 {
   "result" : {
-    "classificationTime" : 99664,
+    "classificationTime" : 34121,
     "updateTime" : 0,
     "trainingTime" : 0,
     "finalAlgorithmConfig" : {
       "parameters" : {
         "d1" : 0.7,
-        "d2" : 2,
+        "d2" : 4,
         "psize" : 100,
         "beamSize" : 100,
         "topk" : 100,
         "classifierRunRepeat" : 1
       }
     },
-    "algorithmOutputFilePath" : "refout_fast_abod_0_2d_b50_config.csv",
-    "maxMemory" : 146784272
+    "algorithmOutputFilePath" : "refout_lof_0_4d_b50_config.csv",
+    "maxMemory" : 2096236800
   },
   "config" : {
     "classifier" : {
-      "id" : "fast_abod",
+      "id" : "lof-bkaluza",
       "parameters" : {
-        "n_neighbors" : 10
+        "knn" : 15,
+        "trainSize" : 100
       }
     },
     "dataset" : {
@@ -33,7 +34,7 @@
       "id" : "refout",
       "parameters" : {
         "d1" : 0.7,
-        "d2" : 2,
+        "d2" : 4,
         "psize" : 100,
         "beamSize" : 100,
         "topk" : 100,

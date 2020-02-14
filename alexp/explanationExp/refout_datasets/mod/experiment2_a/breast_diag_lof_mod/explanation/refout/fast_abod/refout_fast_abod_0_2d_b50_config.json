@@ -1,6 +1,6 @@
 {
   "result" : {
-    "classificationTime" : 58990,
+    "classificationTime" : 47031,
     "updateTime" : 0,
     "trainingTime" : 0,
     "finalAlgorithmConfig" : {
@@ -14,7 +14,7 @@
       }
     },
     "algorithmOutputFilePath" : "refout_fast_abod_0_2d_b50_config.csv",
-    "maxMemory" : 88107096
+    "maxMemory" : 144375384
   },
   "config" : {
     "classifier" : {
