@@ -1,6 +1,6 @@
 {
   "result" : {
-    "classificationTime" : 359530,
+    "classificationTime" : 526240,
     "updateTime" : 0,
     "trainingTime" : 0,
     "finalAlgorithmConfig" : {
@@ -14,7 +14,7 @@
       }
     },
     "algorithmOutputFilePath" : "hics_lof_0_4d_b50_config.csv",
-    "maxMemory" : 2177048640
+    "maxMemory" : 786940232
   },
   "config" : {
     "classifier" : {
